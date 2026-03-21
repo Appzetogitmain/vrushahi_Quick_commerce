@@ -1,0 +1,6 @@
+# Firebase
+kosil-e-com-firebase-adminsdk-fbsvc-8d87bf14f4.json
+*.json
+
+# Backend secret
+backend/config/firebase-service-account.json

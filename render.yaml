@@ -1,0 +1,32 @@
+services:
+  # Backend Service
+  - type: web
+    name: vrushali-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false # User must set this in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://vrushali-frontend.onrender.com # Update this after frontend deploy
+
+  # Frontend Service
+  - type: web
+    name: vrushali-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishDir: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://vrushali-backend.onrender.com/api/v1
