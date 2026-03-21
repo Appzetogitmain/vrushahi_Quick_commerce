@@ -1,4 +1,6 @@
+# ------------------------------
 # Logs
+# ------------------------------
 logs
 *.log
 npm-debug.log*
@@ -7,36 +9,74 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment variables
+# ------------------------------
+# Dependency directories
+# ------------------------------
+node_modules/
+
+# ------------------------------
+# Build outputs
+# ------------------------------
+dist/
+dist-ssr/
+build/
+.next/
+out/
+
+# ------------------------------
+# Environment variables (IMPORTANT 🔐)
+# ------------------------------
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# ------------------------------
+# Editor & IDE files
+# ------------------------------
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Large files and archives
+# ------------------------------
+# Cache & temp files
+# ------------------------------
+.cache/
+.tmp/
+.temp/
+
+# ------------------------------
+# Vercel / Deployment
+# ------------------------------
+.vercel/
+
+# ------------------------------
+# OS generated files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# Archives & large files
+# ------------------------------
 *.zip
 *.tar
 *.tar.gz
 *.rar
 *.7z
 
-# Large asset directories (if not needed in repo)
-# assets/Image-20251130T081301Z-1-001/Image/product.zip
+# ------------------------------
+# Optional: Ignore large assets
+# ------------------------------
+# assets/uploads/
+# public/uploads/
 
+# ------------------------------
+# IMPORTANT: Allow JSON files ✅
+# ------------------------------
+# (Do NOT add *.json here)
