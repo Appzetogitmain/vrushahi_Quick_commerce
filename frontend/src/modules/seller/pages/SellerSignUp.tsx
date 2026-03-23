@@ -232,28 +232,6 @@ export default function SellerSignUp() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-green-100 via-slate-50 to-teal-50 flex flex-col items-center justify-center px-4 py-8 relative">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="absolute top-6 left-6 z-10 w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-md shadow-lg shadow-black/5 flex items-center justify-center hover:bg-white transition-all duration-300 group"
-        aria-label="Back">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          className="text-neutral-800 transition-transform group-hover:-translate-x-0.5"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M15 18L9 12L15 6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
 
       {/* Sign Up Card */}
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-500">
