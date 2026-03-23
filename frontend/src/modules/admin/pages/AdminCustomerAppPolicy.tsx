@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export default function AdminCustomerAppPolicy() {
-  const [policyContent, setPolicyContent] = useState(`Welcome to Vrushali e-Commerce!
+  const [policyContent, setPolicyContent] = useState(`Welcome to vrushahi e-Commerce!
 
 By using our customer app, you agree to the following terms and conditions:
 

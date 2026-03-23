@@ -371,7 +371,7 @@ export default function SellerSalesReport() {
             <footer className="px-4 sm:px-6 py-4 text-center bg-white border-t border-neutral-200">
                 <p className="text-xs sm:text-sm text-neutral-600">
                     Copyright © 2025. Developed By{' '}
-                    <span className="font-semibold text-teal-600">Vrushali e-Commerce</span>
+                    <span className="font-semibold text-teal-600">vrushahi e-Commerce</span>
                 </p>
             </footer>
         </div>

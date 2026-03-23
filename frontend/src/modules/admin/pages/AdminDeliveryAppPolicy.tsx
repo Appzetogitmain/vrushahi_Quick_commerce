@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export default function AdminDeliveryAppPolicy() {
-  const [policyContent, setPolicyContent] = useState(`Welcome to Vrushali e-Commerce Delivery Partner Program!
+  const [policyContent, setPolicyContent] = useState(`Welcome to vrushahi e-Commerce Delivery Partner Program!
 
 By using our delivery app, you agree to the following terms and conditions:
 

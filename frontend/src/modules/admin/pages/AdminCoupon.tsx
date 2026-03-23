@@ -133,7 +133,7 @@ export default function AdminCoupon() {
 
       // Upload coupon image if provided
       if (couponImageFile) {
-        const imageResult = await uploadImage(couponImageFile, "vrushali/coupons");
+        const imageResult = await uploadImage(couponImageFile, "vrushahi/coupons");
         imageUrl = imageResult.secureUrl;
       }
 
@@ -778,7 +778,7 @@ export default function AdminCoupon() {
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
         <a href="#" className="text-blue-600 hover:underline">
-          Vrushali e-Commerce
+          vrushahi e-Commerce
         </a>
       </footer>
     </div>

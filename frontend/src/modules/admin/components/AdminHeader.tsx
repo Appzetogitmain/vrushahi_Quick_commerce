@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import vrushaliLogo from "@assets/LogoLatest.png";
+import vrushahiLogo from "@assets/LogoLatest.png";
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -95,8 +95,8 @@ export default function AdminHeader({
             onClick={handleLogoClick}
             className="hover:opacity-80 transition-opacity">
             <img
-              src={vrushaliLogo}
-              alt="Vrushali"
+              src={vrushahiLogo}
+              alt="vrushahi"
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "200px" }}
             />

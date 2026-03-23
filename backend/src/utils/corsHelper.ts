@@ -29,11 +29,11 @@ export const isOriginAllowed = (origin: string | undefined): boolean => {
       .map((url) => url.trim().replace(/\/$/, '')) // Remove trailing slashes
       .filter((url) => url.length > 0);
 
-    // Default production origins (explicitly include www.vrushali.com and www.kosil.com)
+    // Default production origins (explicitly include www.vrushahi.com and www.kosil.com)
     const defaultOrigins = [
-      'https://www.vrushali.com',
-      'https://vrushali.com',
-      'https://vrushali-frontend.onrender.com',
+      'https://www.vrushahi.com',
+      'https://vrushahi.com',
+      'https://vrushahi-frontend.onrender.com',
       'https://www.kosil.com',
       'https://kosil.com',
       'https://kosil-frontend.onrender.com',

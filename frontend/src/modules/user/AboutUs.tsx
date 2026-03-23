@@ -55,7 +55,7 @@ export default function AboutUs() {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-neutral-900 mb-2">Vrushali</h2>
+          <h2 className="text-3xl font-bold text-neutral-900 mb-2">vrushahi</h2>
           <p className="text-sm text-neutral-600">
             Your Trusted e-Commerce Partner
           </p>
@@ -89,7 +89,7 @@ export default function AboutUs() {
             Our Mission
           </h3>
           <p className="text-sm text-neutral-700 leading-relaxed">
-            At Vrushali, we're committed to revolutionizing the way you shop and
+            At vrushahi, we're committed to revolutionizing the way you shop and
             receive your products. Our mission is to provide lightning-fast
             delivery services while maintaining the highest standards of quality
             and customer satisfaction.
@@ -133,7 +133,7 @@ export default function AboutUs() {
             What We Do
           </h3>
           <p className="text-sm text-neutral-700 leading-relaxed mb-4">
-            Vrushali is a comprehensive e-commerce platform that connects customers
+            vrushahi is a comprehensive e-commerce platform that connects customers
             with a wide range of products across multiple categories including
             groceries, fashion, electronics, pharmacy, and much more.
           </p>
@@ -326,7 +326,7 @@ export default function AboutUs() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-neutral-700">support@vrushali.com</span>
+              <span className="text-neutral-700">support@vrushahi.com</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <svg
@@ -380,7 +380,7 @@ export default function AboutUs() {
         <div className="mt-8 text-center">
           <p className="text-xs text-neutral-500">Version 1.0.0</p>
           <p className="text-xs text-neutral-500 mt-1">
-            © 2024 Vrushali. All rights reserved.
+            © 2024 vrushahi. All rights reserved.
           </p>
         </div>
       </div>

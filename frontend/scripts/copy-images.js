@@ -297,14 +297,14 @@ function copyShopByStoreImages() {
   });
 }
 
-// Copy vrushali logo
-function copyVrushaliLogo() {
-  const vrushaliPath = path.join(assetsDir, "LogoLatest.png");
-  if (fs.existsSync(vrushaliPath)) {
+// Copy vrushahi logo
+function copyvrushahiLogo() {
+  const vrushahiPath = path.join(assetsDir, "LogoLatest.png");
+  if (fs.existsSync(vrushahiPath)) {
     const destPath = path.join(publicAssetsDir, "LogoLatest.png");
     if (!fs.existsSync(destPath)) {
-      fs.copyFileSync(vrushaliPath, destPath);
-      console.log("Copied vrushali logo: LogoLatest.png");
+      fs.copyFileSync(vrushahiPath, destPath);
+      console.log("Copied vrushahi logo: LogoLatest.png");
     }
   }
 }
@@ -336,6 +336,6 @@ copyProductImages();
 copyBannerImage();
 copyShopByStoreImages();
 copyLoginVideo();
-copyVrushaliLogo();
+copyvrushahiLogo();
 copyDeliveryIcon();
 console.log("Image copy completed!");

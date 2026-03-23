@@ -262,7 +262,7 @@ export default function SellerSignUp() {
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
               src="/assets/LogoLatest.png"
-              alt="Vrushali"
+              alt="vrushahi"
               className="relative h-28 w-auto mx-auto object-contain" // Slightly smaller logo for sign up form space
             />
           </div>
@@ -745,7 +745,7 @@ export default function SellerSignUp() {
 
       {/* Footer Text */}
       <p className="mt-6 text-xs text-neutral-500 text-center max-w-md">
-        By continuing, you agree to Vrushali's Terms of Service and Privacy Policy
+        By continuing, you agree to vrushahi's Terms of Service and Privacy Policy
       </p>
     </div>
   );

@@ -54,9 +54,9 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
                     // Default production origins if FRONTEND_URL not set
                     const defaultOrigins = [
-                        "https://www.vrushali.com",
-                        "https://vrushali.com",
-                        "https://vrushali-frontend.onrender.com",
+                        "https://www.vrushahi.com",
+                        "https://vrushahi.com",
+                        "https://vrushahi-frontend.onrender.com",
                         "https://www.kosil.com",
                         "https://kosil.com",
                         "https://kosil-frontend.onrender.com",

@@ -383,7 +383,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
         return res.status(201).json({
             success: true,
-            message: "Order placed successfully in Vrushali!",
+            message: "Order placed successfully in vrushahi!",
             data: newOrder,
         });
 

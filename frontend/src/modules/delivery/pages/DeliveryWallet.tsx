@@ -122,7 +122,7 @@ export default function DeliveryWallet() {
                 key: razorpayKey,
                 amount: amount * 100,
                 currency: "INR",
-                name: "Vrushali Admin Payout",
+                name: "vrushahi Admin Payout",
                 description: "Settling collected COD cash",
                 order_id: razorpayOrderId,
                 prefill: {

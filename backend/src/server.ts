@@ -21,9 +21,9 @@ const httpServer = createServer(app);
 
 // Simple CORS configuration - Standard and reliable
 const allowedOrigins = [
-  "https://www.vrushali.com",
-  "https://vrushali.com",
-  "https://vrushali-frontend.onrender.com",
+  "https://www.vrushahi.com",
+  "https://vrushahi.com",
+  "https://vrushahi-frontend.onrender.com",
   "https://www.kosil.com",
   "https://kosil.com",
   "https://kosil-frontend.onrender.com",
@@ -102,7 +102,7 @@ app.set("io", io);
 // Routes
 app.get("/", (_req: Request, res: Response) => {
   res.json({
-    message: "Vrushali API Server is running!",
+    message: "vrushahi API Server is running!",
     version: "1.0.0",
     socketIO: "Listening for WebSocket connections",
   });
@@ -130,7 +130,7 @@ async function startServer() {
   await seedHeaderCategories();
 
   httpServer.listen(PORT, () => {
-    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mVrushali Server Started\x1b[0m");
+    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mvrushahi Server Started\x1b[0m");
     console.log(`   \x1b[36mPort:\x1b[0m http://localhost:${PORT}`);
     console.log(
       `   \x1b[36mEnvironment:\x1b[0m ${process.env.NODE_ENV || "development"}`

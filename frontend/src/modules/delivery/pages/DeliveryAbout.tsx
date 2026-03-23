@@ -141,7 +141,7 @@ export default function DeliveryAbout() {
 
         {/* Copyright */}
         <div className="mt-6 text-center">
-          <p className="text-neutral-400 text-xs">© 2026 Vrushali e-Commerce. All rights reserved.</p>
+          <p className="text-neutral-400 text-xs">© 2026 vrushahi e-Commerce. All rights reserved.</p>
         </div>
       </div>
       <DeliveryBottomNav />

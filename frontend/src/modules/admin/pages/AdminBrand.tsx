@@ -121,7 +121,7 @@ export default function AdminBrand() {
 
       // Upload brand image if a new file is selected
       if (brandImageFile) {
-        const imageResult = await uploadImage(brandImageFile, "vrushali/brands");
+        const imageResult = await uploadImage(brandImageFile, "vrushahi/brands");
         imageUrl = imageResult.secureUrl;
       }
 
@@ -689,7 +689,7 @@ export default function AdminBrand() {
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
-          Vrushali e-Commerce
+          vrushahi e-Commerce
         </a>
       </div>
     </div>

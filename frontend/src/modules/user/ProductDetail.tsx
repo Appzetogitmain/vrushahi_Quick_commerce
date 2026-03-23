@@ -943,7 +943,7 @@ export default function ProductDetail() {
                         Customer Care Details:
                       </span>
                       <span className="text-xs text-neutral-600">
-                        Email: help@vrushali.com
+                        Email: help@vrushahi.com
                       </span>
                     </div>
                     <div className="flex items-start">
@@ -983,7 +983,7 @@ export default function ProductDetail() {
                           Seller:
                         </span>
                         <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          Vrushali Partner (
+                          vrushahi Partner (
                           {product.sellerId.slice(-6).toUpperCase()})
                         </span>
                       </div>
