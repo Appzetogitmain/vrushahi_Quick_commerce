@@ -9,6 +9,7 @@ import { uploadDocument } from "../../../services/api/uploadService";
 import { validateDocumentFile } from "../../../utils/imageUpload";
 import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
+import LogoLatest from "@assets/LogoLatest.png";
 
 export default function DeliverySignUp() {
   const navigate = useNavigate();
@@ -291,7 +292,7 @@ export default function DeliverySignUp() {
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
-              src="/assets/LogoLatest.png"
+              src={LogoLatest}
               alt="vrushahi"
               className="relative h-28 w-auto mx-auto object-contain"
             />

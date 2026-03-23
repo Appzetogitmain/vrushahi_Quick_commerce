@@ -6,6 +6,7 @@ import {
 } from "../../../services/api/auth/sellerAuthService";
 import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
+import LogoLatest from "@assets/LogoLatest.png";
 
 export default function SellerLogin() {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ export default function SellerLogin() {
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
-              src="/assets/LogoLatest.png"
+              src={LogoLatest}
               alt="vrushahi"
               className="relative h-32 w-auto mx-auto object-contain"
             />

@@ -14,6 +14,7 @@ import {
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
 import { useEffect } from "react";
+import LogoLatest from "@assets/LogoLatest.png";
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -261,7 +262,7 @@ export default function SellerSignUp() {
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
-              src="/assets/LogoLatest.png"
+              src={LogoLatest}
               alt="vrushahi"
               className="relative h-28 w-auto mx-auto object-contain" // Slightly smaller logo for sign up form space
             />

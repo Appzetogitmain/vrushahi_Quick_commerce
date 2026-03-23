@@ -7,6 +7,7 @@ import {
 import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
 import { removeAuthToken } from "../../../services/api/config";
+import LogoLatest from "@assets/LogoLatest.png";
 
 export default function DeliveryLogin() {
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ export default function DeliveryLogin() {
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
-              src="/assets/LogoLatest.png"
+              src={LogoLatest}
               alt="vrushahi"
               className="relative h-32 w-auto mx-auto object-contain"
             />
