@@ -201,42 +201,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Find existing item - match by product ID and variant (if variant exists)
       const existingItem = validItems.find((item) => {
-        const itemProductId = item.product.id || item.product._id;
-        if (itemProductId !== productId) return false;
+        const itemProductId = String(item.product.id || item.product._id);
+        const targetProductId = String(productId);
+        if (itemProductId !== targetProductId) return false;
 
-        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+        const itemProxy = item.product as any;
+        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
 
         // If specific variant info is provided, try to match it
-        if (variantId || variantTitle) {
-          return itemVariantId === variantId ||
-            itemVariantTitle === variantTitle ||
-            (itemVariantId && itemVariantId === variantTitle);
+        const targetVariantId = String(variantId || "");
+        const targetVariantTitle = String(variantTitle || "");
+
+        if (targetVariantId || targetVariantTitle) {
+          return (targetVariantId && itemVariantId === targetVariantId) ||
+                 (targetVariantTitle && itemVariantTitle === targetVariantTitle);
         }
 
         // If no variant info provided (e.g. from ProductCard), match ANY item of this product
-        // This ensures quantity updates work even if the item in cart has variant info
         return true;
       });
 
       if (existingItem) {
         return validItems.map((item) => {
-          const itemProductId = item.product.id || item.product._id;
-          if (itemProductId !== productId) return item;
-
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-
-          // If variant info provided, match specifically
-          if (variantId || variantTitle) {
-            const isMatch = itemVariantId === variantId ||
-              itemVariantTitle === variantTitle ||
-              (itemVariantId && itemVariantId === variantTitle);
-            return isMatch ? { ...item, quantity: item.quantity + 1 } : item;
-          }
-
-          // If no variant info, and this is the item we found above, update its quantity
-          return item === existingItem ? { ...item, quantity: item.quantity + 1 } : item;
+          if (item !== existingItem) return item;
+          return { ...item, quantity: item.quantity + 1 };
         });
       }
       return [...validItems, { product: normalizedProduct, quantity: 1 }];
@@ -291,15 +280,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Find item matching product ID and variant
     const itemToRemove = items.find(item => {
       if (!item?.product) return false;
-      const itemProductId = item.product.id || item.product._id;
-      if (itemProductId !== productId) return false;
+      const itemProductId = String(item.product.id || item.product._id);
+      const targetProductId = String(productId);
+      if (itemProductId !== targetProductId) return false;
 
-      if (variantId || variantTitle) {
-        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-        return itemVariantId === variantId ||
-          itemVariantTitle === variantTitle ||
-          (itemVariantId && itemVariantId === variantTitle);
+      const itemProxy = item.product as any;
+      const targetVariantId = String(variantId || "");
+      const targetVariantTitle = String(variantTitle || "");
+
+      if (targetVariantId || targetVariantTitle) {
+        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
+        return (targetVariantId && itemVariantId === targetVariantId) ||
+               (targetVariantTitle && itemVariantTitle === targetVariantTitle);
       }
       return true;
     });
@@ -357,16 +350,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Find item matching product ID and variant (if variant info provided)
     const itemToUpdate = items.find(item => {
       if (!item?.product) return false;
-      const itemProductId = item.product.id || item.product._id;
-      if (itemProductId !== productId) return false;
+      const itemProductId = String(item.product.id || item.product._id);
+      const targetProductId = String(productId);
+      if (itemProductId !== targetProductId) return false;
+
+      const itemProxy = item.product as any;
+      const targetVariantId = String(variantId || "");
+      const targetVariantTitle = String(variantTitle || "");
 
       // If variant info provided, match by variant
-      if (variantId || variantTitle) {
-        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-        return itemVariantId === variantId ||
-          itemVariantTitle === variantTitle ||
-          (itemVariantId && itemVariantId === variantTitle);
+      if (targetVariantId || targetVariantTitle) {
+        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
+        return (targetVariantId && itemVariantId === targetVariantId) ||
+               (targetVariantTitle && itemVariantTitle === targetVariantTitle);
       }
 
       // If no variant info, match ANY item of this product (ProductCard usage)
@@ -376,20 +373,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const previousItems = [...items];
     setItems((prevItems) =>
       prevItems.filter(item => item?.product).map((item) => {
-        const itemProductId = item.product.id || item.product._id;
-        if (itemProductId !== productId) return item;
+        if (!itemToUpdate) return item;
+        
+        // Match using the object found in the CLOSURE of the find call, 
+        // fallback to ID matching if needed for extra robustness
+        const isTarget = item === itemToUpdate || (
+          String(item.product.id || item.product._id) === String(productId) &&
+          (!variantId || String((item.product as any).variantId) === String(variantId))
+        );
 
-        // If variant info provided, match by variant
-        if (variantId || variantTitle) {
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-          if (itemVariantId === variantId ||
-            itemVariantTitle === variantTitle ||
-            (itemVariantId && itemVariantId === variantTitle)) {
-            return { ...item, quantity };
-          }
-        } else if (item === itemToUpdate) {
-          // If no variant info, match the specific item we found above
+        if (isTarget) {
           return { ...item, quantity };
         }
         return item;

@@ -10,8 +10,8 @@ export interface Theme {
 
 export const themes: Record<string, Theme> = {
   all: {
-    primary: ['rgb(34, 197, 94)', 'rgb(74, 222, 128)', 'rgb(134, 239, 172)', 'rgb(187, 247, 208)'],
-    secondary: ['rgb(187, 247, 208)', 'rgb(134, 239, 172)', 'rgb(74, 222, 128)'],
+    primary: ['rgb(147, 51, 234)', 'rgb(168, 85, 247)', 'rgb(192, 132, 252)', 'rgb(233, 213, 255)'],
+    secondary: ['rgb(233, 213, 255)', 'rgb(192, 132, 252)', 'rgb(168, 85, 247)'],
     textColor: '#1a1a1a',
     accentColor: '#000',
     bannerText: 'HOUSEFULL',

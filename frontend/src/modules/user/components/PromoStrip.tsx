@@ -552,178 +552,17 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
     }
   };
 
+  const isHome = activeTab === "all";
+
   return (
     <div
       className="relative"
       style={{
-        background: `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`,
-        paddingTop: "12px",
-        paddingBottom: "0px",
+        background: isHome ? "#FFFFFF" : `linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]}, ${theme.primary[3]}, ${theme.primary[3]})`,
+        paddingTop: isHome ? "0px" : "12px",
+        paddingBottom: "12px",
         marginTop: 0,
       }}>
-      {/* HOUSEFULL SALE Banner */}
-      <div
-        className="px-4 mb-3 text-center relative"
-        style={{ minHeight: "80px" }}>
-        {/* Snowflakes Container */}
-        <div
-          ref={snowflakesRef}
-          className="absolute inset-0 pointer-events-none overflow-hidden"
-          style={{ top: 0, bottom: "auto", height: "100px" }}>
-          {/* Left side snowflakes */}
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={`left-${i}`}
-              className="snowflake absolute"
-              style={{
-                left: `${5 + (i % 4) * 12}%`,
-                top: `${Math.floor(i / 4) * 30}px`,
-              }}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{
-                  filter: "drop-shadow(0 0 2px rgba(255, 255, 255, 0.9))",
-                }}>
-                <path
-                  d="M12 1V5M12 19V23M3 12H1M23 12H21M20.5 20.5L18.5 18.5M20.5 3.5L18.5 5.5M3.5 20.5L5.5 18.5M3.5 3.5L5.5 5.5M18.5 18.5L16.5 16.5M18.5 5.5L16.5 7.5M5.5 18.5L7.5 16.5M5.5 5.5L7.5 7.5"
-                  stroke="rgba(255, 255, 255, 1)"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-                <circle cx="12" cy="12" r="1.8" fill="rgba(255, 255, 255, 1)" />
-              </svg>
-            </div>
-          ))}
-          {/* Right side snowflakes */}
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={`right-${i}`}
-              className="snowflake absolute"
-              style={{
-                right: `${5 + (i % 4) * 12}%`,
-                top: `${Math.floor(i / 4) * 30}px`,
-              }}>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{
-                  filter: "drop-shadow(0 0 2px rgba(255, 255, 255, 0.9))",
-                }}>
-                <path
-                  d="M12 1V5M12 19V23M3 12H1M23 12H21M20.5 20.5L18.5 18.5M20.5 3.5L18.5 5.5M3.5 20.5L5.5 18.5M3.5 3.5L5.5 5.5M18.5 18.5L16.5 16.5M18.5 5.5L16.5 7.5M5.5 18.5L7.5 16.5M5.5 5.5L7.5 7.5"
-                  stroke="rgba(255, 255, 255, 1)"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-                <circle cx="12" cy="12" r="1.8" fill="rgba(255, 255, 255, 1)" />
-              </svg>
-            </div>
-          ))}
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center justify-center gap-3 mb-0">
-            {/* Left Lightning Bolt */}
-            <svg
-              width="28"
-              height="36"
-              viewBox="0 0 24 30"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="flex-shrink-0">
-              <path
-                d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
-                fill="#FFD700"
-                stroke="#FFA500"
-                strokeWidth="0.5"
-              />
-            </svg>
-
-            {/* HOUSEFULL Text */}
-            <h1
-              ref={housefullRef}
-              className="text-3xl font-black text-white"
-              style={
-                {
-                  fontFamily: '"Poppins", sans-serif',
-                  letterSpacing: "1.5px",
-                  lineHeight: "1.1",
-                  textShadow:
-                    `-2px -2px 0 ${theme.accentColor}, 2px -2px 0 ${theme.accentColor}, -2px 2px 0 ${theme.accentColor}, 2px 2px 0 ${theme.accentColor}, ` +
-                    `-2px 0px 0 ${theme.accentColor}, 2px 0px 0 ${theme.accentColor}, 0px -2px 0 ${theme.accentColor}, 0px 2px 0 ${theme.accentColor}, ` +
-                    `-1px -1px 0 ${theme.accentColor}, 1px -1px 0 ${theme.accentColor}, -1px 1px 0 ${theme.accentColor}, 1px 1px 0 ${theme.accentColor}, ` +
-                    "0px 2px 0px rgba(0, 0, 0, 0.8), 0px 4px 0px rgba(0, 0, 0, 0.6), " +
-                    "0px 6px 0px rgba(0, 0, 0, 0.4), 0px 8px 8px rgba(0, 0, 0, 0.3), " +
-                    "2px 2px 2px rgba(0, 0, 0, 0.5)",
-                } as React.CSSProperties
-              }>
-              {headingText.split("").map((letter, index) => (
-                <span key={index} className="housefull-letter inline-block">
-                  {letter}
-                </span>
-              ))}
-            </h1>
-
-            {/* Right Lightning Bolt */}
-            <svg
-              width="28"
-              height="36"
-              viewBox="0 0 24 30"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="flex-shrink-0"
-              style={{ transform: "scaleX(-1)" }}>
-              <path
-                d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
-                fill="#FFD700"
-                stroke="#FFA500"
-                strokeWidth="0.5"
-              />
-            </svg>
-          </div>
-
-          {/* SALE Text */}
-          <div
-            className="flex justify-center mb-0.5"
-            style={{ marginTop: "-3px" }}>
-            <h2
-              ref={saleRef}
-              className="text-xl font-black text-white"
-              style={
-                {
-                  fontFamily: '"Poppins", sans-serif',
-                  letterSpacing: "1.5px",
-                  textShadow:
-                    `-1.5px -1.5px 0 ${theme.accentColor}, 1.5px -1.5px 0 ${theme.accentColor}, -1.5px 1.5px 0 ${theme.accentColor}, 1.5px 1.5px 0 ${theme.accentColor}, ` +
-                    `-1.5px 0px 0 ${theme.accentColor}, 1.5px 0px 0 ${theme.accentColor}, 0px -1.5px 0 ${theme.accentColor}, 0px 1.5px 0 ${theme.accentColor}, ` +
-                    `-1px -1px 0 ${theme.accentColor}, 1px -1px 0 ${theme.accentColor}, -1px 1px 0 ${theme.accentColor}, 1px 1px 0 ${theme.accentColor}, ` +
-                    "0px 2px 0px rgba(0, 0, 0, 0.8), 0px 4px 0px rgba(0, 0, 0, 0.6), " +
-                    "0px 6px 0px rgba(0, 0, 0, 0.4), 0px 8px 8px rgba(0, 0, 0, 0.3), " +
-                    "2px 2px 2px rgba(0, 0, 0, 0.5)",
-                } as React.CSSProperties
-              }>
-              {saleTextValue}
-            </h2>
-          </div>
-
-          {/* Dates */}
-          {dateRange && (
-            <div
-              ref={dateRef}
-              className="font-bold text-xs text-center mt-1"
-              style={{ color: theme.textColor }}>
-              {dateRange}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Main Content: Crazy Deals + Category Cards */}
       <div className="px-4 mt-2">
@@ -862,7 +701,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     className="group rounded-lg transition-all duration-300 hover:shadow-md active:scale-[0.98] h-full flex flex-col overflow-hidden relative"
                     style={{
                       minHeight: "90px",
-                      background: "rgba(255, 247, 237, 0.9)", // Very light orange
+                      background: "white", 
                     }}>
                     {/* Green Discount Banner - Only around text, centered at top */}
                     <div

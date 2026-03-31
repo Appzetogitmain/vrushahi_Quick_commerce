@@ -8,6 +8,13 @@ import AddToCartAnimation from './AddToCartAnimation';
  * 
  * For new implementations, use AddToCartAnimation directly.
  */
-export default function FloatingCartPill() {
-  return <AddToCartAnimation />;
+interface FloatingCartPillProps {
+  /**
+   * Bottom offset in pixels.
+   */
+  bottomOffset?: number;
+}
+
+export default function FloatingCartPill({ bottomOffset }: FloatingCartPillProps) {
+  return <AddToCartAnimation bottomOffset={bottomOffset} />;
 }

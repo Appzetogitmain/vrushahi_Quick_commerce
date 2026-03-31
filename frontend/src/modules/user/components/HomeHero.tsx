@@ -12,6 +12,13 @@ import { getIconByName } from "../../../utils/iconLibrary";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// Helper function to convert RGB string to RGBA
+const rgbToRgba = (rgb: string, alpha: number) => {
+  if (!rgb) return `rgba(255, 255, 255, ${alpha})`;
+  if (rgb.startsWith('rgba')) return rgb;
+  return rgb.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+};
+
 interface HomeHeroProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
@@ -342,58 +349,64 @@ export default function HomeHero({
   const theme = getTheme(activeTab || "all");
   const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
 
-  // Helper to convert RGB to RGBA
-  const rgbToRgba = (rgb: string, alpha: number) => {
-    return rgb.replace("rgb", "rgba").replace(")", `, ${alpha})`);
-  };
+  const isHome = activeTab === "all";
 
   return (
     <div
       ref={heroRef}
       style={{
-        background: heroGradient,
+        background: isHome ? "#cdbae0" : heroGradient,
         paddingBottom: 0,
         marginBottom: 0,
       }}>
-      {/* Top section with delivery info and buttons - NOT sticky */}
-      <div>
+      {/* Top section - Delivery Info */}
+      <div className="">
         <div
           ref={topSectionRef}
-          className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-          <div className="flex items-start justify-between mb-2 md:mb-2">
-            {/* Left: Text content */}
-            <div className="flex-1 pr-2">
-              {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">
-                vrushahi e-Commerce
+          className="px-4 md:px-6 lg:px-8 pt-4 md:pt-4 pb-0">
+          <div className="flex items-center justify-between mb-4 gap-2">
+            {/* Left: Location and Delivery Time - Clickable */}
+            <div 
+              onClick={() => window.dispatchEvent(new CustomEvent('openLocationPicker'))}
+              className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer group"
+            >
+              <div className="mt-0.5 flex-shrink-0">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
+                    fill={isHome ? "#000000" : "currentColor"} 
+                  />
+                </svg>
               </div>
-              {/* Delivery time - large, bold, dark grey/black */}
-              <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">
-                {appConfig.estimatedDeliveryTime}
-              </div>
-              {/* Location with dropdown indicator - only show if location is provided */}
-              {locationDisplayText && (
-                <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
-                  <span className="line-clamp-1" title={locationDisplayText}>
-                    {locationDisplayText}
-                  </span>
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="flex-shrink-0">
-                    <path
-                      d="M6 9l6 6 6-6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+              
+              <div className="flex flex-col min-w-0">
+                <div className={`text-[15px] font-extrabold tracking-wide uppercase leading-tight group-hover:opacity-70 transition-colors`} 
+                   style={{ color: isHome ? '#000000' : 'inherit' }}>
+                  DELIVERY IN {appConfig.estimatedDeliveryTime}
                 </div>
-              )}
+                {locationDisplayText && (
+                  <div className={`text-xs mt-0.5 truncate pr-2 group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>
+                    {locationDisplayText}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Cart Icon */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/cart");
+                }} 
+                className={`p-2 rounded-full transition-colors ${isHome ? 'bg-black/5 hover:bg-black/10' : 'bg-white/20 hover:bg-white/30'}`}
+                title="Cart"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" 
+                    fill={isHome ? "#000000" : "currentColor"}
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -405,11 +418,13 @@ export default function HomeHero({
         className="sticky top-0 z-50"
         style={{
           ...(scrollProgress >= 0.1 && {
-            background: `linear-gradient(to bottom right,
-              ${rgbToRgba(theme.primary[0], 1 - scrollProgress)},
-              ${rgbToRgba(theme.primary[1], 1 - scrollProgress)},
-              ${rgbToRgba(theme.primary[2], 1 - scrollProgress)}),
-              rgba(255, 255, 255, ${scrollProgress})`,
+            background: isHome 
+              ? `rgba(255, 255, 255, 1)`
+              : `linear-gradient(to bottom right,
+                  ${rgbToRgba(theme.primary[0], 1 - scrollProgress)},
+                  ${rgbToRgba(theme.primary[1], 1 - scrollProgress)},
+                  ${rgbToRgba(theme.primary[2], 1 - scrollProgress)}),
+                  rgba(255, 255, 255, ${scrollProgress})`,
             boxShadow: `0 4px 6px -1px rgba(0, 0, 0, ${scrollProgress * 0.1})`,
             transition: "background 0.1s ease-out, box-shadow 0.1s ease-out",
           }),
@@ -418,39 +433,35 @@ export default function HomeHero({
           {/* Search Bar */}
           <div
             onClick={() => navigate("/search")}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 md:mb-1.5 bg-white"
-            style={{
-              backgroundColor:
-                scrollProgress > 0.1
-                  ? `rgba(249, 250, 251, ${scrollProgress})`
-                  : "white",
-              border:
-                scrollProgress > 0.1
-                  ? `1px solid rgba(229, 231, 235, ${scrollProgress})`
-                  : "none",
-            }}>
+            className={`w-full md:w-auto md:max-w-xl md:mx-auto flex items-center gap-3 cursor-pointer transition-all duration-300 mb-2 md:mb-1.5 ${
+              isHome 
+                ? "bg-white rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 hover:shadow-xl" 
+                : "bg-white rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 hover:shadow-xl"
+            }`}
+          >
             <svg
-              width="18"
-              height="18"
+              width="22"
+              height="22"
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="flex-shrink-0 md:w-4 md:h-4">
+              className="flex-shrink-0">
               <circle
                 cx="11"
                 cy="11"
                 r="8"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
+                stroke={(!isHome && scrollProgress > 0.5) || (isHome && scrollProgress > 0.5) ? "#9ca3af" : "#6b7280"}
                 strokeWidth="2"
+                strokeLinecap="round"
               />
               <path
                 d="m21 21-4.35-4.35"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
+                stroke={(!isHome && scrollProgress > 0.5) || (isHome && scrollProgress > 0.5) ? "#9ca3af" : "#6b7280"}
                 strokeWidth="2"
                 strokeLinecap="round"
               />
             </svg>
-            <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
+            <div className={`flex-1 relative overflow-hidden ${isHome ? 'h-6 md:h-6' : 'h-4 md:h-4'}`}>
               {searchSuggestions.map((suggestion, index) => {
                 const isActive = index === currentSearchIndex;
                 const prevIndex =
@@ -468,54 +479,27 @@ export default function HomeHero({
                           ? "-translate-y-full opacity-0"
                           : "translate-y-full opacity-0"
                     }`}>
-                    <span
-                      className={`text-xs md:text-xs`}
-                      style={{
-                        color: scrollProgress > 0.5 ? "#9ca3af" : "#6b7280",
-                      }}>
-                      Search &apos;{suggestion}&apos;
+                    <span className={`truncate ${isHome ? 'text-[17px] text-gray-500 font-normal mt-1' : 'text-xs md:text-xs text-gray-500'}`}>
+                      {isHome ? `Search for ${suggestion}...` : `Search '${suggestion}'`}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="flex-shrink-0 md:w-4 md:h-4">
-              <path
-                d="M12 1C13.1 1 14 1.9 14 3C14 4.1 13.1 5 12 5C10.9 5 10 4.1 10 3C10 1.9 10.9 1 12 1Z"
-                fill={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
-              />
-              <path
-                d="M19 10V17C19 18.1 18.1 19 17 19H7C5.9 19 5 18.1 5 17V10"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12 11V17"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M8 11V17"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M16 11V17"
-                stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+            {/* Right side icon in search bar */}
+            {isHome ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" />
+                <path d="M12 8v8" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" strokeLinecap="round" />
+                <path d="M8 12h8" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" />
+                <path d="M12 8v8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
+                <path d="M8 12h8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            )}
           </div>
         </div>
 

@@ -14,6 +14,7 @@ import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 
 import { useThemeContext } from "../../context/ThemeContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,6 +24,12 @@ export default function Home() {
   const activeTab = activeCategory; // mapping for existing code compatibility
   const setActiveTab = setActiveCategory;
   const contentRef = useRef<HTMLDivElement>(null);
+  const { user, isAuthenticated } = useAuth();
+
+  // Get user's first name for personalization
+  const firstName = isAuthenticated && user?.name 
+    ? user.name.split(' ')[0] 
+    : 'Friend';
 
   // State for dynamic data
   const [loading, setLoading] = useState(true);
@@ -160,7 +167,7 @@ export default function Home() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors">
+          className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors">
           Try Refreshing
         </button>
       </div>
@@ -171,9 +178,6 @@ export default function Home() {
     <div className="bg-white min-h-screen pb-20 md:pb-0" ref={contentRef}>
       {/* Hero Header with Gradient and Tabs */}
       <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Promo Strip */}
-      <PromoStrip activeTab={activeTab} />
 
       {/* Dynamic Banners Carousel */}
       {activeTab === "all" &&
@@ -188,10 +192,9 @@ export default function Home() {
         products={homeData.lowestPrices}
       />
 
-      {/* Main content */}
       <div
         ref={contentRef}
-        className="bg-neutral-50 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
+        className="bg-white -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
         {/* Filtered Products Section (from bestsellers) */}
         {activeTab !== "all" && filteredProducts.length > 0 && (
           <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8">
@@ -230,25 +233,6 @@ export default function Home() {
             {/* Sections only for 'All' tab */}
             {activeTab === "all" && (
               <>
-                <div className="mt-2 md:mt-4">
-                  <CategoryTileSection
-                    title="Bestsellers"
-                    tiles={
-                      homeData.bestsellers && homeData.bestsellers.length > 0
-                        ? homeData.bestsellers.slice(0, 6).map((card: any) => ({
-                          id: card.id,
-                          categoryId: card.categoryId,
-                          name: card.name || "Category",
-                          productImages: card.productImages || [],
-                          productCount: card.productCount || 0,
-                        }))
-                        : []
-                    }
-                    columns={3}
-                    showProductCount={true}
-                  />
-                </div>
-
                 <FeaturedThisWeek />
               </>
             )}
@@ -258,6 +242,17 @@ export default function Home() {
               <>
                 {homeData.homeSections.map((section: any) => {
                   if (!section.data || section.data.length === 0) return null;
+
+                  // Skip sections we are handling manually to avoid duplication
+                  const sectionTitle = section.title?.toLowerCase().trim() || "";
+                  if (
+                    sectionTitle.includes("top category") || 
+                    sectionTitle.includes("top categories") || 
+                    sectionTitle.includes("bestseller") ||
+                    sectionTitle.includes("bestsellers")
+                  ) {
+                    return null;
+                  }
 
                   const columnCount = Number(section.columns) || 4;
 
@@ -315,6 +310,28 @@ export default function Home() {
                   );
                 })}
               </>
+            )}
+
+            {/* Personalized Featured Section - Relocated above Shop by Store */}
+            {activeTab === "all" && (
+              <div className="mt-8">
+                <CategoryTileSection
+                  title={`${firstName}, still looking for these?`}
+                  variant="featured"
+                  size="small"
+                  tiles={
+                    homeData.bestsellers && homeData.bestsellers.length > 0
+                      ? homeData.bestsellers.slice(0, 10).map((card: any) => ({
+                        id: card.id,
+                        categoryId: card.categoryId,
+                        name: card.name || "Category",
+                        image: card.image || (card.productImages && card.productImages[0]),
+                      }))
+                      : []
+                    }
+                  showProductCount={false}
+                />
+              </div>
             )}
 
             {/* Shop by Store Section - only on 'all' tab */}

@@ -76,12 +76,12 @@ export default function Account() {
   // Show login/signup prompt for unregistered users
   if (!user) {
     return (
-      <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="bg-green-600 pb-3 md:pb-4 pt-4 md:pt-6 text-white">
+      <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
+      <div className="bg-[#cdbae0] pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
           <div className="px-4 md:px-6 lg:px-8">
             <button
               onClick={() => navigate(-1)}
-              className="mb-1 text-white hover:bg-white/10 p-1 rounded-full transition-colors"
+              className="mb-1 text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
               aria-label="Back">
 
 
@@ -96,13 +96,13 @@ export default function Account() {
               </svg>
             </button>
             <div className="flex flex-col items-center mb-2 md:mb-3">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/20 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/30 shadow-sm backdrop-blur-sm">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
                 <svg
                   width="28"
                   height="28"
                   viewBox="0 0 24 24"
                   fill="none"
-                  className="text-white md:w-10 md:h-10">
+                  className="text-neutral-900 md:w-10 md:h-10">
 
                   <path
                     d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
@@ -122,11 +122,10 @@ export default function Account() {
                   />
                 </svg>
               </div>
-              <h1 className="text-lg md:text-xl font-bold text-white mb-0.5">
+              <h1 className="text-lg md:text-xl font-black text-neutral-900 mb-0.5">
                 Welcome!
               </h1>
-              <p className="text-xs md:text-sm text-white/90 text-center px-4">
-
+              <p className="text-xs md:text-sm text-neutral-800 font-medium text-center px-4">
                 Login to access your profile, orders, and more
               </p>
             </div>
@@ -138,7 +137,7 @@ export default function Account() {
           <div className="max-w-md mx-auto">
             <button
               onClick={() => navigate("/login")}
-              className="w-full py-3.5 rounded-lg font-semibold text-base bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-lg shadow-teal-500/20">
+              className="w-full py-3.5 rounded-xl font-bold text-base bg-[#ff4d6d] text-white hover:bg-[#ef4466] transition-colors shadow-lg shadow-red-500/10 uppercase tracking-wide">
               Login
             </button>
           </div>
@@ -151,8 +150,8 @@ export default function Account() {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff4d6d] mx-auto mb-4"></div>
+          <p className="text-neutral-600 font-medium">Loading profile...</p>
         </div>
       </div>
     );
@@ -162,10 +161,10 @@ export default function Account() {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-500 font-bold mb-4">{error}</p>
           <button
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-teal-600 text-white rounded">
+            className="px-6 py-2.5 bg-[#ff4d6d] text-white rounded-xl font-bold uppercase text-xs tracking-wider">
             Go Back
           </button>
         </div>
@@ -178,12 +177,12 @@ export default function Account() {
   const displayDateOfBirth = profile?.dateOfBirth;
 
   return (
-    <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="bg-green-600 pb-3 md:pb-4 pt-4 md:pt-6 text-white">
+    <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
+      <div className="bg-[#cdbae0] pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
         <div className="px-4 md:px-6 lg:px-8">
           <button
             onClick={() => navigate(-1)}
-            className="mb-1 text-white hover:bg-white/10 p-1 rounded-full transition-colors"
+            className="mb-1 text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
             aria-label="Back">
 
 
@@ -198,13 +197,13 @@ export default function Account() {
             </svg>
           </button>
           <div className="flex flex-col items-center mb-2 md:mb-3">
-            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/20 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/30 shadow-sm backdrop-blur-sm">
+            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
               <svg
                 width="28"
                 height="28"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="text-white md:w-10 md:h-10">
+                className="text-neutral-900 md:w-10 md:h-10">
 
                 <path
                   d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
@@ -224,10 +223,10 @@ export default function Account() {
                 />
               </svg>
             </div>
-            <h1 className="text-lg md:text-xl font-bold text-white mb-0.5">
+            <h1 className="text-lg md:text-xl font-black text-neutral-900 mb-0.5">
               {displayName}
             </h1>
-            <div className="flex flex-col items-center gap-1 md:gap-1 text-[10px] md:text-xs text-white/90">
+            <div className="flex flex-col items-center gap-1 md:gap-1 text-[10px] md:text-xs text-neutral-800 font-bold">
 
               {displayPhone && (
                 <div className="flex items-center gap-1.5">
@@ -578,12 +577,12 @@ export default function Account() {
                     value={gstNumber}
                     onChange={(e) => setGstNumber(e.target.value)}
                     placeholder="Enter GST Number"
-                    className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d6d]/10 focus:border-[#ff4d6d] transition-all"
                   />
                   <button
                     type="submit"
                     disabled={!gstNumber.trim()}
-                    className="w-full rounded-xl bg-teal-600 text-white font-bold py-4 hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-lg shadow-teal-500/20 uppercase tracking-wider text-sm">
+                    className="w-full rounded-xl bg-[#ff4d6d] text-white font-black py-4 hover:bg-[#ef4466] disabled:opacity-50 transition-colors shadow-lg shadow-red-500/10 uppercase tracking-wider text-sm">
                     Save Details
                   </button>
                 </form>
