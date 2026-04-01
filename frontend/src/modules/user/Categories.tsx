@@ -75,7 +75,7 @@ export default function Categories() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
+          className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200"
         >
           Try Refreshing
         </button>
@@ -85,24 +85,21 @@ export default function Categories() {
 
 
   return (
-    <div className="pb-4 md:pb-8 bg-white min-h-screen">
+    <div className="pb-20 md:pb-8 bg-white min-h-screen font-sans">
       {/* Page Header */}
-      <div className="px-4 py-4 md:px-6 md:py-6 bg-green-600 sticky top-0 z-10 shadow-md flex items-center gap-4">
-
+      <div className="px-4 py-3 md:px-6 md:py-4 bg-[#cdbae0]/95 backdrop-blur-md sticky top-0 z-50 border-b border-black/5 flex items-center gap-4 transition-all duration-300">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => navigate(-1)}
-          className="text-white hover:bg-white/10 -ml-2"
+          className="text-black hover:bg-black/5 -ml-2 rounded-full"
         >
-          <ArrowLeftIcon className="w-6 h-6" />
+          <ArrowLeftIcon className="w-5 h-5" />
         </Button>
-        <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Categories</h1>
+        <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">Categories</h1>
       </div>
 
-
-
-      <div className="bg-neutral-50 pt-1 space-y-5 md:space-y-8 md:pt-4">
+      <div className="bg-white pt-2 space-y-6 md:space-y-10 md:pt-6">
         {/* Render all admin-created home sections */}
         {homeData.homeSections && homeData.homeSections.length > 0 ? (
           <>

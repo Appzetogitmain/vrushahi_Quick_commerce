@@ -130,7 +130,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isCartPage = location.pathname === '/cart';
   const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
   const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
-  const showFooter = !isCheckoutPage && !isProductDetailPage;
+  const showFooter = !isCheckoutPage;
 
   // const showComingSoon = Boolean(userLocation && hasSellersInRange === false);
   const showComingSoon = false; // Disabled for now to allow access to home page
@@ -363,7 +363,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Fixed Bottom Navigation - Mobile Only, Hidden on checkout pages */}
           {showFooter && (
             <nav
-              className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200/10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)] z-50 md:hidden"
+              className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200/5 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-[1001] md:hidden h-16 safe-area-bottom px-2"
             >
               <div className="flex justify-around items-center h-16">
                 {/* Home */}

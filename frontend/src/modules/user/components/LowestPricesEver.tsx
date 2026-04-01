@@ -393,7 +393,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
       {/* See All Footer */}
       <div className="px-4 mt-6">
          <button 
-           onClick={() => navigate('/category/all')}
+           onClick={() => navigate('/category/lowest-prices')}
            className="w-full bg-[#fff0f3] hover:bg-[#ffe5ea] transition-colors py-3 rounded-2xl flex items-center justify-center gap-2"
          >
             <span className="text-[#ff3269] font-black text-sm tracking-tight">See all</span>

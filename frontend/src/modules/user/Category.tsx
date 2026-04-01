@@ -33,6 +33,27 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       try {
+        if (id === 'lowest-prices') {
+          setCategory({
+            _id: 'lowest-prices',
+            id: 'lowest-prices',
+            name: 'Lowest Prices Ever',
+            icon: '🏷️',
+            isActive: true,
+          } as any);
+          setSubcategories([
+            {
+              _id: "all",
+              id: "all",
+              name: "All Deals",
+              icon: "🔥",
+              isActive: true,
+            } as any
+          ]);
+          setCategoryLoading(false);
+          return;
+        }
+
         const response = await getCategoryById(id!);
         if (response.success && response.data) {
           const {
@@ -89,9 +110,14 @@ export default function CategoryPage() {
         // However, for fetching products, the backend getProducts handles 'category' (parent)
         // and 'subcategory' separately.
 
-        const params: any = { category: category?._id || id };
-        if (selectedSubcategory !== "all") {
-          params.subcategory = selectedSubcategory;
+        const params: any = {};
+        if (id === 'lowest-prices') {
+          params.minDiscount = 1;
+        } else {
+          params.category = category?._id || id;
+          if (selectedSubcategory !== "all") {
+            params.subcategory = selectedSubcategory;
+          }
         }
         // Include user location for seller service radius filtering
         if (userLocation?.latitude && userLocation?.longitude) {
@@ -352,9 +378,13 @@ export default function CategoryPage() {
             <div className="flex items-center gap-2 text-[13px] text-neutral-500 font-medium mb-2 overflow-x-auto scrollbar-hide whitespace-nowrap">
                <button onClick={() => navigate('/')} className="hover:text-neutral-900 transition-colors">Home</button>
                <span>›</span>
-               <button onClick={() => navigate(-1)} className="hover:text-neutral-900 transition-colors line-clamp-1">{category?.name}</button>
-               <span>›</span>
-               <span className="text-neutral-900 font-bold">{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
+               <span className={`${id === 'lowest-prices' ? 'text-neutral-900 font-bold' : 'hover:text-neutral-900 transition-colors line-clamp-1'}`} onClick={() => id !== 'lowest-prices' && navigate(-1)}>{category?.name}</span>
+               {id !== 'lowest-prices' && (
+                 <>
+                   <span>›</span>
+                   <span className="text-neutral-900 font-bold">{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
+                 </>
+               )}
             </div>
 
             {/* Bold Section Title */}
