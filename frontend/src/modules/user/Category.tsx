@@ -33,6 +33,11 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       try {
+        if (id === 'all') {
+          navigate('/categories', { replace: true });
+          return;
+        }
+
         if (id === 'lowest-prices') {
           setCategory({
             _id: 'lowest-prices',

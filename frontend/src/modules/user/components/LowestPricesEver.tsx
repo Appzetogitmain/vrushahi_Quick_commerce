@@ -89,14 +89,14 @@ const ProductCard = memo(({
                     e.stopPropagation();
                     onAddToCart(product, e.currentTarget);
                   }}
-                  className="px-4 h-9 rounded-xl bg-white border-2 border-[#ff3269] flex items-center justify-center text-[#ff3269] shadow-md active:scale-95 transition-all hover:bg-pink-50 text-[13px] font-black uppercase tracking-tighter"
+                  className="px-4 h-9 rounded-xl bg-white border-2 border-[#ff3269] flex items-center justify-center text-[#ff3269] shadow-md active:scale-95 transition-all hover:bg-pink-50 text-[13px] font-bold uppercase tracking-tighter"
                   title="Add to Cart"
                 >
                   ADD
                 </button>
               ) : (
                 <div
-                  className="flex items-center justify-between bg-white rounded-xl h-9 px-1 shadow-md border-2 border-[#ff3269]"
+                  className="flex items-center justify-between bg-pink-50/50 rounded-xl h-9 px-1 shadow-sm border border-pink-100"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
@@ -105,11 +105,11 @@ const ProductCard = memo(({
                       e.stopPropagation();
                       onUpdateQuantity(String(product.id || (product as any)._id), Math.max(0, inCartQty - 1));
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-black hover:bg-pink-50 rounded-lg transition-colors"
+                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-bold hover:bg-pink-100 rounded-lg transition-colors"
                   >
                     −
                   </button>
-                  <span className="text-[#ff3269] font-black text-xs min-w-[18px] text-center px-0.5">
+                  <span className="text-neutral-700 font-bold text-xs min-w-[18px] text-center px-0.5">
                     {inCartQty}
                   </span>
                   <button
@@ -118,7 +118,7 @@ const ProductCard = memo(({
                       e.stopPropagation();
                       onUpdateQuantity(String(product.id || (product as any)._id), inCartQty + 1);
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-black hover:bg-pink-50 rounded-lg transition-colors"
+                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-bold hover:bg-pink-100 rounded-lg transition-colors"
                   >
                     +
                   </button>
@@ -131,7 +131,7 @@ const ProductCard = memo(({
         {/* Pricing Info - Green Badge Style */}
         <div className="px-1 mb-2">
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="bg-[#24904c] text-white text-[11px] font-black px-1.5 py-0.5 rounded-md leading-none">
+            <div className="bg-[#24904c] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none">
               ₹{product.price}
             </div>
             {mrp > product.price && (
@@ -141,7 +141,7 @@ const ProductCard = memo(({
             )}
           </div>
           {discount > 0 && (
-            <div className="text-[10px] font-black text-[#24904c] tracking-tight">
+            <div className="text-[10px] font-bold text-[#24904c] tracking-tight">
               ₹{Math.max(0, mrp - product.price)} OFF
             </div>
           )}
@@ -150,7 +150,7 @@ const ProductCard = memo(({
         {/* Product Details */}
         <div className="px-1 flex-1 flex flex-col min-h-0">
           <div onClick={() => navigate(`/product/${product.id}`)}>
-            <h3 className="text-[13px] font-black text-neutral-900 line-clamp-2 leading-tight mb-1 mb-1">
+            <h3 className="text-[13px] font-bold text-neutral-900 line-clamp-2 leading-tight mb-1">
               {displayName}
             </h3>
           </div>
@@ -162,7 +162,7 @@ const ProductCard = memo(({
           {/* Tags & Rating */}
           <div className="mt-auto flex flex-col gap-1.5 pb-2">
              <div className="flex flex-wrap gap-1">
-                <span className="bg-[#eef9fa] text-[#0a8ba0] text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                <span className="bg-[#eef9fa] text-[#0a8ba0] text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter">
                   {categoryName.split(' ')[0]}
                 </span>
              </div>
@@ -352,7 +352,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
       {/* Header */}
       <div className="px-4 relative z-10 mb-5" data-section="lowest-prices">
         <h2
-          className="font-black leading-tight mb-0.5"
+          className="font-bold leading-tight mb-0.5"
           style={{
             fontFamily: '"Poppins", sans-serif',
             fontSize: '18px',
@@ -396,7 +396,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
            onClick={() => navigate('/category/lowest-prices')}
            className="w-full bg-[#fff0f3] hover:bg-[#ffe5ea] transition-colors py-3 rounded-2xl flex items-center justify-center gap-2"
          >
-            <span className="text-[#ff3269] font-black text-sm tracking-tight">See all</span>
+            <span className="text-[#ff3269] font-bold text-sm tracking-tight">See all</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 18l6-6-6-6" stroke="#ff3269" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

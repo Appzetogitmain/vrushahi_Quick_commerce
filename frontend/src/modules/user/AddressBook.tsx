@@ -106,7 +106,7 @@ export default function AddressBook() {
 
   const defaultBadge = useMemo(
     () => (
-      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-full">
+      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-black text-white bg-[#ff3269] rounded-full shadow-sm shadow-pink-100">
         Default
       </span>
     ),
@@ -115,18 +115,18 @@ export default function AddressBook() {
 
   return (
     <div className="min-h-screen bg-white md:bg-neutral-50 pb-24 md:pb-10">
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-[#cdbae0]/95 backdrop-blur-md border-b border-black/5 px-4 py-3 md:py-4 flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
           aria-label="Back"
-          className="p-2 rounded-full hover:bg-neutral-100 text-neutral-700"
+          className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
         >
           <svg
             viewBox="0 0 24 24"
-            className="w-5 h-5"
+            className="w-6 h-6"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -134,15 +134,15 @@ export default function AddressBook() {
           </svg>
         </button>
         <div>
-          <p className="text-xs text-neutral-500">Your saved addresses</p>
-          <h1 className="text-base font-semibold text-neutral-900">
+          <p className="text-[10px] uppercase tracking-wider font-black text-black/40">Your saved addresses</p>
+          <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">
             Address book
           </h1>
         </div>
         <div className="ml-auto">
           <button
             onClick={() => navigate("/checkout/address")}
-            className="px-3 py-1.5 text-sm font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-700"
+            className="px-5 py-2 text-sm font-black text-neutral-900 bg-transparent border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all active:scale-95"
           >
             Add new
           </button>
@@ -152,7 +152,7 @@ export default function AddressBook() {
       <div className="px-4 md:px-6 pt-4 pb-6">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#ff3269]" />
           </div>
         ) : error ? (
           <div className="bg-red-50 text-red-700 border border-red-100 rounded-lg p-4 text-sm">
@@ -168,7 +168,7 @@ export default function AddressBook() {
             </p>
             <button
               onClick={() => navigate("/checkout/address")}
-              className="px-4 py-2 text-sm font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-700"
+              className="px-6 py-3 text-sm font-black text-neutral-900 bg-transparent border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all active:scale-95"
             >
               Add address
             </button>
@@ -180,7 +180,7 @@ export default function AddressBook() {
               return (
                 <div
                   key={addr._id || addr.phone}
-                  className="bg-white border border-neutral-200 rounded-xl shadow-[0_1px_6px_rgba(0,0,0,0.05)] p-3 transition hover:shadow-md"
+                  className="bg-white border border-neutral-100 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] p-4 transition hover:shadow-xl hover:shadow-purple-100"
                 >
                   <div className="flex items-start gap-2">
                     <div className="mt-0.5">
@@ -197,12 +197,12 @@ export default function AddressBook() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center flex-wrap gap-1">
-                        <span className="text-sm font-semibold text-neutral-900">
+                        <span className="text-base font-black text-neutral-900">
                           {addr.type || "Home"}
                         </span>
                         {addr.isDefault && defaultBadge}
                       </div>
-                      <p className="text-xs text-green-700 font-semibold mt-0.5">
+                      <p className="text-[10px] uppercase font-black tracking-wider text-neutral-900 mt-0.5">
                         Saved address
                       </p>
                       <p className="text-sm text-neutral-800 leading-relaxed mt-2">
@@ -211,7 +211,7 @@ export default function AddressBook() {
                       <p className="text-sm text-neutral-700 mt-1">
                         Phone number: {addr.phone || "Not added"}
                       </p>
-                      <div className="flex items-center gap-3 mt-3 text-teal-700">
+                      <div className="flex items-center gap-4 mt-4 text-neutral-900">
                         <button
                           onClick={() => handleShare(addr)}
                           className="flex items-center gap-1 text-sm font-semibold hover:text-teal-800"
@@ -236,7 +236,7 @@ export default function AddressBook() {
                         </button>
                         <button
                           onClick={() => handleMakeDefault(addr._id)}
-                          className="flex items-center gap-1 text-sm font-semibold hover:text-teal-800 disabled:text-neutral-400"
+                          className="flex items-center gap-1 text-sm font-black hover:text-[#ff1f5a] disabled:text-neutral-300 transition-colors"
                           disabled={isBusy || addr.isDefault}
                         >
                           <svg
@@ -244,7 +244,7 @@ export default function AddressBook() {
                             className="w-4 h-4"
                             fill="none"
                             stroke="currentColor"
-                            strokeWidth="2"
+                            strokeWidth="2.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           >
@@ -255,7 +255,7 @@ export default function AddressBook() {
                         </button>
                         <button
                           onClick={() => handleDelete(addr._id)}
-                          className="flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-700 disabled:text-neutral-400"
+                          className="flex items-center gap-1 text-sm font-black text-red-500 hover:text-red-700 disabled:text-neutral-300 transition-colors"
                           disabled={isBusy}
                         >
                           <svg

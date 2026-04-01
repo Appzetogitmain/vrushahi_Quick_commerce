@@ -257,28 +257,28 @@ export default function ProductCard({
                   ref={addButtonRef}
                   disabled={product.isAvailable === false}
                   onClick={handleAdd}
-                  className={`border-[1.5px] px-5 py-1.5 rounded-lg text-[13px] font-black shadow-lg transition-all active:scale-95 uppercase tracking-tight ${
+                  className={`border-[1.5px] px-5 py-1.5 rounded-lg text-[13px] font-bold transition-all active:scale-95 uppercase tracking-tight ${
                     product.isAvailable === false
                     ? 'bg-neutral-100 border-neutral-300 text-neutral-400 cursor-not-allowed'
-                    : 'bg-white border-[#ff4d6d] text-[#ff4d6d] hover:bg-red-50'
+                    : 'bg-white border-[#ff3269] text-[#ff3269] hover:bg-pink-50'
                   }`}
                 >
-                  {product.isAvailable === false ? 'Out of Range' : 'ADD'}
+                  {product.isAvailable === false ? 'Out' : 'ADD'}
                 </button>
              ) : (
-                <div className={`bg-white border-[1.5px] rounded-lg shadow-lg flex items-center h-[34px] min-w-[80px] ${
-                  product.isAvailable === false ? 'border-neutral-300 opacity-75' : 'border-[#ff4d6d]'
+                <div className={`bg-pink-50/50 border border-pink-100 rounded-lg shadow-sm flex items-center h-[34px] min-w-[80px] ${
+                  product.isAvailable === false ? 'opacity-75' : ''
                 }`}>
                    <button
                      onClick={handleDecrease}
-                     className={`w-8 h-full flex items-center justify-center text-xl font-bold rounded-l-lg ${
-                       product.isAvailable === false ? 'text-neutral-400' : 'text-[#ff3269] hover:bg-red-50'
+                     className={`w-8 h-full flex items-center justify-center text-lg font-bold rounded-l-lg ${
+                       product.isAvailable === false ? 'text-neutral-400' : 'text-[#ff3269] hover:bg-pink-100'
                      }`}
                    >
                      −
                    </button>
-                   <span className={`flex-1 text-center text-[13px] font-black ${
-                     product.isAvailable === false ? 'text-neutral-400' : 'text-[#ff3269]'
+                   <span className={`flex-1 text-center text-[13px] font-bold ${
+                     product.isAvailable === false ? 'text-neutral-400' : 'text-neutral-700'
                    }`}>
                      {inCartQty}
                    </span>
@@ -286,7 +286,7 @@ export default function ProductCard({
                      disabled={product.isAvailable === false}
                      onClick={handleIncrease}
                      className={`w-8 h-full flex items-center justify-center text-lg font-bold rounded-r-lg ${
-                       product.isAvailable === false ? 'text-neutral-400 cursor-not-allowed' : 'text-[#ff3269] hover:bg-red-50'
+                       product.isAvailable === false ? 'text-neutral-400 cursor-not-allowed' : 'text-[#ff3269] hover:bg-pink-100'
                      }`}
                    >
                      +
@@ -334,7 +334,7 @@ export default function ProductCard({
           <>
             {/* Price with Green Capsule - Zepto Design */}
             <div className="flex items-center gap-1.5 mb-1.5">
-               <div className="bg-[#24904c] text-white text-[11px] font-black px-1.5 py-0.5 rounded flex items-center shadow-sm">
+               <div className="bg-[#24904c] text-white text-[11px] font-bold px-1.5 py-0.5 rounded flex items-center shadow-sm">
                   ₹{displayPrice.toLocaleString('en-IN')}
                </div>
                {mrp && mrp > displayPrice && (
@@ -346,13 +346,13 @@ export default function ProductCard({
 
             {/* Savings Text */}
             {mrp && mrp > displayPrice && (
-              <p className="text-[10px] font-black text-[#24904c] mb-1 tracking-tight">
+              <p className="text-[10px] font-bold text-[#24904c] mb-1 tracking-tight">
                 ₹{ (mrp - displayPrice).toLocaleString('en-IN') } OFF
               </p>
             )}
 
             {/* Product Name */}
-            <h3 className="text-[14px] font-black text-neutral-900 leading-tight line-clamp-2 mb-1">
+            <h3 className="text-[14px] font-bold text-neutral-900 leading-tight line-clamp-2 mb-1">
               {product.name || product.productName || ''}
             </h3>
 
@@ -365,7 +365,7 @@ export default function ProductCard({
             {product.tags && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-auto">
                  {product.tags.slice(0, 1).map((tag, idx) => (
-                   <span key={idx} className="bg-[#f0f9f1] text-[#008296] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#e0f2f1]">
+                   <span key={idx} className="bg-[#f0f9f1] text-[#008296] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#e0f2f1]">
                      {tag}
                    </span>
                  ))}
@@ -450,17 +450,17 @@ export default function ProductCard({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-2 bg-white border border-purple-600 rounded-full px-2 py-0.5 h-8">
+              <div className="flex items-center justify-center gap-2 bg-pink-50/50 border border-pink-100 rounded-full px-2 py-0.5 h-8">
                 <Button
                   variant="default"
                   size="icon"
                   onClick={handleDecrease}
-                  className="w-6 h-6 p-0 bg-transparent text-purple-600 hover:bg-purple-50 shadow-none"
+                  className="w-6 h-6 p-0 bg-transparent text-[#ff3269] hover:bg-pink-100 shadow-none border-none"
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold text-purple-600 min-w-[1.5rem] text-center">
+                <span className="text-xs font-bold text-neutral-700 min-w-[1.5rem] text-center">
                   {inCartQty}
                 </span>
                 <Button
@@ -468,8 +468,8 @@ export default function ProductCard({
                   size="icon"
                   disabled={product.isAvailable === false}
                   onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent text-purple-600 shadow-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-purple-50'
+                  className={`w-6 h-6 p-0 bg-transparent text-[#ff3269] shadow-none border-none ${
+                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-pink-100'
                   }`}
                   aria-label="Increase quantity"
                 >

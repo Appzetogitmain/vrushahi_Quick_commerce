@@ -77,7 +77,7 @@ export default function Account() {
   if (!user) {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
-      <div className="bg-[#cdbae0] pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
+      <div className="bg-[#f0e6f7] border-b border-neutral-100 pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
           <div className="px-4 md:px-6 lg:px-8">
             <button
               onClick={() => navigate(-1)}
@@ -122,10 +122,10 @@ export default function Account() {
                   />
                 </svg>
               </div>
-              <h1 className="text-lg md:text-xl font-black text-neutral-900 mb-0.5">
+              <h1 className="text-lg md:text-xl font-bold text-neutral-900 mb-0.5">
                 Welcome!
               </h1>
-              <p className="text-xs md:text-sm text-neutral-800 font-medium text-center px-4">
+              <p className="text-xs md:text-sm text-neutral-600 font-medium text-center px-4">
                 Login to access your profile, orders, and more
               </p>
             </div>
@@ -135,11 +135,11 @@ export default function Account() {
 
         <div className="px-4 md:px-6 lg:px-8 mt-6">
           <div className="max-w-md mx-auto">
-            <button
-              onClick={() => navigate("/login")}
-              className="w-full py-3.5 rounded-xl font-bold text-base bg-[#ff4d6d] text-white hover:bg-[#ef4466] transition-colors shadow-lg shadow-red-500/10 uppercase tracking-wide">
-              Login
-            </button>
+              <button
+                onClick={() => navigate("/login")}
+                className="w-full py-3 rounded-xl font-bold text-base bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-lg shadow-purple-100 uppercase tracking-wide border-none">
+                Login
+              </button>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function Account() {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff4d6d] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-neutral-600 font-medium">Loading profile...</p>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function Account() {
           <p className="text-red-500 font-bold mb-4">{error}</p>
           <button
             onClick={() => navigate(-1)}
-            className="px-6 py-2.5 bg-[#ff4d6d] text-white rounded-xl font-bold uppercase text-xs tracking-wider">
+            className="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-bold uppercase text-xs tracking-wider">
             Go Back
           </button>
         </div>
@@ -178,7 +178,7 @@ export default function Account() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
-      <div className="bg-[#cdbae0] pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
+      <div className="bg-[#f0e6f7] border-b border-neutral-100 pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
         <div className="px-4 md:px-6 lg:px-8">
           <button
             onClick={() => navigate(-1)}
@@ -223,10 +223,10 @@ export default function Account() {
                 />
               </svg>
             </div>
-            <h1 className="text-lg md:text-xl font-black text-neutral-900 mb-0.5">
+            <h1 className="text-lg md:text-xl font-bold text-neutral-900 mb-0.5">
               {displayName}
             </h1>
-            <div className="flex flex-col items-center gap-1 md:gap-1 text-[10px] md:text-xs text-neutral-800 font-bold">
+            <div className="flex flex-col items-center gap-1 md:gap-1 text-[10px] md:text-xs text-neutral-600 font-bold">
 
               {displayPhone && (
                 <div className="flex items-center gap-1.5">
@@ -577,12 +577,12 @@ export default function Account() {
                     value={gstNumber}
                     onChange={(e) => setGstNumber(e.target.value)}
                     placeholder="Enter GST Number"
-                    className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff4d6d]/10 focus:border-[#ff4d6d] transition-all"
+                    className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/10 focus:border-purple-600 transition-all"
                   />
                   <button
                     type="submit"
                     disabled={!gstNumber.trim()}
-                    className="w-full rounded-xl bg-[#ff4d6d] text-white font-black py-4 hover:bg-[#ef4466] disabled:opacity-50 transition-colors shadow-lg shadow-red-500/10 uppercase tracking-wider text-sm">
+                    className="w-full rounded-xl bg-purple-600 text-white font-bold py-3 hover:bg-purple-700 disabled:opacity-50 transition-all shadow-lg shadow-purple-100 uppercase tracking-wider text-sm border-none">
                     Save Details
                   </button>
                 </form>

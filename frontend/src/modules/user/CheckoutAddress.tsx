@@ -275,41 +275,41 @@ export default function CheckoutAddress() {
   return (
     <div className="pb-24 bg-white min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-        <div className="px-4 py-2 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-[#cdbae0]/95 backdrop-blur-md border-b border-black/5">
+        <div className="px-4 py-3 md:py-4 flex items-center justify-between">
           <div className="flex items-center">
             <button
               onClick={() => navigate(-1)}
-              className="w-7 h-7 flex items-center justify-center text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors mr-2"
+              className="w-8 h-8 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors mr-2"
               aria-label="Go back"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <h1 className="text-base font-bold text-neutral-900">Enter complete address</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-black tracking-tight">Enter complete address</h1>
           </div>
           <button
             onClick={() => navigate(-1)}
-            className="w-7 h-7 flex items-center justify-center text-neutral-700 hover:bg-neutral-100 rounded-full transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
             aria-label="Close"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
       </div>
 
       <div className="px-4 py-3 border-b border-neutral-200">
-        <label className="block text-xs font-medium text-neutral-700 mb-2">
+        <label className="block text-xs font-bold text-neutral-900 mb-2">
            Delivery Address Details
         </label>
       </div>
 
       {/* Who you are ordering for? */}
       <div className="px-4 py-2.5 border-b border-neutral-200">
-        <p className="text-xs font-medium text-neutral-700 mb-2">Who you are ordering for?</p>
+        <p className="text-xs font-bold text-neutral-900 mb-2">Who you are ordering for?</p>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -318,10 +318,10 @@ export default function CheckoutAddress() {
               value="myself"
               checked={orderingFor === 'myself'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-[#ff3269] focus:ring-2 focus:ring-[#ff3269] focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'myself'
-                  ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
+                  ? 'radial-gradient(circle, #ff3269 35%, transparent 40%)'
                   : 'none',
                 backgroundSize: '40%',
                 backgroundPosition: 'center',
@@ -337,10 +337,10 @@ export default function CheckoutAddress() {
               value="someone-else"
               checked={orderingFor === 'someone-else'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-[#ff3269] focus:ring-2 focus:ring-[#ff3269] focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'someone-else'
-                  ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
+                  ? 'radial-gradient(circle, #ff3269 35%, transparent 40%)'
                   : 'none',
                 backgroundSize: '40%',
                 backgroundPosition: 'center',
@@ -355,7 +355,7 @@ export default function CheckoutAddress() {
       {/* Save address as - Only show when ordering for myself */}
       {orderingFor === 'myself' && (
         <div className="px-4 py-2.5 border-b border-neutral-200">
-          <label className="block text-xs font-medium text-neutral-700 mb-2">
+          <label className="block text-xs font-bold text-neutral-900 mb-2">
             Save address as <span className="text-red-500">*</span>
           </label>
           <div className="flex items-center gap-2 flex-wrap">
@@ -368,8 +368,8 @@ export default function CheckoutAddress() {
               <button
                 key={type.id}
                 onClick={() => setAddressType(type.id as typeof addressType)}
-                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-medium transition-colors flex items-center gap-1.5 ${addressType === type.id
-                  ? 'border-green-600 bg-green-50 text-green-700'
+                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all flex items-center gap-1.5 ${addressType === type.id
+                  ? 'border-[#ff3269] bg-pink-50 text-[#ff3269]'
                   : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
                   }`}
               >
@@ -391,7 +391,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.name ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.name ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Enter your name"
           />
@@ -406,7 +406,7 @@ export default function CheckoutAddress() {
             type="tel"
             value={address.phone}
             onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.phone ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Enter mobile number"
             maxLength={10}
@@ -422,7 +422,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.flat}
             onChange={(e) => handleInputChange('flat', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.flat ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.flat ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Flat/House No."
           />
@@ -437,7 +437,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.street}
             onChange={(e) => handleInputChange('street', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.street ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.street ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Street/Area"
           />
@@ -452,7 +452,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.city}
             onChange={(e) => handleInputChange('city', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.city ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.city ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="City"
           />
@@ -467,7 +467,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.state || ''}
             onChange={(e) => handleInputChange('state', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.state ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.state ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="State"
           />
@@ -482,7 +482,7 @@ export default function CheckoutAddress() {
             type="text"
             value={address.pincode}
             onChange={(e) => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Pincode"
             maxLength={6}
@@ -526,7 +526,7 @@ export default function CheckoutAddress() {
             </div>
             <div className="flex justify-between text-xs text-neutral-700">
               <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+              <span className={`font-black ${deliveryFee === 0 ? 'text-[#ff3269]' : 'text-neutral-900'}`}>
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
               </span>
             </div>
@@ -541,17 +541,19 @@ export default function CheckoutAddress() {
       </div>
 
       {/* Save Address Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-lg">
-        <button
-          onClick={handleSaveAddress}
-          disabled={!isFormValid || isSaving}
-          className={`w-full py-3 px-4 font-semibold text-sm transition-colors ${isFormValid && !isSaving
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-            }`}
-        >
-          {isSaving ? 'Saving...' : 'Save Address'}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div className="p-3">
+          <button
+            onClick={handleSaveAddress}
+            disabled={!isFormValid || isSaving}
+            className={`w-full py-3 px-4 font-bold text-base uppercase tracking-wider rounded-xl transition-all shadow-lg ${isFormValid && !isSaving
+              ? 'bg-[#ff3269] text-white hover:bg-[#ff1f5a] shadow-pink-100'
+              : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+              }`}
+          >
+            {isSaving ? 'Saving...' : 'Save Address'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -236,7 +236,7 @@ const AnimatedCheckmark = ({ delay = 0 }) => (
       cy="40"
       r="36"
       fill="none"
-      stroke="#22c55e"
+      stroke="#ff3269"
       strokeWidth="4"
       initial={{ pathLength: 0, opacity: 0 }}
       animate={{ pathLength: 1, opacity: 1 }}
@@ -245,7 +245,7 @@ const AnimatedCheckmark = ({ delay = 0 }) => (
     <motion.path
       d="M24 40 L35 51 L56 30"
       fill="none"
-      stroke="#22c55e"
+      stroke="#ff3269"
       strokeWidth="4"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -320,7 +320,7 @@ const PromoCarousel = () => {
               <p className="text-xs text-gray-600 mt-1">
                 {promos[currentSlide].subtext}
               </p>
-              <button className="text-green-700 font-medium text-sm mt-2 flex items-center gap-1">
+              <button className="text-[#ff3269] font-black text-sm mt-2 flex items-center gap-1 transition-all">
                 Apply now <ChevronRightIcon className="w-4 h-4" />
               </button>
             </div>
@@ -338,7 +338,7 @@ const PromoCarousel = () => {
             key={index}
             onClick={() => setCurrentSlide(index)}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "bg-green-600 w-4" : "bg-gray-300"
+              index === currentSlide ? "bg-[#ff3269] w-4" : "bg-gray-300"
             }`}
           />
         ))}
@@ -371,9 +371,9 @@ const TipSection = () => {
               setSelectedTip(tip);
               setCustomTip("");
             }}
-            className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-bold transition-all ${
               selectedTip === tip
-                ? "border-green-600 bg-green-50 text-green-700"
+                ? "border-[#ff3269] bg-pink-50 text-[#ff3269]"
                 : "border-gray-200 text-gray-700 hover:border-gray-300"
             }`}
             whileTap={{ scale: 0.95 }}>
@@ -384,9 +384,9 @@ const TipSection = () => {
           onClick={() => {
             setSelectedTip("other");
           }}
-          className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+          className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-bold transition-all ${
             selectedTip === "other"
-              ? "border-green-600 bg-green-50 text-green-700"
+              ? "border-[#ff3269] bg-pink-50 text-[#ff3269]"
               : "border-gray-200 text-gray-700 hover:border-gray-300"
           }`}
           whileTap={{ scale: 0.95 }}>
@@ -406,7 +406,7 @@ const TipSection = () => {
               placeholder="Enter custom amount"
               value={customTip}
               onChange={(e) => setCustomTip(e.target.value)}
-              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-[#ff3269] transition-all"
             />
           </motion.div>
         )}
@@ -712,8 +712,8 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          <p className="text-sm text-neutral-500">Loading order details...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff3269]"></div>
+          <p className="text-sm font-bold text-neutral-500">Loading order details...</p>
         </div>
       </div>
     );
@@ -741,28 +741,28 @@ export default function OrderDetail() {
     Placed: {
       title: "Order placed",
       subtitle: "Order will reach you shortly",
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     Accepted: {
       title: "Preparing your order",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     "On the way": {
       title: "Order picked up",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     Delivered: {
       title: "Order delivered",
       subtitle: "Enjoy your meal!",
-      color: "bg-green-600",
+      color: "bg-[#22c55e]",
     },
     // Backend status mappings
     Received: {
       title: "Order received",
       subtitle: "Processing your order",
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     Pending: {
       title: "Order pending",
@@ -772,17 +772,17 @@ export default function OrderDetail() {
     Processed: {
       title: "Order processed",
       subtitle: "Preparing for delivery",
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     Shipped: {
       title: "Order shipped",
       subtitle: "On the way to you",
-      color: "bg-blue-600",
+      color: "bg-[#3b82f6]",
     },
     "Out for Delivery": {
       title: "Out for delivery",
       subtitle: `Arriving in ${estimatedTime} mins`,
-      color: "bg-green-700",
+      color: "bg-[#8b5cf6]",
     },
     Cancelled: {
       title: "Order cancelled",
@@ -818,14 +818,14 @@ export default function OrderDetail() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.9 }}
-                className="text-2xl font-bold text-gray-900 mt-6">
+                className="text-2xl font-bold text-gray-900 mt-6 tracking-tight">
                 Order Confirmed!
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.1 }}
-                className="text-gray-600 mt-2">
+                className="text-gray-600 mt-2 font-medium">
                 Your order has been placed successfully
               </motion.p>
               <motion.div
@@ -833,8 +833,8 @@ export default function OrderDetail() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5 }}
                 className="mt-8">
-                <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-gray-500 mt-3">
+                <div className="w-8 h-8 border-2 border-[#ff3269] border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-sm font-bold text-gray-500 mt-3">
                   Loading order details...
                 </p>
               </motion.div>
@@ -849,20 +849,20 @@ export default function OrderDetail() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}>
         {/* Navigation bar */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 bg-black/5">
           <Link to="/orders">
             <motion.button
-              className="w-10 h-10 flex items-center justify-center"
+              className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
               whileTap={{ scale: 0.9 }}>
-              <ArrowLeftIcon className="w-6 h-6" />
+              <ArrowLeftIcon className="w-6 h-6 stroke-[2.5]" />
             </motion.button>
           </Link>
-          <h2 className="font-semibold text-lg">vrushahi</h2>
+          <h2 className="font-bold text-base tracking-tight">Order Details</h2>
           <motion.button
-            className="w-10 h-10 flex items-center justify-center"
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
             whileTap={{ scale: 0.9 }}
             onClick={handleShare}>
-            <Share2Icon className="w-5 h-5" />
+            <Share2Icon className="w-5 h-5 stroke-[2.5]" />
           </motion.button>
         </div>
 
@@ -882,11 +882,11 @@ export default function OrderDetail() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}>
-            <span className="text-sm">{currentStatus.subtitle}</span>
+            <span className="text-sm font-bold">{currentStatus.subtitle}</span>
             {(orderStatus === "Accepted" || orderStatus === "On the way") && (
               <>
                 <span className="w-1 h-1 rounded-full bg-white" />
-                <span className="text-sm text-green-200">On time</span>
+                <span className="text-sm font-bold text-white">On time</span>
               </>
             )}
             <motion.button
@@ -1008,7 +1008,7 @@ export default function OrderDetail() {
                 Pay now, or pay to the delivery partner using Cash/UPI
               </p>
             </div>
-            <Button className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6">
+            <Button className="bg-[#ff3269] hover:bg-[#ff1f5a] text-white rounded-full px-6 py-2 h-auto text-sm font-bold border-none transition-all">
               Pay now <ChevronRightIcon className="w-4 h-4 ml-1" />
             </Button>
           </div>
@@ -1195,14 +1195,14 @@ export default function OrderDetail() {
           transition={{ delay: 0.85 }}>
           {order?.invoiceEnabled ? (
             <Link to={`/orders/${id}/invoice`} className="flex-1">
-              <Button className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white">
+              <Button className="w-full bg-[#ff3269] hover:bg-[#ff1f5a] text-white py-3 font-bold border-none transition-all">
                 View Invoice
               </Button>
             </Link>
           ) : (
             <div className="flex-1">
               <Button
-                className="w-full bg-gray-400 cursor-not-allowed text-white"
+                className="w-full bg-neutral-300 cursor-not-allowed text-neutral-500 py-3 font-bold border-none"
                 disabled
                 title="Invoice will be available after delivery is completed">
                 Invoice Unavailable
@@ -1210,7 +1210,7 @@ export default function OrderDetail() {
             </div>
           )}
           <Link to="/orders" className="flex-1">
-            <Button variant="outline" className="w-full border-gray-300">
+            <Button variant="outline" className="w-full border-neutral-200 py-3 font-bold text-neutral-700">
               All Orders
             </Button>
           </Link>
@@ -1254,7 +1254,7 @@ export default function OrderDetail() {
                   Keep Order
                 </Button>
                 <Button
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 border-none transition-all py-3 font-bold"
                   onClick={handleCancelOrder}>
                   Cancel Order
                 </Button>
@@ -1419,7 +1419,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-[#ff3269] hover:bg-[#ff1f5a] text-white py-3 font-bold border-none transition-all"
                   onClick={handleSaveSpecialRequests}>
                   Save
                 </Button>

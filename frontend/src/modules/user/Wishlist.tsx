@@ -57,17 +57,31 @@ export default function Wishlist() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="px-4 py-4 bg-white border-b border-neutral-200 mb-4 sticky top-0 z-10 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <header className="sticky top-0 z-[100] bg-white border-b border-neutral-100 px-4 py-2 flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Back"
+          className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 18 9 12l6-6" />
+          </svg>
         </button>
-        <h1 className="text-xl font-bold text-neutral-900">My Wishlist</h1>
-      </div>
+        <h1 className="text-sm font-bold text-neutral-900 tracking-tight">My Wishlist</h1>
+      </header>
 
       <div className="px-4">
         {loading ? (
           <div className="flex justify-center pt-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff3269]"></div>
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
@@ -78,7 +92,7 @@ export default function Wishlist() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="bg-white rounded-xl border border-neutral-100 shadow-sm overflow-hidden flex flex-col relative"
+                className="bg-white rounded-2xl border border-neutral-100 shadow-[0_4px_12px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col relative transition-all hover:shadow-xl hover:shadow-purple-100"
               >
                 <button
                   onClick={() => handleRemove(product.id)}
@@ -96,16 +110,16 @@ export default function Wishlist() {
                 </Link>
 
                 <div className="p-3 flex-1 flex flex-col">
-                  <h3 className="text-sm font-bold text-neutral-900 line-clamp-2 mb-1">{product.name}</h3>
-                  <div className="text-[10px] text-neutral-500 mb-2">{product.pack}</div>
+                  <h3 className="text-sm font-semibold text-neutral-900 line-clamp-2 mb-1 tracking-tight">{product.name}</h3>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-black/40 mb-2">{product.pack}</div>
                   <div className="mt-auto flex flex-col gap-2">
                     {(() => {
                       const { displayPrice, mrp, hasDiscount } = calculateProductPrice(product);
                       return (
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-sm font-bold text-neutral-900">₹{displayPrice.toLocaleString('en-IN')}</span>
+                          <span className="text-base font-bold text-neutral-900">₹{displayPrice.toLocaleString('en-IN')}</span>
                           {hasDiscount && (
-                            <span className="text-xs text-neutral-500 line-through">₹{mrp.toLocaleString('en-IN')}</span>
+                            <span className="text-xs text-neutral-400 line-through">₹{mrp.toLocaleString('en-IN')}</span>
                           )}
                         </div>
                       );
@@ -114,7 +128,7 @@ export default function Wishlist() {
                       variant="outline"
                       size="sm"
                       onClick={() => addToCart(product)}
-                      className="w-full border-green-600 text-green-600 hover:bg-green-50 rounded-lg h-8 text-xs font-bold"
+                      className="w-full border-2 border-[#ff3269] text-[#ff3269] hover:bg-pink-50 rounded-xl h-9 text-xs font-bold transition-all"
                     >
                       ADD TO CART
                     </Button>
@@ -128,7 +142,10 @@ export default function Wishlist() {
             <div className="text-6xl mb-4">❤️</div>
             <h2 className="text-lg font-bold text-neutral-900 mb-2">Your wishlist is empty</h2>
             <p className="text-sm mb-6">Explore more and shortlist some items</p>
-            <Button onClick={() => navigate('/')} className="bg-green-600 text-white rounded-full px-8">
+            <Button
+              onClick={() => navigate("/")}
+              className="bg-[#ff3269] text-white rounded-xl px-10 py-3 font-bold transition-all hover:bg-[#ff1f5a] shadow-lg shadow-pink-100 active:scale-95 border-none"
+            >
               Start Shopping
             </Button>
           </div>

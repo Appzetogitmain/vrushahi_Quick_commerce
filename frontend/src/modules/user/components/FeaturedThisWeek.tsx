@@ -57,7 +57,7 @@ export default function FeaturedThisWeek() {
           </p>
         </div>
         <Link 
-          to="/category/all" 
+          to="/categories" 
           className="text-sm font-bold text-purple-600 hover:text-purple-700 transition-colors"
         >
           See All
