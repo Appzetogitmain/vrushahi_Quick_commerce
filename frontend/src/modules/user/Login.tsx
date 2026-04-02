@@ -109,7 +109,7 @@ export default function Login() {
                   type="tel"
                   value={mobileNumber}
                   onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="block w-full pl-14 pr-4 py-4 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-medium text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all"
+                  className="block w-full pl-14 pr-4 py-4 bg-neutral-50 border border-neutral-200 rounded-xl text-lg font-medium text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#ba9af7]/50 focus:border-[#ba9af7] transition-all"
                   placeholder="Enter mobile number"
                   maxLength={10}
                   disabled={loading}
@@ -131,7 +131,7 @@ export default function Login() {
                 onClick={handleContinue}
                 disabled={mobileNumber.length !== 10 || loading}
                 className={`w-full py-3 px-6 rounded-[1rem] font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 ${mobileNumber.length === 10 && !loading
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
+                  ? 'bg-[#ba9af7] text-white'
                   : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                   }`}
               >
@@ -171,7 +171,7 @@ export default function Login() {
                 <button
                   onClick={handleContinue}
                   disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors"
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm bg-purple-50 text-[#ba9af7] border border-[#ba9af7]/30 hover:bg-purple-100 transition-colors"
                 >
                   {loading ? 'Sending...' : 'Resend OTP'}
                 </button>
@@ -181,7 +181,7 @@ export default function Login() {
 
           <div className="mt-8 text-center">
             <p className="text-xs text-neutral-400">
-              By continuing, you agree to our <a href="#" className="text-green-600 hover:underline">Terms of Service</a> & <a href="#" className="text-green-600 hover:underline">Privacy Policy</a>
+              By continuing, you agree to our <a href="#" className="text-[#ba9af7] hover:underline">Terms of Service</a> & <a href="#" className="text-[#ba9af7] hover:underline">Privacy Policy</a>
             </p>
           </div>
         </div>
