@@ -190,7 +190,7 @@ export default function Login() {
       {/* Footer Branding */}
       <div className="absolute bottom-6 left-0 right-0 text-center">
         <p className="text-xs font-medium text-neutral-500 opacity-60 uppercase tracking-widest">
-          Powered by Zeto Mart
+          Powered by Vrushahi
         </p>
       </div>
 
