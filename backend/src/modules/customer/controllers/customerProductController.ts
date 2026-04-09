@@ -3,6 +3,7 @@ import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import mongoose from "mongoose";
+import HeaderCategory from "../../../models/HeaderCategory";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with filtering options (public)
@@ -106,30 +107,71 @@ export const getProducts = async (req: Request, res: Response) => {
     };
 
     if (category) {
+      // First check if it's a standard Category
       const categoryId = await resolveId(
         Category,
         category as string,
         "Category"
       );
-      if (categoryId) query.category = categoryId;
+      
+      if (categoryId) {
+        query.category = categoryId;
+      } else {
+        // If not found in Category, check if it's a HeaderCategory
+        let hCategoryId;
+        if (mongoose.Types.ObjectId.isValid(category as string)) {
+          hCategoryId = category;
+        } else {
+          const hb = await HeaderCategory.findOne({
+            slug: { $regex: new RegExp(`^${category as string}$`, "i") },
+            status: "Published"
+          }).select("_id").lean();
+          if (hb) hCategoryId = hb._id;
+        }
+
+        if (hCategoryId) {
+          // Find all active root categories under this header
+          const subCats = await Category.find({
+            headerCategoryId: hCategoryId,
+            status: "Active",
+            parentId: null
+          }).select("_id").lean();
+          
+          if (subCats.length > 0) {
+            query.category = { $in: subCats.map(c => c._id) };
+          }
+        }
+      }
     }
 
     if (subcategory) {
-      // Try to resolve from Category model first (new structure where subcategories are categories with parentId)
-      let subcategoryId = await resolveId(
-        Category,
-        subcategory as string,
-        "Category"
-      );
-      // If not found in Category, try old SubCategory model (backward compatibility)
-      if (!subcategoryId) {
-        subcategoryId = await resolveId(
+      // Try to resolve from Category model first
+      const resolvedSub = await (async () => {
+        if (mongoose.Types.ObjectId.isValid(subcategory as string)) {
+          return await Category.findById(subcategory).select("_id parentId").lean();
+        }
+        // Use slug/name resolution
+        const id = await resolveId(Category, subcategory as string, "Category");
+        if (id) return await Category.findById(id).select("_id parentId").lean();
+        return null;
+      })();
+
+      if (resolvedSub) {
+        // If it's a ROOT category (no parent), it should be filtered via 'category' field
+        if (!resolvedSub.parentId) {
+          query.category = resolvedSub._id;
+        } else {
+          query.subcategory = resolvedSub._id;
+        }
+      } else {
+        // Fallback to old SubCategory model
+        const subcategoryId = await resolveId(
           SubCategory,
           subcategory as string,
           "SubCategory"
         );
+        if (subcategoryId) query.subcategory = subcategoryId;
       }
-      if (subcategoryId) query.subcategory = subcategoryId;
     }
 
     if (brand) {

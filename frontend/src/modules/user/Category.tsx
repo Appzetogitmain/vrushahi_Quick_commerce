@@ -8,6 +8,7 @@ import {
   Category as ApiCategory,
 } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
+import CategoryNotFound from "./components/CategoryNotFound";
 
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
@@ -164,17 +165,21 @@ export default function CategoryPage() {
 
   if (error && !products.length && !category) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white">
-        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 text-center bg-white">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-24 h-24 bg-red-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm"
+        >
+          <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Oops! Something went wrong</h3>
-        <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
+        </motion.div>
+        <h3 className="text-2xl font-black text-neutral-900 mb-2 tracking-tight">Oops! Something went wrong</h3>
+        <p className="text-neutral-500 mb-8 max-w-xs font-medium">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium hover:bg-purple-700 transition-colors"
+          className="px-8 py-3.5 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 active:scale-95"
         >
           Try Refreshing
         </button>
@@ -184,14 +189,10 @@ export default function CategoryPage() {
 
   if (!category && !categoryLoading) {
     return (
-      <div className="px-4 md:px-6 lg:px-8 py-6 md:py-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-4">
-          Category not found
-        </h1>
-        <p className="text-neutral-600 md:text-lg">
-          The category you're looking for doesn't exist.
-        </p>
-      </div>
+      <CategoryNotFound 
+        slug={id} 
+        onExploreAll={() => navigate('/categories')} 
+      />
     );
   }
 
