@@ -217,97 +217,40 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? 'bg-purple-50' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
+      className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative group`}
     >
-    <div
-      onClick={handleCardClick}
-      className={`relative cursor-pointer flex-1 flex flex-col ${categoryStyle ? 'bg-white p-2 md:p-3' : ''}`}
-    >
-      <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-28 md:h-36 mb-2' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center rounded-xl overflow-hidden relative`}>
+      <div
+        onClick={handleCardClick}
+        className="relative cursor-pointer aspect-square bg-gray-50 overflow-hidden"
+      >
         {product.imageUrl || product.mainImage ? (
           <img
             ref={imageRef}
             src={product.imageUrl || product.mainImage}
             alt={product.name || product.productName || 'Product'}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent && !parent.querySelector('.fallback-icon')) {
-                const fallback = document.createElement('div');
-                fallback.className = 'w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl fallback-icon';
-                fallback.textContent = (product.name || product.productName || '?').charAt(0).toUpperCase();
-                parent.appendChild(fallback);
-              }
-            }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl font-bold">
             {(product.name || product.productName || '?').charAt(0).toUpperCase()}
           </div>
         )}
 
-        {/* Zepto-Style ADD Button Overlay for Category Style */}
-        {categoryStyle && (
-          <div className="absolute bottom-2 right-2 z-20">
-             {inCartQty === 0 ? (
-                <button
-                  ref={addButtonRef}
-                  disabled={product.isAvailable === false}
-                  onClick={handleAdd}
-                  className={`border-[1.5px] px-5 py-1.5 rounded-lg text-[13px] font-bold transition-all active:scale-95 uppercase tracking-tight ${
-                    product.isAvailable === false
-                    ? 'bg-neutral-100 border-neutral-300 text-neutral-400 cursor-not-allowed'
-                    : 'bg-white border-[#ff3269] text-[#ff3269] hover:bg-pink-50'
-                  }`}
-                >
-                  {product.isAvailable === false ? 'Out' : 'ADD'}
-                </button>
-             ) : (
-                <div className={`bg-pink-50/50 border border-pink-100 rounded-lg shadow-sm flex items-center h-[34px] min-w-[80px] ${
-                  product.isAvailable === false ? 'opacity-75' : ''
-                }`}>
-                   <button
-                     onClick={handleDecrease}
-                     className={`w-8 h-full flex items-center justify-center text-lg font-bold rounded-l-lg ${
-                       product.isAvailable === false ? 'text-neutral-400' : 'text-[#ff3269] hover:bg-pink-100'
-                     }`}
-                   >
-                     −
-                   </button>
-                   <span className={`flex-1 text-center text-[13px] font-bold ${
-                     product.isAvailable === false ? 'text-neutral-400' : 'text-neutral-700'
-                   }`}>
-                     {inCartQty}
-                   </span>
-                   <button
-                     disabled={product.isAvailable === false}
-                     onClick={handleIncrease}
-                     className={`w-8 h-full flex items-center justify-center text-lg font-bold rounded-r-lg ${
-                       product.isAvailable === false ? 'text-neutral-400 cursor-not-allowed' : 'text-[#ff3269] hover:bg-pink-100'
-                     }`}
-                   >
-                     +
-                   </button>
-                </div>
-             )}
+        {/* Discount Badge */}
+        {discount > 0 && (
+          <div className="absolute top-0 left-0 z-10">
+            <div className="bg-[#24904c] text-white text-[10px] font-black px-2 py-1 rounded-br-lg shadow-sm uppercase tracking-tighter">
+              {discount}% OFF
+            </div>
           </div>
         )}
 
-        {/* Badges and Wishlist */}
-        {!categoryStyle && showBadge && (badgeText || discount > 0) && (
-          <Badge variant="destructive" className="absolute top-2 left-2 z-10 text-xs px-2 py-1">
-            {badgeText || `${discount}% OFF`}
-          </Badge>
-        )}
-
+        {/* Wishlist Button */}
         {showHeartIcon && (
           <button
             onClick={toggleWishlist}
-            className="absolute top-2 right-2 z-30 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md"
-            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            className="absolute top-2 right-2 z-30 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center hover:bg-white transition-all shadow-sm border border-white/50"
           >
             <svg
               width="18"
@@ -315,7 +258,7 @@ export default function ProductCard({
               viewBox="0 0 24 24"
               fill={isWishlisted ? "#ef4444" : "none"}
               xmlns="http://www.w3.org/2000/svg"
-              className={`transition-colors ${isWishlisted ? "text-red-500" : "text-neutral-400"}`}
+              className={`transition-colors ${isWishlisted ? "text-red-500" : "text-gray-400"}`}
             >
               <path
                 d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
@@ -327,159 +270,86 @@ export default function ProductCard({
             </svg>
           </button>
         )}
-      </div>
 
-      <div className={`flex-1 flex flex-col ${categoryStyle ? '' : 'p-4 md:p-5'}`}>
-        {categoryStyle ? (
-          <>
-            {/* Price with Green Capsule - Zepto Design */}
-            <div className="flex items-center gap-1.5 mb-1.5">
-               <div className="bg-[#24904c] text-white text-[11px] font-bold px-1.5 py-0.5 rounded flex items-center shadow-sm">
-                  ₹{displayPrice.toLocaleString('en-IN')}
-               </div>
-               {mrp && mrp > displayPrice && (
-                 <span className="text-[10px] text-neutral-400 line-through font-medium">
-                   ₹{mrp.toLocaleString('en-IN')}
-                 </span>
-               )}
+        {/* Floating ADD Button Overlay */}
+        <div className="absolute bottom-2 right-2 z-20">
+          {inCartQty === 0 ? (
+            <button
+              ref={addButtonRef}
+              disabled={product.isAvailable === false}
+              onClick={handleAdd}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                product.isAvailable === false
+                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                : 'bg-white text-[#ff3269] border border-gray-100 hover:scale-105'
+              }`}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              </svg>
+            </button>
+          ) : (
+            <div className="bg-white border border-[#ff3269]/20 rounded-xl shadow-lg flex items-center h-10 min-w-[90px] overflow-hidden">
+              <button
+                onClick={handleDecrease}
+                className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-black text-lg"
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-xs font-black text-gray-800">
+                {inCartQty}
+              </span>
+              <button
+                disabled={product.isAvailable === false}
+                onClick={handleIncrease}
+                className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-black text-lg"
+              >
+                +
+              </button>
             </div>
-
-            {/* Savings Text */}
-            {mrp && mrp > displayPrice && (
-              <p className="text-[10px] font-bold text-[#24904c] mb-1 tracking-tight">
-                ₹{ (mrp - displayPrice).toLocaleString('en-IN') } OFF
-              </p>
-            )}
-
-            {/* Product Name */}
-            <h3 className="text-[14px] font-bold text-neutral-900 leading-tight line-clamp-2 mb-1">
-              {product.name || product.productName || ''}
-            </h3>
-
-            {/* Pack Size */}
-            <p className="text-[12px] text-neutral-500 font-medium mb-1.5">
-              {product.variations?.[0]?.value || product.pack || 'Variable Size'}
-            </p>
-
-            {/* Meta tags - Carbide Free, etc. */}
-            {product.tags && product.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-auto">
-                 {product.tags.slice(0, 1).map((tag, idx) => (
-                   <span key={idx} className="bg-[#f0f9f1] text-[#008296] text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#e0f2f1]">
-                     {tag}
-                   </span>
-                 ))}
-              </div>
-            )}
-          </>
-        ) : (
-            // Non-category style layout (original)
-            <>
-              {!showPackBadge && (
-                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} text-neutral-500 mb-1`}>
-                    {product.variations?.[0]?.value || product.pack}
-                </p>
-              )}
-
-              <h3 className={`${compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'} font-semibold text-neutral-900 ${compact ? 'mb-1' : 'mb-2'} line-clamp-2 ${compact ? 'min-h-[2rem]' : 'min-h-[2.5rem]'}`}>
-                {product.name || product.productName || ''}
-              </h3>
-
-              {/* Always show rating */}
-              <div className={`${compact ? 'mb-1' : 'mb-2'}`}>
-                <StarRating
-                  rating={(product.rating || (product as any).rating) || 0}
-                  reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
-                  size={compact ? 'sm' : 'md'}
-                  showCount={true}
-                />
-              </div>
-
-              {showStockInfo && (
-                <p className="text-xs text-purple-600 mb-2 font-medium">
-                  Fast delivery
-                </p>
-              )}
-
-              {showVegetarianIcon && (
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  </div>
-                  <span className="text-xs text-neutral-600">Vegetarian</span>
-                </div>
-              )}
-
-              <div className="mt-auto mb-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-base font-bold text-neutral-900">
-                    ₹{displayPrice}
-                  </span>
-                  {mrp && mrp > displayPrice && (
-                    <span className="text-xs text-neutral-500 line-through">
-                      ₹{mrp}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </>
           )}
         </div>
       </div>
 
-      {!categoryStyle && (
-        <div className={`${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
-          <div className="mt-auto">
-            {inCartQty === 0 ? (
-              <div>
-                <Button
-                  ref={addButtonRef}
-                  variant="outline"
-                  size="sm"
-                  disabled={product.isAvailable === false}
-                  onClick={handleAdd}
-                  className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${
-                    product.isAvailable === false
-                    ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                    : 'border-purple-600 text-purple-600 hover:bg-purple-50'
-                  }`}
-                >
-                  {product.isAvailable === false ? 'Out of Range' : 'Add'}
-                </Button>
-                <div className="h-4 mt-1">
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 bg-pink-50/50 border border-pink-100 rounded-full px-2 py-0.5 h-8">
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={handleDecrease}
-                  className="w-6 h-6 p-0 bg-transparent text-[#ff3269] hover:bg-pink-100 shadow-none border-none"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </Button>
-                <span className="text-xs font-bold text-neutral-700 min-w-[1.5rem] text-center">
-                  {inCartQty}
-                </span>
-                <Button
-                  variant="default"
-                  size="icon"
-                  disabled={product.isAvailable === false}
-                  onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent text-[#ff3269] shadow-none border-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-pink-100'
-                  }`}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </Button>
-              </div>
-            )}
+      <div className="p-3 flex-1 flex flex-col" onClick={handleCardClick}>
+        {/* Product Name */}
+        <h3 className="text-[14px] font-bold text-gray-900 leading-tight line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-[#ff3269] transition-colors">
+          {product.name || product.productName || ''}
+        </h3>
+
+        {/* Pricing */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-base font-black text-gray-900">
+            ₹{displayPrice.toLocaleString('en-IN')}
+          </span>
+          {mrp && mrp > displayPrice && (
+            <span className="text-xs text-gray-400 line-through font-medium">
+              ₹{mrp.toLocaleString('en-IN')}
+            </span>
+          )}
+        </div>
+
+        {/* Meta Info: Rating & Time */}
+        <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-2.5">
+          <div className="flex items-center gap-1">
+             <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-50 rounded-md border border-gray-100">
+                <svg className="text-amber-400 fill-amber-400" width="10" height="10" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
+                </svg>
+                <span className="text-[10px] font-black text-gray-700">{product.rating || '5.0'}</span>
+             </div>
+             <span className="text-[9px] font-bold text-gray-400">({ (product as any).reviews || '1' })</span>
+          </div>
+
+          <div className="flex items-center gap-1 px-2 py-0.5 bg-sky-50 rounded-md border border-sky-100 text-sky-600">
+             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+             </svg>
+             <span className="text-[9px] font-black tracking-tight">21 MIN</span>
           </div>
         </div>
-      )}
+      </div>
     </motion.div>
   );
 }

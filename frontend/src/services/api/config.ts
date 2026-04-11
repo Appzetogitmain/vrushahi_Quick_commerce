@@ -28,9 +28,6 @@ if (import.meta.env.DEV || !import.meta.env.VITE_API_BASE_URL) {
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // Request interceptor - Add token to requests

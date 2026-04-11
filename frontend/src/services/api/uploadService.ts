@@ -24,16 +24,12 @@ export async function uploadImage(
   folder?: string
 ): Promise<UploadResult> {
   const formData = new FormData();
-  formData.append("image", file);
   if (folder) {
     formData.append("folder", folder);
   }
+  formData.append("image", file);
 
-  const response = await api.post<UploadResponse>("/upload/image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  const response = await api.post<UploadResponse>("/upload/image", formData);
 
   if (response.data.success && response.data.data) {
     return Array.isArray(response.data.data)
@@ -52,18 +48,14 @@ export async function uploadImages(
   folder?: string
 ): Promise<UploadResult[]> {
   const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("images", file);
-  });
   if (folder) {
     formData.append("folder", folder);
   }
-
-  const response = await api.post<UploadResponse>("/upload/images", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  files.forEach((file) => {
+    formData.append("images", file);
   });
+
+  const response = await api.post<UploadResponse>("/upload/images", formData);
 
   if (response.data.success && response.data.data) {
     return Array.isArray(response.data.data)
@@ -82,19 +74,14 @@ export async function uploadDocument(
   folder?: string
 ): Promise<UploadResult> {
   const formData = new FormData();
-  formData.append("document", file);
   if (folder) {
     formData.append("folder", folder);
   }
+  formData.append("document", file);
 
   const response = await api.post<UploadResponse>(
     "/upload/document",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+    formData
   );
 
   if (response.data.success && response.data.data) {
@@ -114,21 +101,16 @@ export async function uploadDocuments(
   folder?: string
 ): Promise<UploadResult[]> {
   const formData = new FormData();
-  files.forEach((file) => {
-    formData.append("documents", file);
-  });
   if (folder) {
     formData.append("folder", folder);
   }
+  files.forEach((file) => {
+    formData.append("documents", file);
+  });
 
   const response = await api.post<UploadResponse>(
     "/upload/documents",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+    formData
   );
 
   if (response.data.success && response.data.data) {

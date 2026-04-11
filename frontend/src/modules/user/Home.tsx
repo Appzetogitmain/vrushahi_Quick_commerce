@@ -7,6 +7,7 @@ import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
 import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
+import StoreCard from "./components/StoreCard";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
 import { useLocation } from "../../hooks/useLocation";
@@ -39,6 +40,7 @@ export default function Home() {
     categories: [],
     homeSections: [], // Dynamic sections created by admin
     shops: [],
+    nearbyStores: [],
     promoBanners: [],
     trending: [],
     cookingIdeas: [],
@@ -186,6 +188,29 @@ export default function Home() {
           <HomeBannerCarousel banners={homeData.promoBanners} />
         )}
 
+      {/* STORES NEAR YOU - Swiggy/Zomato Style */}
+      {homeData.nearbyStores && homeData.nearbyStores.length > 0 && (
+        <div className="mt-4 mb-2 md:mt-8 md:mb-4 px-4 md:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl md:text-3xl font-extrabold text-neutral-900 tracking-tight">
+              Stores Near You
+            </h2>
+            <div className="flex items-center gap-1 text-emerald-600 font-bold text-sm cursor-pointer hover:underline">
+              <span>View All</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-x-auto pb-4 hide-scrollbar">
+            {homeData.nearbyStores.map((store: any) => (
+              <StoreCard key={store.id} store={store} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* LOWEST PRICES EVER Section */}
       <LowestPricesEver
         activeTab={activeTab}
@@ -233,7 +258,6 @@ export default function Home() {
             {/* Sections only for 'All' tab */}
             {activeTab === "all" && (
               <>
-                <FeaturedThisWeek />
               </>
             )}
 

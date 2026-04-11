@@ -45,6 +45,7 @@ export interface Product {
   isReturnable?: boolean;
   maxReturnDays?: number;
   sellerId?: string;
+  seller?: string | { _id: string; storeName: string };
   isAvailable?: boolean;
 }
 

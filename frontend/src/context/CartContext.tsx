@@ -12,6 +12,7 @@ import {
   clearCart as apiClearCart
 } from '../services/api/customerCartService';
 import { calculateProductPrice } from '../utils/priceUtils';
+import StoreMismatchModal from '../modules/user/components/StoreMismatchModal';
 
 const CART_STORAGE_KEY = 'saved_cart';
 
@@ -55,6 +56,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [lastAddEvent, setLastAddEvent] = useState<AddToCartEvent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mismatchData, setMismatchData] = useState<{
+    isOpen: boolean;
+    product?: Product;
+    existingStoreName?: string;
+    newStoreName?: string;
+  }>({ isOpen: false });
   const pendingOperationsRef = useRef<Set<string>>(new Set());
 
   const { isAuthenticated, user } = useAuth();
@@ -252,8 +259,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       } catch (error: any) {
         console.error("Add to cart failed", error);
-        // Show error toast
-        showToast(error.response?.data?.message || "Failed to add to cart", 'error');
+        
+        // Handle Store Mismatch
+        if (error.response?.status === 409 && error.response?.data?.code === 'STORE_MISMATCH') {
+          setMismatchData({
+            isOpen: true,
+            product: product,
+            existingStoreName: error.response.data.existingStore,
+            newStoreName: (product as any).seller?.storeName || (product as any).storeName || 'this store'
+          });
+          // Silent toast so user knows something happened
+          showToast("Multiple store ordering restricted", 'info');
+        } else {
+          // Show error toast for other errors
+          showToast(error.response?.data?.message || "Failed to add to cart", 'error');
+        }
+        
         // Revert on error
         setItems(previousItems);
       } finally {
@@ -262,8 +283,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     } else {
       // For unregistered users, the optimistic update is already saved to localStorage
+      // For guest users, we could optionally implement store-mismatch logic here too
+      // but usually guest cart is local-only initially.
+      
       // Remove from pending operations immediately
       pendingOperationsRef.current.delete(productId);
+    }
+  };
+
+  const handleConfirmClearAndAdd = async () => {
+    if (!mismatchData.product) return;
+    
+    const productToAdd = mismatchData.product;
+    setMismatchData({ isOpen: false });
+    
+    try {
+      setLoading(true);
+      await apiClearCart();
+      setItems([]); // Clear local items
+      await addToCart(productToAdd); // Add the new item
+      showToast("Cart updated with new store items", 'success');
+    } catch (err) {
+      console.error("Failed to switch store", err);
+      showToast("Failed to switch store. Please try again.", 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -433,6 +477,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, refreshCart, lastAddEvent, loading }}
     >
       {children}
+      <StoreMismatchModal 
+        isOpen={mismatchData.isOpen}
+        onClose={() => setMismatchData({ isOpen: false })}
+        onConfirm={handleConfirmClearAndAdd}
+        existingStoreName={mismatchData.existingStoreName}
+        newStoreName={mismatchData.newStoreName}
+      />
     </CartContext.Provider>
   );
 }

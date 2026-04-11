@@ -263,9 +263,30 @@ export const addToCart = async (req: Request, res: Response) => {
         }
 
         // Get or create cart
-        let cart = await Cart.findOne({ customer: userId });
+        let cart = await Cart.findOne({ customer: userId }).populate('items');
         if (!cart) {
             cart = await Cart.create({ customer: userId, items: [], total: 0 });
+        }
+
+        // Check for single-seller restriction (One Store Per Order)
+        if (cart.items && cart.items.length > 0) {
+            // Find the first item to check its seller
+            const firstItem = await CartItem.findOne({ _id: cart.items[0] }).populate('product');
+            if (firstItem && firstItem.product) {
+                const existingSellerId = (firstItem.product as any).seller.toString();
+                const newSellerId = (product.seller as any)._id?.toString() || (product.seller as any).toString();
+
+                if (existingSellerId !== newSellerId) {
+                    // Fetch existing seller name for a better message
+                    const existingSeller = await Seller.findById(existingSellerId).select('storeName');
+                    return res.status(409).json({
+                        success: false,
+                        code: 'STORE_MISMATCH',
+                        message: `Your cart contains items from ${existingSeller?.storeName || 'another store'}. Clear cart to add items from ${seller.storeName}?`,
+                        existingStore: existingSeller?.storeName
+                    });
+                }
+            }
         }
 
         // Check if item already exists in cart

@@ -67,6 +67,8 @@ export interface ISeller extends Document {
   categories: string[];
   logo?: string;
   isShopOpen: boolean;
+  rating: number;
+  reviewsCount: number;
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
 
@@ -281,6 +283,16 @@ const SellerSchema = new Schema<ISeller>(
     isShopOpen: {
       type: Boolean,
       default: true,
+    },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    reviewsCount: {
+      type: Number,
+      default: 0,
     },
     fcmTokens: {
       type: [String],

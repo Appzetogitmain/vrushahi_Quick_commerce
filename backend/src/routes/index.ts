@@ -29,6 +29,7 @@ import customerAddressRoutes from "./customerAddressRoutes";
 import customerHomeRoutes from "./customerHomeRoutes";
 import customerCartRoutes from "./customerCartRoutes";
 import wishlistRoutes from "./wishlistRoutes";
+import customerStoreRoutes from "./customerStoreRoutes";
 import productReviewRoutes from "./productReviewRoutes";
 import adminRoutes from "./adminRoutes";
 import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
@@ -89,6 +90,7 @@ router.use("/customer/coupons", customerCouponRoutes);
 router.use("/customer/addresses", customerAddressRoutes);
 router.use("/customer/home", customerHomeRoutes);
 router.use("/customer/cart", customerCartRoutes);
+router.use("/customer/stores", customerStoreRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
 

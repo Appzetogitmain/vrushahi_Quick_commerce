@@ -30,7 +30,11 @@ router.post(
   uploadSingleImage.single("image"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
+    console.log('[Upload] POST /image - body:', req.body);
+    console.log('[Upload] POST /image - file:', (req as any).file);
+
     if (!(req as any).file) {
+      console.error('[Upload] No file found in request');
       return res.status(400).json({
         success: false,
         message: "No image file provided",

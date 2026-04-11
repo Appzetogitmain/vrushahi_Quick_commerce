@@ -201,6 +201,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <span className="font-medium text-sm">Order Again</span>
               </Link>
 
+              {/* Stores */}
+              <Link
+                to="/stores"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/stores')
+                  ? 'bg-white shadow-md font-semibold'
+                  : 'hover:bg-white/20'
+                  }`}
+                style={{
+                  color: isActive('/stores') ? currentTheme.accentColor : currentTheme.headerTextColor
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {isActive('/stores') ? (
+                    <path d="M3 9L12 3L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" fill="currentColor" />
+                  ) : (
+                    <path d="M3 9L12 3L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" />
+                  )}
+                </svg>
+                <span className="font-medium text-sm">Stores</span>
+              </Link>
+
               {/* Categories */}
               <Link
                 to="/categories"
@@ -435,6 +456,37 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     </div>
                     <span className={`text-[10px] mt-1 relative z-10 font-bold ${isActive('/order-again') ? 'text-[#ff4d6d]' : 'text-[#94a3b8]'}`}>
                       Order Again
+                    </span>
+                  </Link>
+                </motion.div>
+
+                {/* Stores */}
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.1 }}
+                  className="flex-1 h-full"
+                >
+                  <Link
+                    to="/stores"
+                    className="flex flex-col items-center justify-center h-full relative"
+                  >
+                    <div className="flex flex-col items-center justify-center relative z-10">
+                      <div className="w-6 h-6 flex items-center justify-center relative">
+                        {isActive('/stores') ? (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9L12 3L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" fill="#ff4d6d" />
+                            <path d="M9 22V12H15V22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        ) : (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9L12 3L21 9V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V9Z" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" fill="none" />
+                            <path d="M9 22V12H15V22" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-[10px] mt-1 relative z-10 font-bold ${isActive('/stores') ? 'text-[#ff4d6d]' : 'text-[#94a3b8]'}`}>
+                      Stores
                     </span>
                   </Link>
                 </motion.div>

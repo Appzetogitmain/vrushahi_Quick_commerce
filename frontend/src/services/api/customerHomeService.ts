@@ -8,6 +8,7 @@ export interface HomeContentResponse {
     lowestPrices?: any[];
     categories: any[];
     shops: any[];
+    nearbyStores: any[];
     promoBanners: any[];
     trending: any[];
     cookingIdeas: any[];
