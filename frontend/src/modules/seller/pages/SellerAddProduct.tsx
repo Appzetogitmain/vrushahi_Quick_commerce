@@ -27,10 +27,12 @@ import {
   getHeaderCategoriesPublic,
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
+import { useToast } from "../../../context/ToastContext";
 
 export default function SellerAddProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     productName: "",
     headerCategory: "",
@@ -360,7 +362,7 @@ export default function SellerAddProduct() {
 
   const addVariation = () => {
     if (!variationForm.title || !variationForm.price) {
-      setUploadError("Please fill in variation title and price");
+      showToast("Please fill in variation title and price", "error");
       return;
     }
 
@@ -368,8 +370,13 @@ export default function SellerAddProduct() {
     const discPrice = parseFloat(variationForm.discPrice || "0");
     const stock = parseInt(variationForm.stock || "0");
 
+    if (price < 0 || discPrice < 0 || stock < 0) {
+      showToast("Values cannot be negative", "error");
+      return;
+    }
+
     if (discPrice > price) {
-      setUploadError("Discounted price cannot be greater than price");
+      showToast("Discounted price cannot be greater than price", "error");
       return;
     }
 
@@ -389,7 +396,6 @@ export default function SellerAddProduct() {
       stock: "0",
       status: "Available",
     });
-    setUploadError("");
   };
 
   const removeVariation = (index: number) => {
@@ -915,10 +921,11 @@ export default function SellerAddProduct() {
                     onChange={(e) =>
                       setVariationForm({
                         ...variationForm,
-                        price: e.target.value,
+                        price: e.target.value.replace(/^-\d*/, ""),
                       })
                     }
                     placeholder="100"
+                    min="0"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
@@ -932,16 +939,17 @@ export default function SellerAddProduct() {
                     onChange={(e) =>
                       setVariationForm({
                         ...variationForm,
-                        discPrice: e.target.value,
+                        discPrice: e.target.value.replace(/^-\d*/, ""),
                       })
                     }
                     placeholder="80"
+                    min="0"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Stock (0 = Unlimited)
+                    Stock
                   </label>
                   <input
                     type="number"
@@ -949,10 +957,11 @@ export default function SellerAddProduct() {
                     onChange={(e) =>
                       setVariationForm({
                         ...variationForm,
-                        stock: e.target.value,
+                        stock: e.target.value.replace(/^-\d*/, ""),
                       })
                     }
                     placeholder="0"
+                    min="0"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
@@ -986,10 +995,7 @@ export default function SellerAddProduct() {
                             </span>
                           )}
                           <span className="ml-4 text-sm text-neutral-600">
-                            Stock:{" "}
-                            {variation.stock === 0
-                              ? "Unlimited"
-                              : variation.stock}{" "}
+                              {variation.stock}{" "}
                             | Status: {variation.status}
                           </span>
                         </div>

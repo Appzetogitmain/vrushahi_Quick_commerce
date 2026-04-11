@@ -114,7 +114,7 @@ export interface StockItemMock {
   seller: string;
   image: string;
   variation: string;
-  stock: number | "Unlimited";
+  stock: number;
   status: "Published" | "Unpublished";
   category: string;
 }
@@ -146,7 +146,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
     seller: "Vrushali Store",
     image: "/assets/product-mtr-poha.jpg",
     variation: "100g",
-    stock: "Unlimited",
+    stock: 0,
     status: "Published",
     category: "Instant Food",
   },

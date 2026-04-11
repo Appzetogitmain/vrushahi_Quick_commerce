@@ -179,11 +179,7 @@ export default function Login() {
             </div>
           )}
 
-          <div className="mt-8 text-center">
-            <p className="text-xs text-neutral-400">
-              By continuing, you agree to our <a href="#" className="text-[#ba9af7] hover:underline">Terms of Service</a> & <a href="#" className="text-[#ba9af7] hover:underline">Privacy Policy</a>
-            </p>
-          </div>
+
         </div>
       </div>
 

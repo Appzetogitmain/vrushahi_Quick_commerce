@@ -166,12 +166,6 @@ export default function AddressBook() {
             <p className="text-sm text-neutral-500 mb-3">
               Save an address to checkout faster next time.
             </p>
-            <button
-              onClick={() => navigate("/checkout/address")}
-              className="px-6 py-3 text-sm font-black text-neutral-900 bg-transparent border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all active:scale-95"
-            >
-              Add address
-            </button>
           </div>
         ) : (
           <div className="space-y-3">

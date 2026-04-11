@@ -10,7 +10,7 @@ interface StockItem {
     seller: string;
     image: string;
     variation: string;
-    stock: number | 'Unlimited';
+    stock: number;
     status: 'Published' | 'Unpublished';
     category: string;
 }
@@ -155,8 +155,7 @@ export default function SellerStockManagement() {
         const matchesStatus = statusFilter === 'All Products' ||
             (statusFilter === 'Published' && item.status === 'Published') ||
             (statusFilter === 'Unpublished' && item.status === 'Unpublished');
-        const matchesStock = stockFilter === 'All Products' ||
-            (stockFilter === 'In Stock' && (typeof item.stock === 'number' && item.stock > 0)) ||
+            (stockFilter === 'In Stock' && item.stock > 0) ||
             (stockFilter === 'Out of Stock' && item.stock === 0);
         return matchesSearch && matchesCategory && matchesStatus && matchesStock;
     });

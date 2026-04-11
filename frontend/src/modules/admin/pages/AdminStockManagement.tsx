@@ -17,14 +17,14 @@ interface ProductVariation {
   sellerId: string;
   image: string;
   variation: string;
-  stock: number | "Unlimited";
+  stock: number;
   status: "Published" | "Unpublished";
   category: string;
   categoryId: string;
 }
 
 const STATUS_OPTIONS = ["All Products", "Published", "Unpublished"];
-const STOCK_OPTIONS = ["All Products", "In Stock", "Out of Stock", "Unlimited"];
+const STOCK_OPTIONS = ["All Products", "In Stock", "Out of Stock"];
 
 export default function AdminStockManagement() {
   const navigate = useNavigate();
@@ -234,15 +234,8 @@ export default function AdminStockManagement() {
         filterStatus === "All Products" || product.status === filterStatus;
       const matchesStock =
         filterStock === "All Products" ||
-        (filterStock === "Unlimited" && product.stock === "Unlimited") ||
-        (filterStock === "In Stock" &&
-          product.stock !== "Unlimited" &&
-          typeof product.stock === "number" &&
-          product.stock > 0) ||
-        (filterStock === "Out of Stock" &&
-          product.stock !== "Unlimited" &&
-          typeof product.stock === "number" &&
-          product.stock === 0);
+        (filterStock === "In Stock" && product.stock > 0) ||
+        (filterStock === "Out of Stock" && product.stock === 0);
       const matchesSearch =
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.seller.toLowerCase().includes(searchTerm.toLowerCase());
@@ -290,8 +283,8 @@ export default function AdminStockManagement() {
           bValue = b.variation.toLowerCase();
           break;
         case "stock":
-          aValue = typeof a.stock === "number" ? a.stock : 999999;
-          bValue = typeof b.stock === "number" ? b.stock : 999999;
+          aValue = a.stock;
+          bValue = b.stock;
           break;
         case "status":
           aValue = a.status;
@@ -329,7 +322,7 @@ export default function AdminStockManagement() {
           `"${product.name}"`,
           `"${product.seller}"`,
           `"${product.variation}"`,
-          product.stock === "Unlimited" ? "Unlimited" : product.stock,
+          product.stock,
           product.status,
         ].join(",")
       ),
@@ -604,13 +597,7 @@ export default function AdminStockManagement() {
                       </td>
                       <td className="p-4 align-middle">{product.variation}</td>
                       <td className="p-4 align-middle">
-                        {product.stock === "Unlimited" ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
-                            Unlimited
-                          </span>
-                        ) : (
-                          <span>{product.stock}</span>
-                        )}
+                        <span>{product.stock}</span>
                       </td>
                       <td className="p-4 align-middle">
                         <span

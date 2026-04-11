@@ -196,10 +196,7 @@ export default function AdminLogin() {
       </div>
 
 
-      {/* Footer Text */}
-      <p className="mt-6 text-xs text-neutral-500 text-center max-w-md">
-        By continuing, you agree to vrushahi's Terms of Service and Privacy Policy
-      </p>
+
     </div>
   );
 }

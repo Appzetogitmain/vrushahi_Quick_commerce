@@ -97,12 +97,14 @@ export default function HomeHero({
   // Format location display text - only show if user has provided location
   const locationDisplayText = useMemo(() => {
     if (userLocation?.address) {
-      // Use the full address if available
-      return userLocation.address;
+      // Shorten the address if it's too long for a "small" concise look
+      const addr = userLocation.address;
+      return addr.length > 35 ? `${addr.substring(0, 35)}...` : addr;
     }
     // Fallback to city, state format if available
     if (userLocation?.city && userLocation?.state) {
-      return `${userLocation.city}, ${userLocation.state}`;
+      const cityState = `${userLocation.city}, ${userLocation.state}`;
+      return cityState.length > 35 ? `${cityState.substring(0, 35)}...` : cityState;
     }
     // Fallback to city only
     if (userLocation?.city) {
@@ -370,22 +372,22 @@ export default function HomeHero({
               onClick={() => window.dispatchEvent(new CustomEvent('openLocationPicker'))}
               className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer group"
             >
-              <div className="mt-0.5 flex-shrink-0">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
-                    fill={isHome ? "#000000" : "currentColor"} 
-                  />
-                </svg>
-              </div>
               
               <div className="flex flex-col min-w-0">
                 <div className={`text-[15px] font-extrabold tracking-wide uppercase leading-tight group-hover:opacity-70 transition-colors`} 
                    style={{ color: isHome ? '#000000' : 'inherit' }}>
-                  DELIVERY IN {appConfig.estimatedDeliveryTime}
+                  Vrushahi
                 </div>
                 {locationDisplayText && (
-                  <div className={`text-xs mt-0.5 truncate pr-2 group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>
-                    {locationDisplayText}
+                  <div className={`flex items-center gap-1 text-xs mt-0.5 group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
+                        fill={isHome ? "rgba(0,0,0,0.6)" : "currentColor"} 
+                      />
+                    </svg>
+                    <span className="truncate pr-2">
+                      {locationDisplayText}
+                    </span>
                   </div>
                 )}
               </div>

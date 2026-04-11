@@ -265,22 +265,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {(showHeader || isSearchPage) && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
               {/* Delivery info line */}
-              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-purple-50 text-xs text-purple-700 text-center">
-                Delivering in 10–15 mins
+              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-purple-50 text-xs text-purple-700 text-center font-bold tracking-wide">
+                Vrushahi
               </div>
 
               {/* Location line - only show if user has provided location */}
               {userLocation && (userLocation.address || userLocation.city) && (
               <div className="px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1 min-w-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
+                      fill="rgba(0,0,0,0.6)" 
+                    />
+                  </svg>
                   <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || ''}>
-                  {userLocation?.address
-                    ? userLocation.address.length > 50
-                      ? `${userLocation.address.substring(0, 50)}...`
-                      : userLocation.address
-                    : userLocation?.city && userLocation?.state
-                      ? `${userLocation.city}, ${userLocation.state}`
-                        : userLocation?.city || ''}
-                </span>
+                    {userLocation?.address
+                      ? userLocation.address.length > 35
+                        ? `${userLocation.address.substring(0, 35)}...`
+                        : userLocation.address
+                      : userLocation?.city && userLocation?.state
+                        ? `${userLocation.city}, ${userLocation.state}`
+                          : userLocation?.city || ''}
+                  </span>
+                </div>
                 <button
                   onClick={() => setShowLocationChangeModal(true)}
                   className="text-blue-600 font-medium hover:text-blue-700 transition-colors flex-shrink-0 ml-2"

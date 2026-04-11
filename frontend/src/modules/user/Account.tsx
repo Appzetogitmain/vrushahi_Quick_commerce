@@ -586,10 +586,6 @@ export default function Account() {
                     Save Details
                   </button>
                 </form>
-                <p className="mt-6 text-[11px] text-neutral-400">
-                  By continuing, you agree to our{" "}
-                  <span className="underline">Terms & Conditions</span>
-                </p>
               </div>
             </div>
           </div>
