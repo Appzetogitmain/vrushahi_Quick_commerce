@@ -21,7 +21,8 @@ export interface ISeller extends Document {
   workingHours?: {
     open: string;
     close: string;
-    offDays: string[];
+    workingDays: string[];
+    offDays?: string[];
   };
   socialLinks?: {
     facebook?: string;
@@ -160,6 +161,7 @@ const SellerSchema = new Schema<ISeller>(
     workingHours: {
       open: { type: String },
       close: { type: String },
+      workingDays: [{ type: String }],
       offDays: [{ type: String }],
     },
     socialLinks: {

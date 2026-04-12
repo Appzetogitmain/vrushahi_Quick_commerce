@@ -36,6 +36,12 @@ export interface Seller {
   profile?: string;
   idProof?: string;
   addressProof?: string;
+  fssaiLicNo?: string;
+  workingHours?: {
+    open: string;
+    close: string;
+    workingDays: string[];
+  };
   requireProductApproval?: boolean;
   viewCustomerDetails?: boolean;
   createdAt?: string;

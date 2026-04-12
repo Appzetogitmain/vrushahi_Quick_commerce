@@ -60,16 +60,16 @@ export interface RegisterResponse {
 /**
  * Send OTP to seller mobile number
  */
-export const sendOTP = async (mobile: string): Promise<SendOTPResponse> => {
-  const response = await api.post<SendOTPResponse>('/auth/seller/send-otp', { mobile });
+export const sendOTP = async (mobile: string, type: 'login' | 'register' = 'login'): Promise<SendOTPResponse> => {
+  const response = await api.post<SendOTPResponse>('/auth/seller/send-otp', { mobile, type });
   return response.data;
 };
 
 /**
  * Verify OTP and login seller
  */
-export const verifyOTP = async (mobile: string, otp: string): Promise<VerifyOTPResponse> => {
-  const response = await api.post<VerifyOTPResponse>('/auth/seller/verify-otp', { mobile, otp });
+export const verifyOTP = async (mobile: string, otp: string, type: 'login' | 'register' = 'login'): Promise<VerifyOTPResponse> => {
+  const response = await api.post<VerifyOTPResponse>('/auth/seller/verify-otp', { mobile, otp, type });
   return response.data;
 };
 

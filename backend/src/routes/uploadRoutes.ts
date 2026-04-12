@@ -17,7 +17,70 @@ import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-// All upload routes require authentication
+// Public upload routes (for Registration/Onboarding)
+/**
+ * POST /api/v1/upload/image-public
+ * Public endpoint for uploading images (e.g., store logo during signup)
+ */
+router.post(
+  "/image-public",
+  uploadSingleImage.single("image"),
+  handleUploadError,
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!(req as any).file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image file provided",
+      });
+    }
+
+    const folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    const result = await uploadImageFromBuffer((req as any).file.buffer, {
+      folder,
+      resourceType: "image",
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  })
+);
+
+/**
+ * POST /api/v1/upload/document-public
+ * Public endpoint for uploading documents (e.g., Aadhar, Photo during signup)
+ */
+router.post(
+  "/document-public",
+  uploadDocument.single("document"),
+  handleUploadError,
+  asyncHandler(async (req: Request, res: Response) => {
+    if (!(req as any).file) {
+      return res.status(400).json({
+        success: false,
+        message: "No document file provided",
+      });
+    }
+
+    const folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    // Check if it's an image or PDF
+    const isImage = (req as any).file.mimetype.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+
+    const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
+      folder,
+      resourceType,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  })
+);
+
+// Protected routes (require authentication)
 router.use(authenticate);
 
 /**
@@ -96,7 +159,7 @@ router.post(
  */
 router.post(
   "/document",
-  authenticate, // All authenticated users can upload documents
+  requireUserType("Admin", "Seller", "Delivery"),
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -139,7 +202,7 @@ router.post(
  */
 router.post(
   "/documents",
-  authenticate,
+  requireUserType("Admin", "Seller", "Delivery"),
   uploadMultipleDocuments.array("documents", 5), // Max 5 documents
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {

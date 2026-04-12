@@ -147,9 +147,9 @@ export default function SellerStore() {
             <div className="relative">
                 <div className="w-full aspect-[2.2/1] bg-gray-200 overflow-hidden">
                     <img
-                        src={seller?.storeBanner || seller?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200'}
+                        src={seller?.storeBanner || seller?.banner || '/assets/default-store-banner.png'}
                         alt="Store Banner"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                     />
                 </div>
                 
@@ -171,52 +171,80 @@ export default function SellerStore() {
                 </div>
 
                 {/* Rating Overlay Pill */}
-                <div className="absolute -bottom-6 right-6">
-                    <div className="bg-white px-3.5 py-2 rounded-full shadow-lg border border-gray-100 flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-[#ffb800]">
-                            <svg className="fill-current" width="16" height="16" viewBox="0 0 24 24">
+                <div className="absolute -bottom-5 right-6">
+                    <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50 flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-[#ffb800]">
+                            <svg className="fill-current" width="18" height="18" viewBox="0 0 24 24">
                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                             </svg>
-                            <span className="text-sm font-black text-gray-900">{seller.rating || '4.2'}</span>
+                            <span className="text-base font-black text-neutral-900">{seller.rating || '4.2'}</span>
                         </div>
-                        <div className="w-px h-3 bg-gray-200" />
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{seller.reviewsCount || '100+'} REVIEWS</span>
+                        <div className="w-px h-4 bg-gray-200" />
+                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-[0.1em]">{seller.reviewsCount || '100+'} REVIEWS</span>
                     </div>
                 </div>
             </div>
 
-            {/* Store Detailed Info */}
-            <div className="px-6 pt-14 pb-6 bg-white shadow-sm border-b border-gray-100">
-                <h1 className="text-2xl font-black text-gray-900 tracking-tight mb-2 uppercase">
-                    {seller.storeName}
-                </h1>
+            {/* Compact Store Info Section */}
+            <div className="px-6 pt-10 pb-6 bg-white border-b border-gray-100">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                    <div className="flex-1">
+                        <h1 className="text-xl font-black text-neutral-900 tracking-tight mb-1">
+                            {seller.storeName}
+                        </h1>
+                        <p className="text-sm text-neutral-400 font-medium italic border-l-2 border-pink-200 pl-3">
+                            "{seller.storeDescription || 'Premium quality, delivered instantly.'}"
+                        </p>
+                    </div>
+                </div>
                 
-                <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Location & Distance */}
+                    <div className="flex items-center gap-3 bg-neutral-50 px-4 py-3 rounded-2xl border border-neutral-100">
+                        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-neutral-400 shadow-sm">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                 <circle cx="12" cy="10" r="3" />
                             </svg>
                         </div>
-                        <div className="flex-1">
-                            <p className="text-[13px] leading-relaxed text-gray-500 font-bold max-w-sm">
-                                {seller.address || 'Standard Quality Location, Bhuj'}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-bold text-neutral-700 truncate">
+                                {seller.address || 'Location Details'}
                             </p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                                <span className="bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-lg text-[10px] font-black border border-emerald-100 uppercase tracking-widest">
-                                    0.0 KM
-                                </span>
-                                <span className="bg-sky-50 text-sky-600 px-2.5 py-0.5 rounded-lg text-[10px] font-black border border-sky-100 uppercase tracking-widest">
-                                    {seller.deliveryTime || '24 MINS'}
-                                </span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">0.0 KM Nearby</span>
+                                <div className="w-1 h-1 rounded-full bg-neutral-300" />
+                                <span className="text-[10px] font-black text-sky-600 uppercase tracking-tighter">{seller.deliveryTime || '24 MINS'}</span>
                             </div>
                         </div>
                     </div>
 
-                    <p className="text-sm text-gray-400 font-medium leading-relaxed italic border-l-2 border-pink-100 pl-3">
-                        "{seller.storeDescription || 'Your premium choice for quality products delivered instantly.'}"
-                    </p>
+                    {/* Operating Hours - Compact */}
+                    <div className="flex items-center gap-3 bg-pink-50/50 px-4 py-3 rounded-2xl border border-pink-100/50">
+                        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#ff3269] shadow-sm">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[12px] font-black text-neutral-800">
+                                    {seller.workingHours?.open || '09:00 AM'} — {seller.workingHours?.close || '09:00 PM'}
+                                </span>
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${
+                                    seller.isShopOpen !== false ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+                                }`}>
+                                    {seller.isShopOpen !== false ? 'Open' : 'Closed'}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-pink-400 font-bold uppercase tracking-tight mt-0.5 truncate">
+                                {seller.workingHours?.workingDays?.length > 0 
+                                    ? seller.workingHours.workingDays.join(', ') 
+                                    : 'Operational all week'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

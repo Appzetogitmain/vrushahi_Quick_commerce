@@ -28,6 +28,7 @@ interface Tab {
   id: string;
   label: string;
   icon: React.ReactNode;
+  theme?: string; // Add theme to Tab interface
 }
 
 const ALL_TAB: Tab = {
@@ -69,11 +70,15 @@ export default function HomeHero({
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          const mapped = cats.map((c) => ({
-            id: c.slug,
-            label: c.name,
-            icon: getIconByName(c.iconName),
-          }));
+          // Filter out categories with slug 'all' or empty slugs to avoid conflicts
+          const mapped = cats
+            .filter((c) => c.slug && c.slug !== "all")
+            .map((c) => ({
+              id: c.slug,
+              theme: c.theme || c.slug, // Use theme if available, fallback to slug for legacy data
+              label: c.name,
+              icon: getIconByName(c.iconName),
+            }));
           setTabs([ALL_TAB, ...mapped]);
         }
       } catch (error) {
@@ -344,11 +349,12 @@ export default function HomeHero({
   }, [activeTab]);
 
   const handleTabClick = (tabId: string) => {
+    if (activeTab === tabId) return; // Already active
     onTabChange?.(tabId);
-    // Don't scroll - keep page at current position
   };
 
-  const theme = getTheme(activeTab || "all");
+  const activeTabData = tabs.find(t => t.id === activeTab);
+  const theme = getTheme(activeTabData?.theme || activeTab || "all");
   const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
 
   const isHome = activeTab === "all";
@@ -511,18 +517,16 @@ export default function HomeHero({
           style={{ paddingBottom: 0 }}>
           <div
             ref={tabsContainerRef}
-            className="relative flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-6 lg:px-8 md:justify-center scroll-smooth"
-            style={{ paddingBottom: "12px" }}
+            className="relative flex gap-1 md:gap-3 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-6 lg:px-8 md:justify-center scroll-smooth py-2"
             data-padding-bottom="md:8px">
             {/* Sliding Indicator */}
             {indicatorStyle.width > 0 && (
               <div
-                className="absolute bottom-0 h-1 bg-neutral-900 rounded-t-md transition-all duration-300 ease-out pointer-events-none"
+                className="absolute bottom-1 h-1 bg-neutral-900 rounded-t-lg transition-all duration-300 ease-out pointer-events-none"
                 style={{
                   left: `${indicatorStyle.left}px`,
                   width: `${indicatorStyle.width}px`,
-                  transition:
-                    "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   zIndex: 0,
                 }}
               />
@@ -547,9 +551,9 @@ export default function HomeHero({
                     }
                   }}
                   onClick={() => handleTabClick(tab.id)}
-                  className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[50px] md:min-w-fit md:px-3 py-1 md:py-1.5 relative ${tabColor} z-10`}
+                  className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[60px] md:min-w-fit px-2 md:px-4 py-1 md:py-1.5 relative ${tabColor} z-10 select-none active:scale-95 transition-transform`}
                   style={{
-                    transition: "color 0.3s ease-out",
+                    transition: "color 0.3s ease-out, transform 0.1s ease-in-out",
                   }}
                   type="button">
                   <div

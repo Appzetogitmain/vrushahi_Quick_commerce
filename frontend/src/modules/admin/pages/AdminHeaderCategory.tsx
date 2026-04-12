@@ -111,6 +111,16 @@ export default function AdminHeaderCategory() {
     setIconSearchTerm('');
   };
 
+  // Helper to generate slug from name
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove non-word chars
+      .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  };
+
   const handleAddOrUpdate = async () => {
     if (!headerCategoryName.trim()) return alert('Please enter a header category name');
     if (!headerCategoryIcon.trim()) return alert('Please select an icon. If your category is unique, try searching for a generic icon.');
@@ -121,7 +131,8 @@ export default function AdminHeaderCategory() {
         name: headerCategoryName,
         iconLibrary: selectedIconLibrary,
         iconName: headerCategoryIcon,
-        slug: selectedTheme, // Use theme as slug for color mapping
+        slug: generateSlug(headerCategoryName), // Automatically generate slug from name
+        theme: selectedTheme, // Use theme for color mapping
         relatedCategory: selectedCategory,
         status: selectedStatus,
       };
@@ -148,7 +159,7 @@ export default function AdminHeaderCategory() {
     setSelectedIconLibrary(category.iconLibrary);
     setHeaderCategoryIcon(category.iconName);
     setSelectedCategory(category.relatedCategory || '');
-    setSelectedTheme(category.slug);
+    setSelectedTheme(category.theme || category.slug); // Load theme if exists, fallback to slug
     setSelectedStatus(category.status);
     setIconSearchTerm('');
   };
@@ -424,9 +435,9 @@ export default function AdminHeaderCategory() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
                           <div
                             className="w-2 h-2 rounded-full mr-1.5"
-                            style={{ background: themes[category.slug]?.primary[0] || '#ccc' }}
+                            style={{ background: themes[category.theme || category.slug]?.primary[0] || '#ccc' }}
                           />
-                          {category.slug}
+                          {category.theme || category.slug}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm">

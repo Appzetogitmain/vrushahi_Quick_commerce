@@ -45,6 +45,7 @@ export default function Home() {
     trending: [],
     cookingIdeas: [],
   });
+  const [showAllStores, setShowAllStores] = useState(false);
 
   const [products, setProducts] = useState<any[]>([]);
 
@@ -189,27 +190,46 @@ export default function Home() {
         )}
 
       {/* STORES NEAR YOU - Swiggy/Zomato Style */}
-      {homeData.nearbyStores && homeData.nearbyStores.length > 0 && (
+      {(homeData.nearbyStores && homeData.nearbyStores.length > 0) || activeTab !== "all" ? (
         <div className="mt-4 mb-2 md:mt-8 md:mb-4 px-4 md:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl md:text-3xl font-extrabold text-neutral-900 tracking-tight">
-              Stores Near You
+            <h2 className="text-xl md:text-3xl font-extrabold text-neutral-900 tracking-tight capitalize">
+              {activeTab === "all" ? "Stores Near You" : `${activeTab} Stores Near You`}
             </h2>
-            <div className="flex items-center gap-1 text-emerald-600 font-bold text-sm cursor-pointer hover:underline">
-              <span>View All</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+            <div 
+              onClick={() => setShowAllStores(!showAllStores)}
+              className="flex items-center gap-1 text-emerald-600 font-bold text-sm cursor-pointer hover:underline"
+            >
+              <span>{showAllStores ? "Show Less" : "View All"}</span>
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="3"
+                className={`transition-transform duration-200 ${showAllStores ? 'rotate-90' : ''}`}
+              >
                 <path d="M9 18l6-6-6-6" />
               </svg>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-x-auto pb-4 hide-scrollbar">
-            {homeData.nearbyStores.map((store: any) => (
-              <StoreCard key={store.id} store={store} />
-            ))}
-          </div>
+          
+          {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
+            <div className={`grid grid-cols-2 md:grid-cols-4 ${showAllStores ? 'lg:grid-cols-5 xl:grid-cols-6' : ''} gap-3 md:gap-4 ${showAllStores ? 'flex-wrap' : 'overflow-x-auto pb-4 hide-scrollbar'}`}>
+              {(showAllStores ? homeData.nearbyStores : homeData.nearbyStores.slice(0, 4)).map((store: any) => (
+                <StoreCard key={store.id} store={store} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-300">
+              <p className="text-neutral-500 font-medium">No {activeTab} stores found nearby</p>
+              <p className="text-xs text-neutral-400 mt-1">Try switching to the 'All' tab to see more options</p>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
 
       {/* LOWEST PRICES EVER Section */}
       <LowestPricesEver

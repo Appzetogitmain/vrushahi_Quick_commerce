@@ -6,6 +6,7 @@ import { getCategories, Category } from '../../../services/api/categoryService';
 import { uploadImage } from '../../../services/api/uploadService';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import LocationPickerMap from '../../../components/LocationPickerMap';
+import { calculateProfileCompletion } from '../utils/profileCompletion';
 
 const SellerAccountSettings = () => {
   const { user, updateUser } = useAuth();
@@ -42,7 +43,12 @@ const SellerAccountSettings = () => {
     storeBanner: '',
     storeDescription: '',
     commission: 0,
-    status: ''
+    status: '',
+    workingHours: {
+      open: '09:00',
+      close: '21:00',
+      workingDays: [] as string[]
+    }
   });
 
   useEffect(() => {
@@ -73,6 +79,7 @@ const SellerAccountSettings = () => {
           longitude: data.longitude || (locationCoords[0]?.toString() || ''),
           searchLocation: data.searchLocation || data.address || '',
           serviceRadiusKm: (data.serviceRadiusKm || 10).toString(),
+          workingHours: data.workingHours || { open: '09:00', close: '21:00', workingDays: [] }
         });
       } else {
         setError(response.message || 'Failed to fetch profile');
@@ -86,10 +93,42 @@ const SellerAccountSettings = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Handle nested workingHours
+    if (name === 'open' || name === 'close') {
+      setSellerData(prev => ({
+        ...prev,
+        workingHours: {
+          ...prev.workingHours,
+          [name]: value
+        }
+      }));
+      return;
+    }
+
     setSellerData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const toggleWorkingDay = (day: string) => {
+    if (!isEditing) return;
+    setSellerData(prev => {
+      const days = prev.workingHours?.workingDays || [];
+      const isSelected = days.includes(day);
+      const newDays = isSelected 
+        ? days.filter(d => d !== day) 
+        : [...days, day];
+      
+      return {
+        ...prev,
+        workingHours: {
+          ...prev.workingHours,
+          workingDays: newDays
+        }
+      };
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'storeBanner' | 'profile') => {
@@ -217,7 +256,18 @@ const SellerAccountSettings = () => {
         </svg>
       )
     },
+    {
+      id: 'hours',
+      label: 'Business Hours',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
   ];
+
+  const { percentage } = calculateProfileCompletion(sellerData);
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -277,19 +327,35 @@ const SellerAccountSettings = () => {
             </div>
 
             {/* Status Card */}
-            <div className="mt-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 text-white shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-semibold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded">
-                  Account Status
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold">
-                  {sellerData.sellerName?.charAt(0).toUpperCase()}
+            <div className="mt-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 text-white shadow-lg overflow-hidden relative">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+              <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-indigo-400/20 rounded-full blur-xl" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full border border-white/10">
+                    Profile Setup
+                  </span>
+                  <span className="text-sm font-bold">{percentage}%</span>
                 </div>
-                <div>
-                  <p className="font-medium">{sellerData.sellerName}</p>
-                  <p className="text-xs text-indigo-100 uppercase">{sellerData.status || 'Active'}</p>
+                
+                {/* Progress Bar */}
+                <div className="h-2 w-full bg-white/20 rounded-full mb-4 overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold border border-white/20">
+                    {sellerData.sellerName?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold truncate text-sm">{sellerData.sellerName}</p>
+                    <p className="text-[10px] text-indigo-100 uppercase font-medium tracking-tight">Status: {sellerData.status || 'Active'}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -589,6 +655,70 @@ const SellerAccountSettings = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
                             <InputGroup label="PAN Card Number" name="panCard" value={sellerData.panCard} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="Tax Number (GST)" name="taxNumber" value={sellerData.taxNumber} onChange={handleInputChange} disabled={!isEditing} />
+                          </div>
+                        </section>
+                      </div>
+                    )}
+
+                    {activeTab === 'hours' && (
+                      <div className="space-y-10">
+                        <section>
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-teal-50 text-teal-600 rounded-lg">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <h4 className="text-lg font-bold text-gray-900">Operating Hours</h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-neutral-50/50 p-6 rounded-xl border border-neutral-100 mb-8">
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-semibold text-gray-700 ml-1">Opening Time</label>
+                              <input
+                                type="time"
+                                name="open"
+                                value={sellerData.workingHours?.open || '09:00'}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-white/50 transition-all"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-semibold text-gray-700 ml-1">Closing Time</label>
+                              <input
+                                type="time"
+                                name="close"
+                                value={sellerData.workingHours?.close || '21:00'}
+                                onChange={handleInputChange}
+                                disabled={!isEditing}
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-white/50 transition-all"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">Working Days</label>
+                            <div className="flex flex-wrap gap-2">
+                              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                                const isSelected = sellerData.workingHours?.workingDays?.includes(day);
+                                return (
+                                  <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => toggleWorkingDay(day)}
+                                    className={`px-4 py-2 rounded-full text-xs font-bold transition-all border-2 ${
+                                      isSelected
+                                        ? 'bg-teal-600 text-white border-teal-600 shadow-md transform scale-105'
+                                        : 'bg-white text-neutral-500 border-neutral-200 hover:border-teal-200'
+                                    } ${!isEditing ? 'opacity-80 cursor-default' : 'cursor-pointer active:scale-95'}`}
+                                  >
+                                    {day}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {isEditing && (
+                              <p className="text-xs text-neutral-400 ml-1">Click to toggle the days your store is operational.</p>
+                            )}
                           </div>
                         </section>
                       </div>

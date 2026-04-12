@@ -18,7 +18,7 @@ export const getSellerStoreDetails = async (req: Request, res: Response) => {
 
     // Fetch seller info
     const seller = await Seller.findById(sellerId).select(
-      "storeName logo storeBanner storeDescription city isShopOpen rating reviewsCount location serviceRadiusKm address"
+      "storeName logo storeBanner storeDescription city isShopOpen rating reviewsCount location serviceRadiusKm address workingHours"
     ).lean();
 
     if (!seller) {

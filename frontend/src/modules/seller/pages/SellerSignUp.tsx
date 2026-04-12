@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   register,
@@ -13,37 +13,44 @@ import {
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
-import { useEffect } from "react";
+import FileUpload from "../../../components/FileUpload";
+import { useToast } from "../../../context/ToastContext";
 import LogoLatest from "@assets/LogoLatest.png";
+
+type Step = 1 | 2 | 3 | 4 | 5 | 6; // 6 is success step
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showToast } = useToast();
+  
+  const [currentStep, setCurrentStep] = useState<Step>(1);
+  const [isOTPVerified, setIsOTPVerified] = useState(false);
+  const [showOTPFields, setShowOTPFields] = useState(false);
+  
   const [formData, setFormData] = useState({
     sellerName: "",
     mobile: "",
     email: "",
     storeName: "",
-    category: "",
     categories: [] as string[],
     address: "",
     city: "",
-    panCard: "",
-    taxName: "",
-    taxNumber: "",
     searchLocation: "",
     latitude: "",
     longitude: "",
-    serviceRadiusKm: "10", // Default 10km
-    accountName: "",
-    bankName: "",
-    branch: "",
-    accountNumber: "",
-    ifsc: "",
+    serviceRadiusKm: "10",
+    idProof: "",
+    profile: "",
+    fssaiLicNo: "",
+    workingHours: {
+      open: "09:00",
+      close: "21:00",
+      workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    }
   });
-  const [showOTP, setShowOTP] = useState(false);
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [categories, setCategories] = useState<HeaderCategory[]>([]);
 
   useEffect(() => {
@@ -61,7 +68,7 @@ export default function SellerSignUp() {
   }, []);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     if (name === "mobile") {
@@ -70,659 +77,481 @@ export default function SellerSignUp() {
         [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
     } else if (name === "serviceRadiusKm") {
-      // Allow only numbers and a single decimal point
       const cleanedValue = value.replace(/[^0-9.]/g, "");
-      // Ensure only one decimal point
       const parts = cleanedValue.split(".");
-      const finalValue =
-        parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanedValue;
-
-      setFormData((prev) => ({
+      const finalValue = parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanedValue;
+      setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    } else if (name === "open" || name === "close") {
+      setFormData(prev => ({
         ...prev,
-        [name]: finalValue,
+        workingHours: { ...prev.workingHours, [name]: value }
       }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const toggleCategory = (cat: string) => {
+  const toggleCategory = (catName: string) => {
     setFormData((prev) => {
-      const exists = prev.categories.includes(cat);
+      const exists = prev.categories.includes(catName);
       const nextCategories = exists
-        ? prev.categories.filter((c) => c !== cat)
-        : [...prev.categories, cat];
+        ? prev.categories.filter((c) => c !== catName)
+        : [...prev.categories, catName];
+      return { ...prev, categories: nextCategories };
+    });
+  };
+
+  const toggleWorkingDay = (day: string) => {
+    setFormData(prev => {
+      const exists = prev.workingHours.workingDays.includes(day);
+      const nextDays = exists 
+        ? prev.workingHours.workingDays.filter(d => d !== day)
+        : [...prev.workingHours.workingDays, day];
       return {
         ...prev,
-        categories: nextCategories,
-        category: nextCategories[0] || "",
+        workingHours: { ...prev.workingHours, workingDays: nextDays }
       };
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validate required fields (password removed - not needed during signup)
-    if (!formData.sellerName) {
-      setError("Please enter your name");
-      return;
-    }
-    if (!formData.mobile) {
-      setError("Please enter your mobile number");
-      return;
-    }
-    if (!formData.email) {
-      setError("Please enter your email address");
-      return;
-    }
-    if (!formData.storeName) {
-      setError("Please enter your store name");
-      return;
-    }
-    if (formData.categories.length === 0) {
-      setError("Please select at least one category");
-      return;
-    }
-    if (!formData.address && !formData.searchLocation) {
-      setError("Please select your store location");
-      return;
-    }
-    if (!formData.city) {
-      setError("Please enter your city");
-      return;
-    }
-
+  const handleSendOTP = async () => {
     if (formData.mobile.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number");
+      showToast("Please enter a valid 10-digit mobile number", "error");
+      return;
+    }
+    try {
+      await sendOTP(formData.mobile, "register");
+      setShowOTPFields(true);
+      showToast("Verification code sent successfully!", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to send OTP", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (otp: string) => {
+    setLoading(true);
+    try {
+      const response = await verifyOTP(formData.mobile, otp, 'register');
+      if (response.success) {
+        setIsOTPVerified(true);
+        setShowOTPFields(false);
+        showToast("Mobile number verified!", "success");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Invalid OTP code", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextStep = () => {
+    // Validation for current step
+    if (currentStep === 1) {
+      if (!formData.sellerName) return showToast("Seller name is required", "error");
+      if (!formData.email) return showToast("Email address is required", "error");
+      if (!formData.mobile) return showToast("Phone number is required", "error");
+      if (!isOTPVerified) return showToast("Please verify your mobile number to continue", "error");
+    } else if (currentStep === 2) {
+      if (!formData.storeName) return showToast("Shop name is required", "error");
+      if (formData.categories.length === 0) return showToast("Please select at least one category", "error");
+    } else if (currentStep === 3) {
+      if (!formData.latitude || !formData.longitude) return showToast("Please select your shop location on the map", "error");
+      if (!formData.city) return showToast("City name is required", "error");
+    } else if (currentStep === 4) {
+      if (!formData.idProof) return showToast("Please upload ID proof (Aadhar/PAN)", "error");
+      if (!formData.profile) return showToast("Please upload owner photo", "error");
+      const isFood = formData.categories.some(c => c.toLowerCase().includes('food') || c.toLowerCase().includes('restaurant'));
+      if (isFood && !formData.fssaiLicNo) return showToast("FSSAI license number is required for food categories", "error");
+    } else if (currentStep === 5) {
+      if (formData.workingHours.workingDays.length === 0) return showToast("Please select at least one working day", "error");
+      handleFinalSubmit();
       return;
     }
 
+    setCurrentStep((prev) => (prev + 1) as Step);
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => (prev - 1) as Step);
+  };
+
+  const handleFinalSubmit = async () => {
     setLoading(true);
-    setError("");
-
     try {
-      // Validate location is selected
-      if (
-        !formData.searchLocation ||
-        !formData.latitude ||
-        !formData.longitude
-      ) {
-        setError("Please select your store location using the location search");
-        return;
-      }
-
-      // Validate service radius
-      const radius = parseFloat(formData.serviceRadiusKm);
-      if (isNaN(radius) || radius < 0.1 || radius > 100) {
-        setError("Service radius must be between 0.1 and 100 kilometers");
-        return;
-      }
-
-      const response = await register({
-        sellerName: formData.sellerName,
-        mobile: formData.mobile,
-        email: formData.email,
-        storeName: formData.storeName,
-        category: formData.categories[0], // primary
-        categories: formData.categories,
-        address: formData.address || formData.searchLocation,
-        city: formData.city,
-        searchLocation: formData.searchLocation,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        serviceRadiusKm: formData.serviceRadiusKm,
-      });
-
+      const response = await register(formData);
       if (response.success) {
-        // Clear token from registration (we'll get it after OTP verification)
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userData");
-        // Registration successful, now send OTP for verification
-        try {
-          await sendOTP(formData.mobile);
-          setShowOTP(true);
-        } catch (otpErr: any) {
-          setError(
-            otpErr.response?.data?.message ||
-              "Registration successful but failed to send OTP."
-          );
-        }
+        showToast("Registration successful!", "success");
+        setCurrentStep(6);
       }
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
+      showToast(err.response?.data?.message || "Registration failed. Please check all details.", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOTPComplete = async (otp: string) => {
-    setLoading(true);
-    setError("");
+  const StepIndicator = () => (
+    <div className="flex items-center justify-between mb-8 px-4">
+      {[1, 2, 3, 4, 5].map((step) => (
+        <div key={step} className="flex items-center flex-1 last:flex-none">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+            currentStep === step ? 'bg-green-600 text-white ring-4 ring-green-100' : 
+            currentStep > step ? 'bg-green-100 text-green-600' : 'bg-neutral-100 text-neutral-400'
+          }`}>
+            {currentStep > step ? '✓' : step}
+          </div>
+          {step < 5 && (
+            <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${
+              currentStep > step ? 'bg-green-600' : 'bg-neutral-100'
+            }`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
-    try {
-      const response = await verifyOTP(formData.mobile, otp);
-      if (response.success && response.data) {
-        // Update auth context with seller data
-        login(response.data.token, {
-          id: response.data.user.id,
-          name: response.data.user.sellerName,
-          email: response.data.user.email,
-          phone: response.data.user.mobile,
-          userType: "Seller",
-          storeName: response.data.user.storeName,
-          status: response.data.user.status,
-          address: response.data.user.address,
-          city: response.data.user.city,
-        });
-        // Navigate to seller dashboard
-        navigate("/seller", { replace: true });
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid OTP. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isFoodCategory = formData.categories.some(c => 
+    c.toLowerCase().includes('food') || 
+    c.toLowerCase().includes('restaurant') || 
+    c.toLowerCase().includes('grocery')
+  );
+
+  if (currentStep === 6) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-10 text-center animate-in fade-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-600">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-neutral-800 mb-4">Registration Successful!</h1>
+          <p className="text-neutral-500 mb-8">
+            Your profile is currently <span className="text-yellow-600 font-bold">Pending Approval</span>. 
+            vrushahi will review your details soon.
+          </p>
+          <div className="bg-green-50 rounded-2xl p-6 mb-8 text-left">
+            <p className="text-sm text-green-800 font-medium">
+              "Profile incomplete. Complete remaining details to start selling."
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/seller/settings")}
+            className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold text-lg hover:bg-green-700 transition-all shadow-lg shadow-green-200"
+          >
+            Go to Profile Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-green-100 via-slate-50 to-teal-50 flex flex-col items-center justify-center px-4 py-8 relative">
-
-      {/* Sign Up Card */}
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden border border-white/50 animate-in fade-in zoom-in duration-500">
-        {/* Header Section */}
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-green-50 via-white to-teal-50 flex flex-col items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden border border-white/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* Header */}
         <div className="px-8 pt-10 pb-6 text-center">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
-            <img
-              src={LogoLatest}
-              alt="vrushahi"
-              className="relative h-28 w-auto mx-auto object-contain" // Slightly smaller logo for sign up form space
-            />
-          </div>
-          <h1 className="text-3xl font-bold text-green-600 mb-2 tracking-tight">
-            Seller Sign Up
-          </h1>
-          <p className="text-neutral-500 text-sm font-medium">
-            Create your seller account
-          </p>
+          <img src={LogoLatest} alt="vrushahi" className="h-20 w-auto mx-auto mb-4 object-contain" />
+          <h1 className="text-2xl font-bold text-neutral-800">Explore New Opportunities</h1>
+          <p className="text-neutral-500 text-sm mt-1">Hyperlocal Multi-Vendor Onboarding</p>
         </div>
 
+        <StepIndicator />
 
-        {/* Sign Up Form */}
-        <div
-          className="px-8 pb-8 space-y-6 seller-signup-form"
-          style={{
-            maxHeight: "60vh",
-            overflowY: "auto",
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}>
-
-          <style>{`
-            .seller-signup-form::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-          {!showOTP ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Required Fields Section */}
+        {/* Form Body */}
+        <div className="px-8 pb-10">
+          <div className="space-y-6">
+            {/* Step 1: Basic Info */}
+            {currentStep === 1 && (
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-green-600 uppercase tracking-widest border-b border-green-100 pb-3 mb-2">
-                  Required Information
-                </h3>
-
-
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Basic Information</h2>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Seller Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Seller Name</label>
                   <input
                     type="text"
                     name="sellerName"
                     value={formData.sellerName}
                     onChange={handleInputChange}
                     placeholder="Enter your name"
-                    required
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
                   />
-
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Mobile Number <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center bg-neutral-50/50 border border-green-600/20 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all duration-300">
-                    <div className="px-4 py-3 text-sm font-bold text-neutral-400 border-r border-green-600/20 bg-neutral-50/50">
-                      +91
-                    </div>
-                    <input
-                      type="tel"
-                      name="mobile"
-                      value={formData.mobile}
-                      onChange={handleInputChange}
-                      placeholder="700 000 0000"
-                      required
-                      maxLength={10}
-                      className="flex-1 px-4 py-3 text-sm placeholder:text-neutral-300 focus:outline-none"
-                      disabled={loading}
-                    />
-                  </div>
-
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Email <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Email Address</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="Enter email address"
-                    required
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}
+                    placeholder="name@example.com"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
                   />
-
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={formData.mobile}
+                      onChange={handleInputChange}
+                      placeholder="9876543210"
+                      disabled={isOTPVerified || showOTPFields}
+                      className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all disabled:text-neutral-400"
+                    />
+                    {!isOTPVerified && !showOTPFields && (
+                      <button 
+                        onClick={handleSendOTP}
+                        disabled={loading || formData.mobile.length !== 10}
+                        className="px-4 py-3 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 disabled:bg-neutral-200 transition-all"
+                      >
+                        {loading ? '...' : 'Verify'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {showOTPFields && (
+                  <div className="pt-4 border-t border-neutral-100 animate-in fade-in duration-300">
+                    <p className="text-xs text-neutral-500 mb-4 text-center">Enter 4-digit OTP sent to your mobile</p>
+                    <OTPInput onComplete={handleVerifyOTP} disabled={loading} />
+                    <button 
+                      onClick={() => setShowOTPFields(false)}
+                      className="w-full mt-4 text-xs font-bold text-neutral-400 uppercase tracking-widest hover:text-green-600 transition-colors"
+                    >
+                      Change Number
+                    </button>
+                  </div>
+                )}
+
+                {isOTPVerified && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 text-xs font-bold rounded-xl animate-in zoom-in duration-300">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Mobile Number Verified
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Store Setup */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Store Setup</h2>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Store Name <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Shop Name</label>
                   <input
                     type="text"
                     name="storeName"
                     value={formData.storeName}
                     onChange={handleInputChange}
-                    placeholder="Enter store name"
-                    required
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}
+                    placeholder="Enter shop name"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
                   />
-
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Categories <span className="text-red-500">*</span>
-                  </label>
-                  {categories.length === 0 ? (
-                    <div className="text-sm text-neutral-500 py-2">
-                      Loading categories...
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-neutral-200 rounded-lg">
-                      {categories.map((cat) => {
-                        const checked = formData.categories.includes(cat.name);
-                        return (
-                          <label
-                            key={cat._id}
-                            className="flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleCategory(cat.name)}
-                              disabled={loading}
-                              className="h-4 w-4 text-teal-600 border-neutral-300 rounded focus:ring-teal-500"
-                            />
-                            <span>{cat.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {formData.categories.length === 0 &&
-                    categories.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Select at least one category
-                      </p>
-                    )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Location <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <GoogleMapsAutocomplete
-                        value={formData.searchLocation}
-                        onChange={(
-                          address: string,
-                          lat: number,
-                          lng: number,
-                          placeName: string,
-                          components?: { city?: string; state?: string }
-                        ) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            searchLocation: address,
-                            latitude: lat.toString(),
-                            longitude: lng.toString(),
-                            address: address,
-                            city: components?.city || prev.city,
-                          }));
-                        }}
-                        placeholder="Search your store location..."
-                        disabled={loading}
-                        required
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (navigator.geolocation) {
-                          setLoading(true);
-                          navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                              const lat = position.coords.latitude;
-                              const lng = position.coords.longitude;
-                              const locationStr = `${lat.toFixed(
-                                6
-                              )}, ${lng.toFixed(6)}`;
-                              setFormData((prev) => ({
-                                ...prev,
-                                latitude: lat.toString(),
-                                longitude: lng.toString(),
-                                searchLocation: locationStr,
-                                address: prev.address || locationStr, // Ensure address is not empty
-                              }));
-                              setLoading(false);
-                            },
-                            (error) => {
-                              console.error(error);
-                              setError("Unable to retrieve your location");
-                              setLoading(false);
-                            }
-                          );
-                        } else {
-                          setError(
-                            "Geolocation is not supported by your browser"
-                          );
-                        }
-                      }}
-                      className="p-2.5 bg-teal-50 text-teal-600 rounded-lg border border-teal-200 hover:bg-teal-100 transition-colors"
-                      title="Use Current Location">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round">
-                        <path d="M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6z" />
-                        <path d="M12 8v8" />
-                        <path d="M8 12h8" />
-                      </svg>
-                    </button>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4 ml-1">Categories (Choose multiple)</label>
+                  <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto p-2 border border-neutral-50 rounded-2xl bg-neutral-50/30">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat._id}
+                        type="button"
+                        onClick={() => toggleCategory(cat.name)}
+                        className={`px-3 py-4 text-left text-xs font-bold rounded-xl transition-all border-2 ${
+                          formData.categories.includes(cat.name) 
+                          ? 'border-green-600 bg-green-50 text-green-700' 
+                          : 'border-transparent bg-white text-neutral-600 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
                   </div>
-
-                  {formData.latitude && formData.longitude ? (
-                    <div className="mt-4 animate-fadeIn">
-                      <p className="text-sm font-medium text-neutral-700 mb-2">
-                        Exact Location{" "}
-                        <span className="text-teal-600 text-xs font-normal">
-                          (Move the map to place the pin on your store's
-                          entrance)
-                        </span>
-                      </p>
-                      <LocationPickerMap
-                        initialLat={parseFloat(formData.latitude)}
-                        initialLng={parseFloat(formData.longitude)}
-                        onLocationSelect={(lat, lng) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            latitude: lat.toString(),
-                            longitude: lng.toString(),
-                          }));
-                        }}
-                      />
-                      <p className="mt-1 text-xs text-neutral-500 text-center">
-                        Selected Coordinates: {formData.latitude},{" "}
-                        {formData.longitude}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-neutral-500 bg-neutral-50 p-2 rounded border border-neutral-100 text-center">
-                      Search for a location or use the location button to view
-                      the map and set exact coordinates.
-                    </div>
-                  )}
                 </div>
+              </div>
+            )}
 
+            {/* Step 3: Location */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Shop Location</h2>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Delivery/Service Radius (KM){" "}
-                    <span className="text-red-500">*</span>
-                    <span className="text-xs font-normal text-neutral-500 ml-1">
-                      (Distance you can deliver)
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    name="serviceRadiusKm"
-                    value={formData.serviceRadiusKm}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => {
-                      if (["e", "E", "+", "-"].includes(e.key)) {
-                        e.preventDefault();
-                      }
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Search Address</label>
+                  <GoogleMapsAutocomplete
+                    value={formData.searchLocation}
+                    onChange={(address, lat, lng, name, components) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        searchLocation: address,
+                        latitude: lat.toString(),
+                        longitude: lng.toString(),
+                        address: address,
+                        city: components?.city || prev.city
+                      }));
                     }}
-                    placeholder="Enter service radius in KM (e.g. 10)"
-                    required
-                    min="0.1"
-                    max="100"
-                    step="0.1"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
                   />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Only customers within this radius can see and order your
-                    products
-                  </p>
                 </div>
 
+                {formData.latitude && formData.longitude && (
+                  <div className="rounded-2xl overflow-hidden border-2 border-neutral-100 shadow-sm animate-in zoom-in duration-300">
+                    <LocationPickerMap
+                      initialLat={parseFloat(formData.latitude)}
+                      initialLng={parseFloat(formData.longitude)}
+                      onLocationSelect={(lat, lng) => {
+                        setFormData(prev => ({ ...prev, latitude: lat.toString(), longitude: lng.toString() }));
+                      }}
+                    />
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    City <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Delivery Radius (KM)</label>
+                  <div className="flex items-center gap-4 bg-neutral-50 p-4 rounded-2xl">
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      name="serviceRadiusKm"
+                      value={formData.serviceRadiusKm}
+                      onChange={handleInputChange}
+                      className="flex-1 accent-green-600"
+                    />
+                    <span className="text-lg font-bold text-green-600 min-w-[50px]">{formData.serviceRadiusKm} KM</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">City</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    placeholder="Enter city"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
+                    placeholder="e.g. Mumbai"
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
                   />
                 </div>
-
-                {/* Hidden fields for coordinates */}
-                <input
-                  type="hidden"
-                  name="latitude"
-                  value={formData.latitude}
-                />
-                <input
-                  type="hidden"
-                  name="longitude"
-                  value={formData.longitude}
-                />
               </div>
+            )}
 
-              {/* Optional Fields Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-semibold text-neutral-700 border-b pb-2">
-                  Optional Information
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      PAN Card
-                    </label>
-                    <input
-                      type="text"
-                      name="panCard"
-                      value={formData.panCard}
-                      onChange={handleInputChange}
-                      placeholder="PAN Card Number"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Tax Name
-                    </label>
-                    <input
-                      type="text"
-                      name="taxName"
-                      value={formData.taxName}
-                      onChange={handleInputChange}
-                      placeholder="Tax Name"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Tax Number
-                    </label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={formData.taxNumber}
-                      onChange={handleInputChange}
-                      placeholder="Tax Number"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      IFSC Code
-                    </label>
-                    <input
-                      type="text"
-                      name="ifsc"
-                      value={formData.ifsc}
-                      onChange={handleInputChange}
-                      placeholder="IFSC Code"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
-                  </div>
+            {/* Step 4: Identity Verification */}
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Verify Identity</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <FileUpload 
+                    label="Aadhar/PAN Card"
+                    required
+                    value={formData.idProof}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, idProof: url }))}
+                  />
+                  <FileUpload 
+                    label="Owner Photo"
+                    required
+                    value={formData.profile}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, profile: url }))}
+                  />
                 </div>
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-fit min-w-[14rem] mx-auto block py-5 rounded-[1.25rem] font-bold text-lg transition-all duration-300 relative overflow-hidden group ${!loading
-                  ? "bg-green-600 text-white hover:bg-green-700 shadow-[0_10px_20px_rgba(22,163,74,0.3)] translate-y-0 active:translate-y-0.5"
-                  : "bg-green-50/50 text-green-300 border border-green-100 cursor-not-allowed"
-                  }`}>
-                <span className="relative z-10">
-                  {loading ? "Creating Account..." : "Sign Up"}
-                </span>
-                {!loading && (
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                
+                {isFoodCategory && (
+                  <div className="pt-2 animate-in slide-in-from-top-2 duration-300">
+                    <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">FSSAI License Number <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      name="fssaiLicNo"
+                      value={formData.fssaiLicNo}
+                      onChange={handleInputChange}
+                      placeholder="14-digit FSSAI number"
+                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
+                    />
+                  </div>
                 )}
-              </button>
-
-
-              {/* Login Link */}
-              <div className="text-center pt-6 border-t border-neutral-100">
-                <p className="text-sm text-neutral-500 font-medium">
-                  Already have a seller account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => navigate("/seller/login")}
-                    className="text-green-600 hover:text-green-700 font-bold transition-colors ml-1">
-                    Login
-                  </button>
-                </p>
               </div>
+            )}
 
-            </form>
-          ) : (
-            /* OTP Verification Form */
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-neutral-600 mb-2">
-                  Enter the 4-digit OTP sent to
-                </p>
-                <p className="text-sm font-semibold text-neutral-800">
-                  +91 {formData.mobile}
-                </p>
-              </div>
-
-              <OTPInput onComplete={handleOTPComplete} disabled={loading} />
-
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
+            {/* Step 5: Operations */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Business Operations</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Opening Time</label>
+                    <input
+                      type="time"
+                      name="open"
+                      value={formData.workingHours.open}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Closing Time</label>
+                    <input
+                      type="time"
+                      name="close"
+                      value={formData.workingHours.close}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
+                    />
+                  </div>
                 </div>
-              )}
+                <div>
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3 ml-1">Working Days</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWorkingDay(day)}
+                        className={`px-3 py-2 text-xs font-bold rounded-full border-2 transition-all ${
+                          formData.workingHours.workingDays.includes(day)
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-neutral-500 border-neutral-100 hover:border-green-200'
+                        }`}
+                      >
+                        {day.slice(0, 3)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <div className="flex gap-2">
+            {/* Navigation Buttons */}
+            <div className="pt-6 flex gap-4">
+              {currentStep > 1 && (
                 <button
-                  onClick={() => {
-                    setShowOTP(false);
-                    setError("");
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors border border-neutral-300">
+                  onClick={prevStep}
+                  className="flex-1 py-4 bg-neutral-100 text-neutral-600 rounded-2xl font-bold hover:bg-neutral-200 transition-all"
+                >
                   Back
                 </button>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    setError("");
-                    try {
-                      await sendOTP(formData.mobile);
-                    } catch (err: any) {
-                      setError(
-                        err.response?.data?.message || "Failed to resend OTP."
-                      );
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-teal-600 text-white hover:bg-teal-700 transition-colors">
-                  {loading ? "Sending..." : "Resend OTP"}
-                </button>
-              </div>
+              )}
+              <button
+                onClick={nextStep}
+                disabled={loading}
+                className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 disabled:bg-neutral-200"
+              >
+                {loading ? 'Processing...' : currentStep === 5 ? 'Register Store' : 'Save & Continue'}
+              </button>
             </div>
-          )}
+
+            <div className="text-center pt-4">
+               <button
+                  type="button"
+                  onClick={() => navigate("/seller/login")}
+                  className="text-xs font-bold text-neutral-400 uppercase tracking-widest hover:text-green-600 transition-all"
+                >
+                  Already have an account? Login
+               </button>
+            </div>
+          </div>
         </div>
       </div>
-
-
     </div>
   );
 }

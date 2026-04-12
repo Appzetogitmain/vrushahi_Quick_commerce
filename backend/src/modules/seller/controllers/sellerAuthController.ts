@@ -11,7 +11,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
  * Send OTP to seller mobile number
  */
 export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
-  const { mobile } = req.body;
+  const { mobile, type = 'login' } = req.body;
 
   if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
@@ -22,14 +22,24 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
 
   // Check if seller exists with this mobile
   const seller = await Seller.findOne({ mobile });
-  if (!seller) {
-    return res.status(404).json({
-      success: false,
-      message: "Seller not found with this mobile number",
-    });
+
+  if (type === 'login') {
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found with this mobile number",
+      });
+    }
+  } else if (type === 'register') {
+    if (seller) {
+      return res.status(409).json({
+        success: false,
+        message: "Seller already exists with this mobile number. Please login.",
+      });
+    }
   }
 
-  // Send OTP - for login, always use default OTP
+  // Send OTP - for both login and register, always use default OTP for now
   const result = await sendOTPService(mobile, "Seller", true);
 
   return res.status(200).json({
@@ -42,7 +52,7 @@ export const sendOTP = asyncHandler(async (req: Request, res: Response) => {
  * Verify OTP and login seller
  */
 export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
-  const { mobile, otp } = req.body;
+  const { mobile, otp, type = 'login' } = req.body;
 
   if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
@@ -67,7 +77,15 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Find seller
+  // For registration, we just confirm verification and don't need to find a seller or generate a token
+  if (type === 'register') {
+    return res.status(200).json({
+      success: true,
+      message: "Mobile number verified successfully",
+    });
+  }
+
+  // For login, find seller and generate token
   const seller = await Seller.findOne({ mobile }).select("-password");
   if (!seller) {
     return res.status(404).json({
@@ -109,22 +127,32 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     email,
     storeName,
     category,
+    categories,
     address,
     city,
-    serviceableArea,
+    searchLocation,
+    serviceRadiusKm,
+    latitude,
+    longitude,
+    idProof,
+    profile,
+    fssaiLicNo,
+    workingHours
   } = req.body;
 
-  // Validation (password removed - sellers don't need password during signup)
+  // Validation
   if (
     !sellerName ||
     !mobile ||
     !email ||
     !storeName ||
-    !category
+    !categories || categories.length === 0 ||
+    !address ||
+    !workingHours || !workingHours.open || !workingHours.close || !workingHours.workingDays
   ) {
     return res.status(400).json({
       success: false,
-      message: "Required fields (Name, Mobile, Email, Store Name, Category) must be provided",
+      message: "Please provide all required fields",
     });
   }
 
@@ -135,39 +163,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Validate location is provided
-  const latitude = req.body.latitude ? parseFloat(req.body.latitude) : null;
-  const longitude = req.body.longitude ? parseFloat(req.body.longitude) : null;
-
-  // Parse and validate service radius
-  let serviceRadiusKm = 10; // Default 10km
-  if (req.body.serviceRadiusKm !== undefined && req.body.serviceRadiusKm !== null && req.body.serviceRadiusKm !== '') {
-    const parsedRadius = typeof req.body.serviceRadiusKm === 'string'
-      ? parseFloat(req.body.serviceRadiusKm)
-      : Number(req.body.serviceRadiusKm);
-
-    if (!isNaN(parsedRadius) && parsedRadius >= 0.1 && parsedRadius <= 100) {
-      serviceRadiusKm = parsedRadius;
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "Service radius must be between 0.1 and 100 kilometers",
-      });
-    }
-  }
-
-  if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
-    // Location is optional now to allow dynamic setting later
-    // Just proceed without setting location if not provided
-  }
-
-  // Validate latitude and longitude ranges if provided
-  if (latitude && longitude && (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid location coordinates",
-    });
-  }
+  // Parse coordinates
+  const lat = latitude ? parseFloat(latitude) : null;
+  const lng = longitude ? parseFloat(longitude) : null;
 
   // Check if seller already exists
   const existingSeller = await Seller.findOne({
@@ -181,34 +179,37 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Create GeoJSON location point [longitude, latitude] if provided
-  const location = (longitude && latitude) ? {
+  // Create GeoJSON location point [longitude, latitude]
+  const location = (lng && lat) ? {
     type: 'Point' as const,
-    coordinates: [longitude, latitude],
+    coordinates: [lng, lat],
   } : undefined;
 
-  // Create new seller with GeoJSON location (password not required during signup)
+  // Create new seller
   const seller = await Seller.create({
     sellerName,
     mobile,
     email,
-    // password field removed - sellers don't need password during signup
     storeName,
-    category,
+    category: categories[0],
+    categories,
     address,
     city,
-    ...(serviceableArea && { serviceableArea }),
-    searchLocation: req.body.searchLocation,
-    latitude: req.body.latitude,
-    longitude: req.body.longitude,
-    location, // GeoJSON location for geospatial queries
-    serviceRadiusKm, // Service radius in kilometers
+    searchLocation,
+    latitude,
+    longitude,
+    location,
+    serviceRadiusKm: parseFloat(serviceRadiusKm) || 10,
+    idProof,
+    profile,
+    fssaiLicNo,
+    workingHours,
     status: "Pending",
-    requireProductApproval: false,
-    viewCustomerDetails: false,
     commission: 0,
     balance: 0,
-    categories: req.body.categories || [],
+    isShopOpen: false,
+    requireProductApproval: false,
+    viewCustomerDetails: false
   });
 
   // Generate token
@@ -226,8 +227,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         email: seller.email,
         storeName: seller.storeName,
         status: seller.status,
-        address: seller.address,
-        city: seller.city,
       },
     },
   });

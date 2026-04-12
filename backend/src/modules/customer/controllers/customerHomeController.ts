@@ -401,7 +401,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       // Find all approved sellers with location
       const allApprovedSellers = await Seller.find({
         status: "Approved",
-      }).select("storeName logo storeBanner address location serviceRadiusKm isShopOpen rating reviewsCount latitude longitude city").lean();
+      }).select("storeName logo storeBanner address location serviceRadiusKm isShopOpen rating reviewsCount latitude longitude city categories workingHours").lean();
 
       nearbyStores = allApprovedSellers.map((seller: any) => {
         let sellerLat: number | null = null;
@@ -429,6 +429,15 @@ export const getHomeContent = async (req: Request, res: Response) => {
         }
 
         const isNearby = distance !== null && distance <= (seller.serviceRadiusKm || 10);
+        
+        // Category filtering logic
+        let matchesCategory = true;
+        if (headerCategorySlug && headerCategorySlug !== "all") {
+          const slug = (headerCategorySlug as string).toLowerCase();
+          matchesCategory = seller.categories && seller.categories.some(
+            (c: string) => c.toLowerCase() === slug || c.toLowerCase().includes(slug)
+          );
+        }
 
         return {
           id: seller._id.toString(),
@@ -440,11 +449,13 @@ export const getHomeContent = async (req: Request, res: Response) => {
           reviewsCount: seller.reviewsCount || Math.floor(Math.random() * 1000) + 100, // Mock reviews for visual flair
           isShopOpen: seller.isShopOpen !== false,
           distance: distance,
-          isNearby: isNearby,
+          isNearby: isNearby && matchesCategory,
           deliveryTime: "24 mins",
-          city: seller.city
+          city: seller.city,
+          categories: seller.categories,
+          workingHours: seller.workingHours
         };
-      }).filter((s: any) => s.isNearby); // Only show stores that can actually deliver to the user
+      }).filter((s: any) => s.isNearby); // Only show stores that can actually deliver to the user and match category if filtered
 
       nearbyStores.sort((a, b) => (a.distance || 0) - (b.distance || 0));
     }

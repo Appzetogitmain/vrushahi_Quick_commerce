@@ -37,6 +37,12 @@ interface Seller {
     profile?: string;
     idProof?: string;
     addressProof?: string;
+    fssaiLicNo?: string;
+    workingHours?: {
+        open: string;
+        close: string;
+        workingDays: string[];
+    };
     requireProductApproval?: boolean;
     viewCustomerDetails?: boolean;
 }
@@ -77,6 +83,8 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         profile: seller.profile,
         idProof: seller.idProof,
         addressProof: seller.addressProof,
+        fssaiLicNo: seller.fssaiLicNo,
+        workingHours: seller.workingHours,
         requireProductApproval: seller.requireProductApproval,
         viewCustomerDetails: seller.viewCustomerDetails,
     };
@@ -993,6 +1001,71 @@ export default function AdminManageSellerList() {
                                                 <div>
                                                     <label className="text-xs text-neutral-500">IFSC Code</label>
                                                     <p className="text-sm font-medium text-neutral-900">{editingSeller.ifsc}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Business Operations */}
+                                {editingSeller.workingHours && (
+                                    <div className="bg-neutral-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-semibold text-neutral-700 mb-3">Business Operations</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs text-neutral-500">Working Hours</label>
+                                                <p className="text-sm font-medium text-neutral-900">
+                                                    {editingSeller.workingHours.open} - {editingSeller.workingHours.close}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-neutral-500">Working Days</label>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {editingSeller.workingHours.workingDays.map((day, i) => (
+                                                        <span key={i} className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-bold">
+                                                            {day.slice(0, 3)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Identity & Verification Documents */}
+                                {(editingSeller.idProof || editingSeller.profile || editingSeller.fssaiLicNo) && (
+                                    <div className="bg-neutral-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-semibold text-neutral-700 mb-3">Identity & Verification</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            {editingSeller.profile && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">Owner Photo</label>
+                                                    <img src={editingSeller.profile} alt="Owner" className="w-full h-32 object-cover rounded-lg border border-neutral-200" />
+                                                </div>
+                                            )}
+                                            {editingSeller.idProof && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">ID Proof (Aadhar/PAN)</label>
+                                                    {editingSeller.idProof.endsWith('.pdf') ? (
+                                                        <a href={editingSeller.idProof} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center w-full h-32 bg-white border border-neutral-200 rounded-lg text-teal-600 hover:text-teal-700">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                                            </svg>
+                                                            <span className="text-xs font-bold uppercase">View PDF</span>
+                                                        </a>
+                                                    ) : (
+                                                        <img src={editingSeller.idProof} alt="ID Proof" className="w-full h-32 object-cover rounded-lg border border-neutral-200" />
+                                                    )}
+                                                </div>
+                                            )}
+                                            {editingSeller.fssaiLicNo && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">FSSAI License</label>
+                                                    <div className="p-3 bg-white border border-neutral-200 rounded-lg">
+                                                        <p className="text-sm font-bold text-neutral-800">{editingSeller.fssaiLicNo}</p>
+                                                        <p className="text-[10px] text-neutral-400 mt-1 uppercase font-bold tracking-widest">License Number</p>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>

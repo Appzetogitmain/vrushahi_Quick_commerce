@@ -234,14 +234,14 @@ export async function sendSmsOtp(
   try {
     const otp = generateOTP(4);
 
-    // Special number bypass
-    if (isSpecialBypass(mobile)) {
+    // Special number bypass or development mode
+    if (isSpecialBypass(mobile) || process.env.NODE_ENV !== 'production') {
       const specialOtp = '1234';
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
         success: true,
         sessionId: 'DB_VERIFIED_' + mobile,
-        message: 'OTP sent successfully',
+        message: 'OTP sent successfully (Dev Mode: 1234)',
       };
     }
 
@@ -343,13 +343,13 @@ export async function sendOTP(
   try {
     const otp = generateOTP(4);
 
-    // Special number bypass
-    if (isSpecialBypass(mobile)) {
+    // Special number bypass or development mode
+    if (isSpecialBypass(mobile) || process.env.NODE_ENV !== 'production') {
       const specialOtp = '1234';
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
         success: true,
-        message: 'OTP sent successfully',
+        message: 'OTP sent successfully (Dev Mode: 1234)',
       };
     }
 

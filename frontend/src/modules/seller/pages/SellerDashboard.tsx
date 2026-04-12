@@ -5,6 +5,8 @@ import OrderChart from '../components/OrderChart';
 import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
 import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
+import { calculateProfileCompletion } from '../utils/profileCompletion';
+import ProfileCompletionBanner from '../components/ProfileCompletionBanner';
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export default function SellerDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -34,6 +37,7 @@ export default function SellerDashboard() {
         }
 
         if (profileResponse.success) {
+          setProfile(profileResponse.data);
           // Use nullish coalescing to default to true if isShopOpen is undefined
           const shopStatus = profileResponse.data.isShopOpen ?? true;
           console.log('Initial shop status from profile:', shopStatus, 'Raw value:', profileResponse.data.isShopOpen);
@@ -276,6 +280,14 @@ export default function SellerDashboard() {
           </button>
         </div>
       </div>
+      {/* Profile Completion Nudge */}
+      {profile && (
+        <ProfileCompletionBanner 
+          percentage={calculateProfileCompletion(profile).percentage} 
+          missingFields={calculateProfileCompletion(profile).missing} 
+        />
+      )}
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" />
