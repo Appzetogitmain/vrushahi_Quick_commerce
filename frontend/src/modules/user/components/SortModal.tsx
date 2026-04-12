@@ -49,7 +49,7 @@ export default function SortModal({
             </div>
 
             {/* List */}
-            <div className="p-4 space-y-1">
+            <div className="p-4 space-y-1 overflow-y-auto max-h-[60vh]">
               {sortOptions.map(option => (
                 <button
                   key={option.id}
@@ -58,7 +58,7 @@ export default function SortModal({
                     onClose();
                   }}
                   className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all active:scale-[0.98] ${
-                    selectedOption === option.id ? 'bg-pink-50/50' : 'hover:bg-gray-50'
+                    selectedOption === option.id ? 'bg-pink-50/40 border border-pink-100/50' : 'hover:bg-gray-50 border border-transparent'
                   }`}
                 >
                   <span className={`text-[15px] font-bold ${
@@ -80,8 +80,8 @@ export default function SortModal({
               ))}
             </div>
 
-            {/* Close Spacer */}
-            <div className="h-6" />
+            {/* Professional Bottom Spacer (Clears Navigation Bar) */}
+            <div className="h-28 bg-gradient-to-t from-white to-transparent pointer-events-none" />
           </motion.div>
         </>
       )}

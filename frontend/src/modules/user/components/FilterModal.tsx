@@ -59,60 +59,60 @@ export default function FilterModal({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 bg-white z-[70] rounded-t-[32px] overflow-hidden flex flex-col max-h-[90vh]"
+            transition={{ type: 'spring', damping: 28, stiffness: 250 }}
+            className="fixed bottom-0 left-0 right-0 bg-white z-[70] rounded-t-[28px] overflow-hidden flex flex-col max-h-[60vh] shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Filters</h2>
-              <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+              <h2 className="text-base font-black text-gray-900 uppercase tracking-tight">Filters</h2>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
-
+ 
             {/* Split Content */}
-            <div className="flex flex-1 overflow-hidden min-h-[400px]">
+            <div className="flex flex-1 overflow-hidden">
               {/* Sidebar Tabs */}
-              <div className="w-1/3 bg-gray-50 border-r border-gray-100 flex flex-col">
+              <div className="w-28 bg-gray-50 border-r border-gray-100 flex flex-col">
                 {(['Categories', 'Brands'] as const).map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`relative px-6 py-6 text-left text-sm font-black uppercase tracking-wider transition-all ${
-                      activeTab === tab ? 'text-[#ff3269] bg-white' : 'text-gray-400'
+                    className={`relative px-3 py-5 text-left text-[10px] font-black uppercase tracking-widest transition-all ${
+                      activeTab === tab ? 'text-[#ff3269] bg-white' : 'text-gray-400 hover:bg-gray-100/50'
                     }`}
                   >
                     {activeTab === tab && (
                       <motion.div 
                         layoutId="activeTabIndicator"
-                        className="absolute left-0 top-0 bottom-0 w-1 bg-[#ff3269] shadow-[2px_0_8px_rgba(255,50,105,0.3)]"
+                        className="absolute left-0 top-0 bottom-0 w-1 bg-[#ff3269]"
                       />
                     )}
                     {tab}
                   </button>
                 ))}
               </div>
-
+ 
               {/* Options List */}
-              <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+              <div className="flex-1 overflow-y-auto p-4 scroll-smooth no-scrollbar">
                 {activeTab === 'Categories' && (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {categories.map(cat => (
-                      <label key={cat.id} className="flex items-center justify-between py-3 cursor-pointer group">
-                        <span className={`text-[15px] font-bold transition-colors ${
-                          selectedCategories.includes(cat.id) ? 'text-gray-900 border-b-2 border-pink-100' : 'text-gray-500'
+                      <label key={cat.id} className="flex items-center justify-between py-2 cursor-pointer group">
+                        <span className={`text-[12px] font-bold transition-colors ${
+                          selectedCategories.includes(cat.id) ? 'text-gray-900' : 'text-gray-500'
                         }`}>
                           {cat.name}
                         </span>
-                        <div onClick={() => toggleCategory(cat.id)} className={`w-6 h-6 rounded-lg border-2 transition-all flex items-center justify-center ${
+                        <div onClick={() => toggleCategory(cat.id)} className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${
                           selectedCategories.includes(cat.id) 
                           ? 'border-[#ff3269] bg-[#ff3269]' 
                           : 'border-gray-200 group-hover:border-gray-300'
                         }`}>
                           {selectedCategories.includes(cat.id) && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
                               <path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           )}
@@ -121,49 +121,49 @@ export default function FilterModal({
                     ))}
                   </div>
                 )}
-
+ 
                 {activeTab === 'Brands' && (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {brands.length > 0 ? brands.map(brand => (
-                      <label key={brand.id} className="flex items-center justify-between py-3 cursor-pointer group">
-                         <span className={`text-[15px] font-bold transition-colors ${
-                          selectedBrands.includes(brand.id) ? 'text-gray-900 border-b-2 border-pink-100' : 'text-gray-500'
+                      <label key={brand.id} className="flex items-center justify-between py-2 cursor-pointer group">
+                         <span className={`text-[12px] font-bold transition-colors ${
+                          selectedBrands.includes(brand.id) ? 'text-gray-900' : 'text-gray-500'
                         }`}>
                           {brand.name}
                         </span>
-                        <div onClick={() => toggleBrand(brand.id)} className={`w-6 h-6 rounded-lg border-2 transition-all flex items-center justify-center ${
+                        <div onClick={() => toggleBrand(brand.id)} className={`w-4 h-4 rounded-md border-2 transition-all flex items-center justify-center ${
                           selectedBrands.includes(brand.id) 
                           ? 'border-[#ff3269] bg-[#ff3269]' 
                           : 'border-gray-200 group-hover:border-gray-300'
                         }`}>
                           {selectedBrands.includes(brand.id) && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
                               <path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           )}
                         </div>
                       </label>
                     )) : (
-                        <div className="py-20 text-center opacity-40 grayscale">
-                            <p className="text-sm font-bold uppercase tracking-widest">No brands found</p>
+                        <div className="py-12 text-center opacity-30 grayscale">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">No brands found</p>
                         </div>
                     )}
                   </div>
                 )}
               </div>
             </div>
-
+ 
             {/* Footer Actions */}
-            <div className="p-6 border-t border-gray-100 flex gap-4 bg-white">
+            <div className="p-4 pb-20 border-t border-gray-50 flex gap-3 bg-white/90 backdrop-blur-xl">
               <button
                 onClick={handleClear}
-                className="flex-1 py-4 text-sm font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors border border-gray-100 rounded-2xl"
+                className="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors border border-gray-100 rounded-xl bg-gray-50/50"
               >
                 Clear All
               </button>
               <button
                 onClick={handleApply}
-                className="flex-[2] py-4 bg-[#ff3269] text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-pink-100 active:scale-[0.98] transition-all"
+                className="flex-[2] py-3 bg-[#ff3269] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-100/40 active:scale-[0.98] transition-all hover:bg-[#e62e5f]"
               >
                 Apply Filters
               </button>
