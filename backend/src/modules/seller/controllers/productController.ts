@@ -115,6 +115,20 @@ export const createProduct = asyncHandler(
       newProductData.shopId = null;
     }
 
+    // Handle new modern dashboard fields
+    if (productData.costPrice !== undefined) newProductData.costPrice = productData.costPrice;
+    if (productData.minOrderQuantity !== undefined) newProductData.minOrderQuantity = productData.minOrderQuantity;
+    if (productData.maxOrderLimit !== undefined) newProductData.maxOrderLimit = productData.maxOrderLimit;
+    if (productData.drugLicNo !== undefined) newProductData.drugLicNo = productData.drugLicNo;
+    if (productData.storageInstructions !== undefined) newProductData.storageInstructions = productData.storageInstructions;
+    if (productData.cutType !== undefined) newProductData.cutType = productData.cutType;
+    if (productData.freshnessLevel !== undefined) newProductData.freshnessLevel = productData.freshnessLevel;
+    if (productData.prescriptionRequired !== undefined) newProductData.prescriptionRequired = productData.prescriptionRequired;
+    if (productData.warranty !== undefined) newProductData.warranty = productData.warranty;
+    if (productData.specs !== undefined) newProductData.specs = productData.specs;
+    if (productData.sizeChartUrl !== undefined) newProductData.sizeChartUrl = productData.sizeChartUrl;
+    if (productData.attributes !== undefined) newProductData.attributes = productData.attributes;
+
     const product = await Product.create(newProductData);
 
     return res.status(201).json({
@@ -345,6 +359,20 @@ export const updateProduct = asyncHandler(
       // If shop by store only is false, clear shopId
       updateData.shopId = null;
     }
+
+    // Map new modern dashboard fields for update
+    if (updateData.costPrice !== undefined) updateData.costPrice = updateData.costPrice;
+    if (updateData.minOrderQuantity !== undefined) updateData.minOrderQuantity = updateData.minOrderQuantity;
+    if (updateData.maxOrderLimit !== undefined) updateData.maxOrderLimit = updateData.maxOrderLimit;
+    if (updateData.drugLicNo !== undefined) updateData.drugLicNo = updateData.drugLicNo;
+    if (updateData.storageInstructions !== undefined) updateData.storageInstructions = updateData.storageInstructions;
+    if (updateData.cutType !== undefined) updateData.cutType = updateData.cutType;
+    if (updateData.freshnessLevel !== undefined) updateData.freshnessLevel = updateData.freshnessLevel;
+    if (updateData.prescriptionRequired !== undefined) updateData.prescriptionRequired = updateData.prescriptionRequired;
+    if (updateData.warranty !== undefined) updateData.warranty = updateData.warranty;
+    if (updateData.specs !== undefined) updateData.specs = updateData.specs;
+    if (updateData.sizeChartUrl !== undefined) updateData.sizeChartUrl = updateData.sizeChartUrl;
+    if (updateData.attributes !== undefined) updateData.attributes = updateData.attributes;
 
     // Use findOne and then save to trigger pre-save hooks
     const product = await Product.findOne({ _id: id, seller: sellerId });

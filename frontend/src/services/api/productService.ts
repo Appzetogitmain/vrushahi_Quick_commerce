@@ -51,11 +51,28 @@ export interface Product {
   fssaiLicNo?: string;
   mainImageUrl?: string;
   mainImage?: string; // Mapped directly from Product model
-  galleryImageUrls: string[];
+  galleryImageUrls?: string[]; // Frontend naming
+  galleryImages?: string[]; // Backend naming
   variations: ProductVariation[];
   variationType?: string;
   createdAt?: string;
   updatedAt?: string;
+  // New Fields for Modern Dashboard
+  costPrice?: number;
+  minOrderQuantity?: number;
+  maxOrderLimit?: number;
+  sku?: string;
+  drugLicNo?: string;
+  storageInstructions?: string;
+  cutType?: string;
+  freshnessLevel?: string;
+  prescriptionRequired?: boolean;
+  warranty?: string;
+  specs?: any;
+  sizeChartUrl?: string;
+  shelfLife?: string;
+  attributes?: any;
+  description?: string;
   // Fallback for old fields if any legacy code uses them
   sellerId?: string;
   categoryId?: string;
@@ -82,6 +99,7 @@ export interface CreateProductData {
   seoImageAlt?: string;
   seoDescription?: string;
   smallDescription?: string;
+  description?: string;
   tags?: string[];
   manufacturer?: string;
   madeIn?: string;
@@ -92,10 +110,26 @@ export interface CreateProductData {
   fssaiLicNo?: string;
   mainImageUrl?: string;
   galleryImageUrls?: string[];
+  galleryImages?: string[];
   variations: ProductVariation[];
   variationType?: string;
   isShopByStoreOnly?: boolean;
   shopId?: string;
+  // New Fields
+  costPrice?: number;
+  minOrderQuantity?: number;
+  maxOrderLimit?: number;
+  sku?: string;
+  drugLicNo?: string;
+  storageInstructions?: string;
+  cutType?: string;
+  freshnessLevel?: string;
+  prescriptionRequired?: boolean;
+  warranty?: string;
+  specs?: any;
+  sizeChartUrl?: string;
+  shelfLife?: string;
+  attributes?: any;
 }
 
 export interface Shop {

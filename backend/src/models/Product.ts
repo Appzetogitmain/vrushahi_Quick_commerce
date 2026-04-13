@@ -90,6 +90,20 @@ export interface IProduct extends Document {
   isShopByStoreOnly?: boolean;
   shopId?: mongoose.Types.ObjectId;
 
+  // New Fields for Modern Dashboard
+  costPrice?: number;
+  minOrderQuantity?: number;
+  maxOrderLimit?: number;
+  drugLicNo?: string;
+  storageInstructions?: string;
+  cutType?: string;
+  freshnessLevel?: string;
+  prescriptionRequired?: boolean;
+  warranty?: string;
+  specs?: any;
+  sizeChartUrl?: string;
+  attributes?: any;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -326,6 +340,57 @@ const ProductSchema = new Schema<IProduct>(
     shopId: {
       type: Schema.Types.ObjectId,
       ref: "Shop",
+    },
+
+    // New Fields for Modern Dashboard
+    costPrice: {
+      type: Number,
+      min: [0, "Cost price cannot be negative"],
+    },
+    minOrderQuantity: {
+      type: Number,
+      default: 1,
+      min: [1, "MOQ must be at least 1"],
+    },
+    maxOrderLimit: {
+      type: Number,
+      default: 0, // 0 for unlimited
+      min: [0, "Max order limit cannot be negative"],
+    },
+    drugLicNo: {
+      type: String,
+      trim: true,
+    },
+    storageInstructions: {
+      type: String,
+      trim: true,
+    },
+    cutType: {
+      type: String,
+      trim: true,
+    },
+    freshnessLevel: {
+      type: String,
+      trim: true,
+    },
+    prescriptionRequired: {
+      type: Boolean,
+      default: false,
+    },
+    warranty: {
+      type: String,
+      trim: true,
+    },
+    specs: {
+      type: Schema.Types.Mixed,
+    },
+    sizeChartUrl: {
+      type: String,
+      trim: true,
+    },
+    attributes: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
   },
   {
