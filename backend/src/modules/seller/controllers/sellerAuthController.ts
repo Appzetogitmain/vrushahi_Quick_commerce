@@ -126,7 +126,6 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     mobile,
     email,
     storeName,
-    category,
     categories,
     address,
     city,

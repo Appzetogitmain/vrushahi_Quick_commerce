@@ -2,9 +2,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IHeaderCategory extends Document {
     name: string;
+    slug: string;
     iconLibrary: string;
     iconName: string;
     theme: string;
+    relatedCategory?: string;
     order: number;
     status: 'Published' | 'Unpublished';
     createdAt: Date;
