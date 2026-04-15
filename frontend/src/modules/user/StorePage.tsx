@@ -146,7 +146,7 @@ export default function StorePage() {
                             <p className="text-[13px] leading-relaxed text-gray-500 font-medium">
                                 {seller?.address || 'Shop No. 10, New Market Lane, Bhuj'}
                             </p>
-                            <span className="inline-block mt-1 bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-emerald-100 uppercase tracking-wider">
+                            <span className="inline-block mt-1 bg-violet-50 text-[#8b5cf6] px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-violet-100 uppercase tracking-wider">
                                 0.0 km
                             </span>
                         </div>
@@ -158,7 +158,7 @@ export default function StorePage() {
                             <polyline points="12 6 12 12 16 14" />
                         </svg>
                         <p className="text-[13px] font-medium">
-                            <span className="text-emerald-500 font-bold uppercase tracking-tight mr-1">Open Now</span>
+                            <span className="text-[#8b5cf6] font-bold uppercase tracking-tight mr-1">Open Now</span>
                             · Mon-Sat 10 AM to 8 PM
                         </p>
                     </div>

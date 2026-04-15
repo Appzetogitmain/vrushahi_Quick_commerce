@@ -598,25 +598,29 @@ export default function OrderDetail() {
   // Delivery Promise Logic (24 mins)
   useEffect(() => {
     const updatePromise = () => {
-      if (!order || !order.orderDate) return;
+      if (!order || (!order.orderDate && !order.createdAt)) return;
 
-      const orderTime = new Date(order.orderDate).getTime();
+      const orderTime = new Date(order.orderDate || order.createdAt).getTime();
       const now = new Date().getTime();
-      const elapsedMins = Math.floor((now - orderTime) / 60000);
       const targetLimit = 24;
 
       if (orderStatus === "Delivered") {
-        // Use deliveredAt if available, otherwise fallback to the time the status changed to Delivered
-        // This prevents the timer from increasing while waiting for the refetched order data
-        const deliveredTime = order.deliveredAt ? new Date(order.deliveredAt).getTime() : (now > (orderTime + elapsedMins * 60000) ? orderTime + elapsedMins * 60000 : now);
+        // Use deliveredAt if available, fallback to updatedAt or now (one-time)
+        // We use order.deliveredAt as the primary source of truth
+        const deliveredTime = order.deliveredAt 
+          ? new Date(order.deliveredAt).getTime() 
+          : order.updatedAt 
+            ? new Date(order.updatedAt).getTime() 
+            : now;
+            
         const totalDuration = Math.floor((deliveredTime - orderTime) / 60000);
         
         // Ensure duration is at least 1 min
         const displayDuration = Math.max(1, totalDuration);
 
-        if (displayDuration < targetLimit) {
+        if (displayDuration <= targetLimit) {
           setDeliveryPromiseInfo({
-            message: `Delivered early by ${targetLimit - displayDuration} mins`,
+            message: "Delivered within time",
             isLate: false,
             delayMins: 0
           });
@@ -631,6 +635,7 @@ export default function OrderDetail() {
         setDeliveryPromiseInfo({ message: "Order Cancelled", isLate: false, delayMins: 0 });
       } else {
         // Active orders
+        const elapsedMins = Math.floor((now - orderTime) / 60000);
         if (elapsedMins < targetLimit) {
           setDeliveryPromiseInfo({
             message: "Arriving within 24 mins",
@@ -810,7 +815,7 @@ export default function OrderDetail() {
     Delivered: {
       title: "Order delivered",
       subtitle: deliveryPromiseInfo.message,
-      color: "bg-[#22c55e]",
+      color: "bg-[#8b5cf6]",
     },
     // Backend status mappings
     Received: {
@@ -1054,12 +1059,12 @@ export default function OrderDetail() {
       {/* Simplified Delivery Info for Delivered Orders */}
       {orderStatus === "Delivered" && order?.deliveryPartner && (
         <motion.div 
-          className="mx-4 mt-4 bg-white rounded-xl p-4 shadow-sm border border-green-100"
+          className="mx-4 mt-4 bg-white rounded-2xl p-5 shadow-md border border-violet-100"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-violet-50 flex items-center justify-center text-2xl">
               ✅
             </div>
             <div>
@@ -1072,29 +1077,7 @@ export default function OrderDetail() {
 
       {/* Scrollable Content */}
       <div className="px-4 py-4 space-y-4 pb-24">
-        {/* Payment Pending */}
-        <motion.div
-          className="bg-white rounded-xl p-4 shadow-sm"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">
-                Payment of ₹{order.totalAmount?.toFixed(0) || "0"} pending
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Pay now, or pay to the delivery partner using Cash/UPI
-              </p>
-            </div>
-            <Button className="bg-[#ff3269] hover:bg-[#ff1f5a] text-white rounded-full px-6 py-2 h-auto text-sm font-bold border-none transition-all">
-              Pay now <ChevronRightIcon className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </motion.div>
 
-        {/* Promo Carousel */}
-        <PromoCarousel />
 
         {/* Delivery Partner Assignment - Only show if no partner assigned yet */}
         {!order?.deliveryPartner && (
@@ -1116,8 +1099,8 @@ export default function OrderDetail() {
           </motion.div>
         )}
 
-        {/* Tip Section */}
-        <TipSection />
+        {/* Tip Section - Only show before delivery */}
+        {orderStatus !== "Delivered" && <TipSection />}
 
         {/* Delivery Partner Safety */}
         <motion.button
@@ -1191,10 +1174,10 @@ export default function OrderDetail() {
               </p>
             </div>
             <motion.button
-              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center shadow-sm hover:bg-violet-200 transition-colors"
               whileTap={{ scale: 0.9 }}
               onClick={handleCallStore}>
-              <PhoneIcon className="w-5 h-5 text-green-700" />
+              <PhoneIcon className="w-6 h-6 text-[#8b5cf6]" />
             </motion.button>
           </div>
 
@@ -1383,7 +1366,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white py-3 font-bold rounded-xl shadow-lg shadow-violet-200 border-none transition-all"
                   onClick={handleSaveInstructions}>
                   Save
                 </Button>
@@ -1449,7 +1432,7 @@ export default function OrderDetail() {
                 ))}
               </div>
               <Button
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
+                className="w-full mt-4 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white py-4 font-bold rounded-xl shadow-lg shadow-violet-200 border-none transition-all"
                 onClick={() => setShowItemsModal(false)}>
                 Close
               </Button>

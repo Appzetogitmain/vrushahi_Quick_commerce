@@ -33,6 +33,9 @@ export interface Order {
   address: OrderAddress;
   status: OrderStatus;
   paymentMethod?: string;
+  orderDate?: string;
+  deliveredAt?: string;
+  updatedAt?: string;
   createdAt: string;
   tipAmount?: number;
   donationAmount?: number;

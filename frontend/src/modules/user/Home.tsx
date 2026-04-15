@@ -198,7 +198,7 @@ export default function Home() {
             </h2>
             <div 
               onClick={() => setShowAllStores(!showAllStores)}
-              className="flex items-center gap-1 text-emerald-600 font-bold text-sm cursor-pointer hover:underline"
+              className="flex items-center gap-1 text-[#8b5cf6] font-bold text-sm cursor-pointer hover:underline"
             >
               <span>{showAllStores ? "Show Less" : "View All"}</span>
               <svg 

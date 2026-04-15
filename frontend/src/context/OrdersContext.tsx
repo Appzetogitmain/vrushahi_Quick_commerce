@@ -20,6 +20,8 @@ interface ApiOrder {
   address: Order['address'];
   status: Order['status'];
   paymentMethod?: string;
+  orderDate?: string;
+  deliveredAt?: string;
   createdAt: string;
   [key: string]: unknown; // Allow additional properties
 }

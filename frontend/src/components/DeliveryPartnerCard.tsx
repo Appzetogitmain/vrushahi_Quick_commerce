@@ -60,16 +60,16 @@ export default function DeliveryPartnerCard({
 
     return (
         <motion.div
-            className="mx-4 mt-4 bg-white rounded-xl shadow-sm overflow-hidden"
+            className="mx-4 mt-6 bg-white rounded-2xl shadow-md overflow-hidden border border-violet-50"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
         >
             {/* Delivery Partner Info */}
-            <div className="p-4">
-                <div className="flex items-center gap-3">
+            <div className="p-5">
+                <div className="flex items-center gap-4">
                     {/* Profile Image */}
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-violet-400 to-[#8b5cf6] flex items-center justify-center overflow-hidden shadow-lg shadow-violet-100">
                         {partner?.profileImage ? (
                             <img
                                 src={partner.profileImage}
@@ -92,14 +92,14 @@ export default function DeliveryPartnerCard({
                             </p>
                         )}
                         {isTracking && (
-                            <div className="flex items-center gap-1 mt-1">
+                            <div className="flex items-center gap-1.5 mt-1">
                                 <motion.div
-                                    className="w-2 h-2 rounded-full bg-green-500"
-                                    animate={{ opacity: [1, 0.3, 1] }}
+                                    className="w-2.5 h-2.5 rounded-full bg-[#8b5cf6]"
+                                    animate={{ opacity: [1, 0.4, 1], scale: [1, 1.2, 1] }}
                                     transition={{ duration: 2, repeat: Infinity }}
                                 />
-                                <span className="text-xs text-green-600 font-medium">
-                                    On the way
+                                <span className="text-xs text-[#8b5cf6] font-bold">
+                                    Live tracking
                                 </span>
                             </div>
                         )}
@@ -108,12 +108,12 @@ export default function DeliveryPartnerCard({
                     {/* Call Button */}
                     {partner?.phone && onCall && (
                         <motion.button
-                            className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200"
+                            className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center hover:bg-violet-100 transition-colors shadow-sm"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={onCall}
                         >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5">
                                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                             </svg>
                         </motion.button>
@@ -149,8 +149,8 @@ export default function DeliveryPartnerCard({
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-white px-4 py-2.5 rounded-lg border border-neutral-100 shadow-sm flex items-center justify-between group">
-                            <span className="text-2xl font-black tracking-[0.25em] text-green-700">{deliveryOtp}</span>
+                        <div className="flex-1 bg-white px-5 py-3.5 rounded-xl border border-violet-100 shadow-sm flex items-center justify-between group">
+                            <span className="text-3xl font-black tracking-[0.25em] text-[#8b5cf6]">{deliveryOtp}</span>
                             <motion.button
                                 onClick={handleCopyOtp}
                                 className="p-1.5 hover:bg-neutral-50 rounded-md transition-colors relative"
