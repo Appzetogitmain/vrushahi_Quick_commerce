@@ -1,9 +1,12 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IReview extends Document {
-  product: mongoose.Types.ObjectId;
+  product?: mongoose.Types.ObjectId;
   order: mongoose.Types.ObjectId;
   customer: mongoose.Types.ObjectId;
+  seller?: mongoose.Types.ObjectId;
+  deliveryBoy?: mongoose.Types.ObjectId;
+  reviewType: "Product" | "Seller" | "DeliveryBoy";
 
   // Review Content
   rating: number; // 1-5
@@ -27,7 +30,7 @@ const ReviewSchema = new Schema<IReview>(
     product: {
       type: Schema.Types.ObjectId,
       ref: "Product",
-      required: [true, "Product is required"],
+      required: false,
     },
     order: {
       type: Schema.Types.ObjectId,
@@ -38,6 +41,22 @@ const ReviewSchema = new Schema<IReview>(
       type: Schema.Types.ObjectId,
       ref: "Customer",
       required: [true, "Customer is required"],
+    },
+    seller: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
+      required: false,
+    },
+    deliveryBoy: {
+      type: Schema.Types.ObjectId,
+      ref: "Delivery",
+      required: false,
+    },
+    reviewType: {
+      type: String,
+      enum: ["Product", "Seller", "DeliveryBoy"],
+      default: "Product",
+      required: true,
     },
 
     // Review Content
@@ -83,10 +102,67 @@ const ReviewSchema = new Schema<IReview>(
   }
 );
 
-// Indexes
-ReviewSchema.index({ product: 1, status: 1 });
-ReviewSchema.index({ customer: 1 });
-ReviewSchema.index({ order: 1 });
+// Static method to calculate average rating
+ReviewSchema.statics.calculateAverageRating = async function (targetId: mongoose.Types.ObjectId, reviewType: string) {
+  try {
+    const stats = await this.aggregate([
+      {
+        $match: {
+          [reviewType === 'Product' ? 'product' : reviewType === 'Seller' ? 'seller' : 'deliveryBoy']: targetId,
+          status: { $ne: 'Rejected' } // Count Pending and Approved for now as requested
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          nRating: { $sum: 1 },
+          avgRating: { $avg: "$rating" }
+        }
+      }
+    ]);
+
+    const updateData = {
+      reviewsCount: stats.length > 0 ? stats[0].nRating : 0,
+      rating: stats.length > 0 ? Math.round(stats[0].avgRating * 10) / 10 : 0
+    };
+
+    if (reviewType === "Product") {
+      await mongoose.model("Product").findByIdAndUpdate(targetId, updateData);
+    } else if (reviewType === "Seller") {
+      await mongoose.model("Seller").findByIdAndUpdate(targetId, updateData);
+    } else if (reviewType === "DeliveryBoy") {
+      await mongoose.model("Delivery").findByIdAndUpdate(targetId, updateData);
+    }
+  } catch (error) {
+    console.error("Error calculating average rating:", error);
+  }
+};
+
+// Middleware to update ratings after save
+ReviewSchema.post("save", async function () {
+  const ReviewModel = this.constructor as any;
+  if (this.reviewType === 'Product' && this.product) {
+    await ReviewModel.calculateAverageRating(this.product, 'Product');
+  } else if (this.reviewType === 'Seller' && this.seller) {
+    await ReviewModel.calculateAverageRating(this.seller, 'Seller');
+  } else if (this.reviewType === 'DeliveryBoy' && this.deliveryBoy) {
+    await ReviewModel.calculateAverageRating(this.deliveryBoy, 'DeliveryBoy');
+  }
+});
+
+// Middleware to update ratings after removal
+ReviewSchema.post("findOneAndDelete", async function (doc) {
+  if (doc) {
+    const ReviewModel = mongoose.model("Review") as any;
+    if (doc.reviewType === 'Product' && doc.product) {
+      await ReviewModel.calculateAverageRating(doc.product, 'Product');
+    } else if (doc.reviewType === 'Seller' && doc.seller) {
+      await ReviewModel.calculateAverageRating(doc.seller, 'Seller');
+    } else if (doc.reviewType === 'DeliveryBoy' && doc.deliveryBoy) {
+      await ReviewModel.calculateAverageRating(doc.deliveryBoy, 'DeliveryBoy');
+    }
+  }
+});
 
 const Review = mongoose.model<IReview>("Review", ReviewSchema);
 

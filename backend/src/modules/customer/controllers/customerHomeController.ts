@@ -992,3 +992,119 @@ async function getCategoryIdByName(name: string) {
   });
   return cat ? cat._id : null;
 }
+// Get Global Search results (Products and Stores)
+export const getGlobalSearch = async (req: Request, res: Response) => {
+  try {
+    const { q, latitude, longitude } = req.query;
+    const query = q as string;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(200).json({
+        success: true,
+        data: { products: [], stores: [] }
+      });
+    }
+
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+
+    let nearbySellerIds: mongoose.Types.ObjectId[] = [];
+    if (userLat !== null && userLng !== null) {
+      nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+    }
+
+    // 1. Search Products using text search or regex
+    // Using regex for better prefix matching in quick commerce
+    const productSearchQuery: any = {
+      status: "Active",
+      publish: true,
+      $or: [
+        { productName: { $regex: query, $options: "i" } },
+        { tags: { $in: [new RegExp(query, "i")] } }
+      ]
+    };
+
+    const products = await Product.find(productSearchQuery)
+      .limit(20)
+      .populate("category", "name")
+      .populate("seller", "storeName location")
+      .lean();
+
+    const formattedProducts = products.map((p: any) => {
+      const isAvailable = (!userLat || !userLng) || (p.seller && nearbySellerIds.some(id => id.toString() === p.seller._id.toString()));
+      return {
+        ...p,
+        id: p._id.toString(),
+        isAvailable
+      };
+    });
+
+    // 2. Search Stores (Sellers)
+    const storeSearchQuery: any = {
+      status: "Approved",
+      storeName: { $regex: query, $options: "i" }
+    };
+
+    const stores = await Seller.find(storeSearchQuery)
+      .limit(10)
+      .lean();
+
+    const formattedStores = stores.map((seller: any) => {
+      let sellerLat: number | null = null;
+      let sellerLng: number | null = null;
+
+      if (seller.location?.coordinates?.length === 2) {
+        sellerLng = seller.location.coordinates[0];
+        sellerLat = seller.location.coordinates[1];
+      } else if (seller.latitude && seller.longitude) {
+        sellerLat = parseFloat(seller.latitude);
+        sellerLng = parseFloat(seller.longitude);
+      }
+
+      let distance = null;
+      if (userLat !== null && userLng !== null && sellerLat !== null && sellerLng !== null && !isNaN(sellerLat) && !isNaN(sellerLng)) {
+        const R = 6371;
+        const dLat = ((sellerLat - userLat) * Math.PI) / 180;
+        const dLon = ((sellerLng - userLng) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((userLat * Math.PI) / 180) * Math.cos((sellerLat * Math.PI) / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distance = parseFloat((R * c).toFixed(1));
+      }
+
+      const isNearby = distance !== null && distance <= (seller.serviceRadiusKm || 10);
+
+      return {
+        id: seller._id.toString(),
+        name: seller.storeName,
+        logo: seller.logo,
+        banner: seller.storeBanner || "",
+        address: seller.address || "",
+        rating: seller.rating || 4.2,
+        reviewsCount: seller.reviewsCount || Math.floor(Math.random() * 500) + 50,
+        isShopOpen: seller.isShopOpen !== false,
+        distance: distance,
+        isNearby: isNearby,
+        deliveryTime: "24 mins",
+        city: seller.city,
+        categories: seller.categories,
+        workingHours: seller.workingHours
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products: formattedProducts,
+        stores: formattedStores
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Error in global search",
+      error: error.message
+    });
+  }
+};

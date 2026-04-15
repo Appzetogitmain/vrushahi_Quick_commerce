@@ -38,6 +38,8 @@ export interface IDelivery extends Document {
   balance: number;
   cashCollected: number;
   pendingAdminPayout: number;
+  rating: number;
+  reviewsCount: number;
   settings: {
     notifications: boolean;
     location: boolean;
@@ -190,6 +192,16 @@ const DeliverySchema = new Schema<IDelivery>(
       type: Number,
       default: 0,
       min: [0, 'Pending admin payout cannot be negative'],
+    },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    reviewsCount: {
+      type: Number,
+      default: 0,
     },
     settings: {
       notifications: { type: Boolean, default: true },

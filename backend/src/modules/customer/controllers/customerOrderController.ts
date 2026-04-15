@@ -444,7 +444,10 @@ export const getMyOrders = async (req: Request, res: Response) => {
         const orders = await Order.find(query)
             .populate({
                 path: 'items',
-                populate: { path: 'product', select: 'productName mainImage price' }
+                populate: [
+                    { path: 'product', select: 'productName mainImage price' },
+                    { path: 'seller', select: 'storeName city phone' }
+                ]
             })
             .sort({ createdAt: -1 })
             .skip(skip)

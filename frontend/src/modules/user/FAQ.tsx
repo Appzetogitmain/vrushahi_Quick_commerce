@@ -24,13 +24,13 @@ const faqData: FAQItem[] = [
     id: "3",
     question: "How long does delivery take?",
     answer:
-      "We typically deliver within 17-20 minutes for most locations. Delivery time may vary based on your location, order size, and current demand. You'll receive real-time updates about your order status.",
+      "We typically deliver within 24 minutes for most locations. Delivery time may vary based on your location, order size, and current demand. You'll receive real-time updates about your order status.",
   },
   {
     id: "4",
     question: "Can I cancel my order?",
     answer:
-      "Yes, you can cancel your order before it's confirmed by the seller. Once confirmed, cancellation may not be possible. Please check our cancellation policy for more details. Refunds are processed within 5-7 business days.",
+      "Yes, you can cancel your order before it's confirmed by the seller. Once confirmed, cancellation may not be possible. Please check our cancellation policy for more details.",
   },
   {
     id: "5",

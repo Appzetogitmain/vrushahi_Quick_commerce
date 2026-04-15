@@ -128,8 +128,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isSearchPage = location.pathname === '/search';
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
-  const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
-  const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
+  // Hide global layout header on Search and Category pages to provide a cleaner, more focused UI
+  const showHeader = false; 
+  const showSearchBar = false;
   const showFooter = !isCheckoutPage;
 
   // const showComingSoon = Boolean(userLocation && hasSellersInRange === false);
@@ -282,8 +283,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </nav>
           )}
 
-          {/* Sticky Header - Show on search page and other non-home pages, excluding account page */}
-          {(showHeader || isSearchPage) && (
+          {/* Sticky Header - Show on non-home pages that need a global header */}
+          {showHeader && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
               {/* Delivery info line */}
               <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-purple-50 text-xs text-purple-700 text-center font-bold tracking-wide">

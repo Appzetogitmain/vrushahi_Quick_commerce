@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import Review from '../../../models/Review';
 import Order from '../../../models/Order';
+import mongoose from 'mongoose';
 
 // Get reviews for a product (Public)
 export const getProductReviews = async (req: Request, res: Response) => {
@@ -21,7 +22,7 @@ export const getProductReviews = async (req: Request, res: Response) => {
 
         // Calculate average rating
         const stats = await Review.aggregate([
-            { $match: { product: productId as any, status: 'Approved' } },
+            { $match: { product: new mongoose.Types.ObjectId(productId), status: 'Approved' } },
             { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
         ]);
 
@@ -52,63 +53,115 @@ export const getProductReviews = async (req: Request, res: Response) => {
     }
 };
 
-// Add a review (Protected, must have purchased)
+// Add/Update a review (Protected, must have purchased)
 export const addReview = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { productId, orderId, rating, comment, title, images } = req.body;
+        const {
+            productId,
+            sellerId,
+            deliveryBoyId,
+            orderId,
+            rating,
+            comment,
+            title,
+            images,
+            reviewType = 'Product'
+        } = req.body;
 
-        // Verify purchase
+        // 1. Verify basic order requirements
         const order = await Order.findOne({
             _id: orderId,
             customer: userId,
-            'items.product': productId,
             status: 'Delivered'
         });
 
         if (!order) {
             return res.status(400).json({
                 success: false,
-                message: 'You can only review products from delivered orders.'
+                message: 'You can only review from delivered orders.'
             });
         }
 
-        // Check if already reviewed
-        const existingReview = await Review.findOne({
-            customer: userId,
-            product: productId,
-            order: orderId
-        });
+        // 2. Type-specific validation & Query construction
+        let query: any = { customer: userId, order: orderId, reviewType };
+
+        if (reviewType === 'Product') {
+            if (!productId) return res.status(400).json({ success: false, message: 'Product ID is required' });
+            query.product = productId;
+        } else if (reviewType === 'Seller') {
+            if (!sellerId) return res.status(400).json({ success: false, message: 'Seller ID is required' });
+            query.seller = sellerId;
+        } else if (reviewType === 'DeliveryBoy') {
+            if (!deliveryBoyId) return res.status(400).json({ success: false, message: 'Delivery Boy ID is required' });
+            query.deliveryBoy = deliveryBoyId;
+        }
+
+        // 3. Check for existing review (Allow Update/Edit)
+        const existingReview = await Review.findOne(query);
 
         if (existingReview) {
-            return res.status(400).json({
-                success: false,
-                message: 'You have already reviewed this product for this order.'
+            existingReview.rating = rating;
+            existingReview.comment = comment;
+            existingReview.title = title;
+            existingReview.images = images;
+            existingReview.status = 'Pending'; // Reset for moderation
+            await existingReview.save();
+
+            return res.status(200).json({
+                success: true,
+                message: `${reviewType} review updated successfully.`,
+                data: existingReview
             });
         }
 
+        // 4. Create new review
         const review = await Review.create({
             customer: userId,
-            product: productId,
+            product: reviewType === 'Product' ? productId : undefined,
+            seller: reviewType === 'Seller' ? sellerId : undefined,
+            deliveryBoy: reviewType === 'DeliveryBoy' ? deliveryBoyId : undefined,
             order: orderId,
+            reviewType,
             rating,
             comment,
             title,
             images,
-            status: 'Pending', // pending moderation
+            status: 'Pending',
             isVerifiedPurchase: true
         });
 
         return res.status(201).json({
             success: true,
-            message: 'Review submitted successfully available after moderation',
+            message: `${reviewType} review submitted successfully.`,
             data: review
         });
 
     } catch (error: any) {
         return res.status(500).json({
             success: false,
-            message: 'Error adding review',
+            message: 'Error processing review',
+            error: error.message
+        });
+    }
+};
+
+// Get reviews for a specific order by customer
+export const getOrderReviews = async (req: Request, res: Response) => {
+    try {
+        const { orderId } = req.params;
+        const userId = req.user?.userId;
+
+        const reviews = await Review.find({ order: orderId, customer: userId });
+
+        return res.status(200).json({
+            success: true,
+            data: reviews
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching order reviews',
             error: error.message
         });
     }
