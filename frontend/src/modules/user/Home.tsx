@@ -217,15 +217,22 @@ export default function Home() {
           
           
           {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
-            <div className={`grid grid-cols-2 md:grid-cols-4 ${showAllStores ? 'lg:grid-cols-5 xl:grid-cols-6' : ''} gap-3 md:gap-4 ${showAllStores ? 'flex-wrap' : 'overflow-x-auto pb-4 hide-scrollbar'}`}>
-              {(showAllStores ? homeData.nearbyStores : homeData.nearbyStores.slice(0, 4)).map((store: any) => (
-                <StoreCard key={store.id} store={store} />
+            <div className={`
+              ${showAllStores 
+                ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6' 
+                : 'flex overflow-x-auto md:grid md:grid-cols-4 gap-4 md:gap-6 pb-6 hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0'}
+            `}>
+              {(showAllStores ? homeData.nearbyStores : homeData.nearbyStores).map((store: any) => (
+                <div key={store.id} className={showAllStores ? "w-full" : "w-[180px] md:w-full flex-shrink-0"}>
+                  <StoreCard store={store} />
+                </div>
               ))}
             </div>
           ) : (
-            <div className="py-8 text-center bg-neutral-50 rounded-2xl border border-dashed border-neutral-300">
-              <p className="text-neutral-500 font-medium">No {activeTab} stores found nearby</p>
-              <p className="text-xs text-neutral-400 mt-1">Try switching to the 'All' tab to see more options</p>
+            <div className="py-12 text-center bg-violet-50/30 rounded-[2rem] border-2 border-dashed border-violet-100/50">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-2xl">🏪</div>
+              <p className="text-neutral-500 font-bold">No {activeTab} stores found nearby</p>
+              <p className="text-xs text-neutral-400 mt-1 uppercase tracking-widest font-black">Switching tabs might help!</p>
             </div>
           )}
         </div>

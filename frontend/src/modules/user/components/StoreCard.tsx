@@ -57,29 +57,32 @@ export default function StoreCard({ store }: StoreCardProps) {
             </div>
 
             {/* Info Section - Professional Typography */}
-            <div className="p-4 bg-white">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <h3 className="font-black text-neutral-900 text-sm line-clamp-1 flex-1 uppercase tracking-tight group-hover:text-sky-600 transition-colors">
+            <div className="p-3 bg-white">
+                <div className="flex flex-col gap-0.5 mb-2">
+                    <h3 className="font-black text-neutral-900 text-xs md:text-sm line-clamp-1 uppercase tracking-tight group-hover:text-violet-600 transition-colors">
                         {store.name}
                     </h3>
-                    {store.rating && (
-                        <div className="flex items-center gap-1 bg-[#FFF9E6] px-2 py-0.5 rounded-lg border border-[#FFE7A3]/50">
-                            <span className="text-[#FABC05] text-[10px]">★</span>
-                            <span className="text-[#9E7700] text-[11px] font-black">{store.rating}</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        {store.rating && (
+                            <div className="flex items-center gap-0.5 bg-[#FFF9E6] px-1.5 py-0.5 rounded-md border border-[#FFE7A3]/30">
+                                <span className="text-[#FABC05] text-[10px]">★</span>
+                                <span className="text-[#9E7700] text-[10px] font-black">{store.rating}</span>
+                            </div>
+                        )}
+                        <span className="text-neutral-300">|</span>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-neutral-400">
+                             {store.distance !== undefined ? `${store.distance} km` : 'Order Now'}
                         </div>
-                    )}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-neutral-400">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                        </svg>
-                        {store.distance !== null ? `${store.distance} km` : 'Near You'}
-                    </div>
-                    <div className="w-1 h-1 rounded-full bg-neutral-200" />
-                    <span className="text-[#38BDF8] text-[10px] font-black uppercase tracking-widest bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                <div className="flex items-center justify-between mt-auto">
+                    <span className="text-[#38BDF8] text-[9px] font-black uppercase tracking-widest bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100 flex-shrink-0">
                         Express
+                    </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                    <span className="text-[9px] font-black text-neutral-400 uppercase tracking-tighter line-clamp-1">
+                        Free Delivery
                     </span>
                 </div>
             </div>
