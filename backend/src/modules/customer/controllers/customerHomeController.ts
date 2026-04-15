@@ -1093,7 +1093,7 @@ export const getGlobalSearch = async (req: Request, res: Response) => {
       };
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         products: formattedProducts,
@@ -1101,7 +1101,7 @@ export const getGlobalSearch = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error in global search",
       error: error.message
