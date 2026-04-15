@@ -221,6 +221,9 @@ export const getOrderById = asyncHandler(
       paymentMethod: order.paymentMethod || 'N/A',
       paymentStatus: order.paymentStatus || 'Pending',
       deliveryAddress: order.deliveryAddress || {},
+      // Add pickup OTP info for the seller
+      pickupOtp: order.sellerPickups?.find((p: any) => p.seller.toString() === sellerId)?.pickupOtp || null,
+      pickupOtpVerified: order.sellerPickups?.find((p: any) => p.seller.toString() === sellerId)?.pickupOtpVerified || false,
     };
 
     return res.status(200).json({
@@ -311,24 +314,31 @@ export const updateOrderStatus = asyncHandler(
     if (status === 'Delivered' && previousStatus !== 'Delivered') {
       const seller = await Seller.findById(sellerId);
       if (seller) {
-        // Calculate net earning (sale amount - commission)
-        // Commission is stored in seller model
-        const commissionRate = (seller.commission || 0) / 100;
-        const commissionAmount = order.grandTotal * commissionRate;
-        const netEarning = order.grandTotal - commissionAmount;
+        // Calculate earnings ONLY for items belonging to this seller
+        const items = await OrderItem.find({ order: id, seller: sellerId });
+        const sellerSubtotal = items.reduce((sum, item) => sum + (item.total || 0), 0);
+        
+        if (sellerSubtotal > 0) {
+          // Calculate net earning (sale amount - commission)
+          const commissionRate = (seller.commission || 0) / 100;
+          const commissionAmount = sellerSubtotal * commissionRate;
+          const netEarning = sellerSubtotal - commissionAmount;
 
-        seller.balance = (seller.balance || 0) + netEarning;
-        await seller.save();
+          if (!isNaN(netEarning)) {
+            seller.balance = (seller.balance || 0) + netEarning;
+            await seller.save();
 
-        // Log transaction
-        await WalletTransaction.create({
-          sellerId,
-          amount: netEarning,
-          type: 'Credit',
-          description: `Earnings from Order #${order.orderId}`,
-          reference: `ORD-${order.orderId}-${Date.now()}`,
-          status: 'Completed'
-        });
+            // Log transaction
+            await WalletTransaction.create({
+              sellerId,
+              amount: netEarning,
+              type: 'Credit',
+              description: `Earnings from Order #${order.orderNumber || order._id}`,
+              reference: `ORD-${order._id}-${Date.now()}`,
+              status: 'Completed'
+            });
+          }
+        }
       }
     }
 

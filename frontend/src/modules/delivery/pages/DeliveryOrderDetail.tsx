@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity } from '../../../services/api/delivery/deliveryService';
+import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, sendSellerPickupOtp } from '../../../services/api/delivery/deliveryService';
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
 
@@ -112,6 +112,11 @@ export default function DeliveryOrderDetail() {
     const [customerProximity, setCustomerProximity] = useState<{ withinRange: boolean; distance: number } | null>(null);
     const [getOtpEnabled, setGetOtpEnabled] = useState(false);
 
+    // New state for Seller Pickup OTP
+    const [sellerOtpValues, setSellerOtpValues] = useState<Record<string, string>>({});
+    const [showSellerOtpInputs, setShowSellerOtpInputs] = useState<Record<string, boolean>>({});
+    const [requestingOtp, setRequestingOtp] = useState<Record<string, boolean>>({});
+
     const fetchOrder = async () => {
         if (!id) return;
         try {
@@ -197,8 +202,33 @@ export default function DeliveryOrderDetail() {
         }
     };
 
+    // Handle requesting OTP from seller
+    const handleRequestSellerPickupOtp = async (sellerId: string) => {
+        if (!id || !deliveryBoyLocation) {
+            alert('Location not available. Please ensure GPS is enabled.');
+            return;
+        }
+
+        try {
+            setRequestingOtp(prev => ({ ...prev, [sellerId]: true }));
+            const result = await sendSellerPickupOtp(id, sellerId, deliveryBoyLocation.lat, deliveryBoyLocation.lng);
+            setShowSellerOtpInputs(prev => ({ ...prev, [sellerId]: true }));
+            alert(result.message || 'OTP requested from seller. They will receive an SMS and notification.');
+        } catch (err: any) {
+            alert(err.message || 'Failed to request OTP. Ensure you are within 500m of the seller.');
+        } finally {
+            setRequestingOtp(prev => ({ ...prev, [sellerId]: false }));
+        }
+    };
+
     // Handle seller pickup confirmation
     const handleSellerPickup = async (sellerId: string) => {
+        const otp = sellerOtpValues[sellerId];
+        if (!otp || otp.length !== 4) {
+            alert('Please enter the 4-digit OTP provided by the seller');
+            return;
+        }
+
         if (!id || !deliveryBoyLocation) {
             alert('Location not available');
             return;
@@ -206,7 +236,7 @@ export default function DeliveryOrderDetail() {
 
         try {
             setPickupLoading(prev => ({ ...prev, [sellerId]: true }));
-            const result = await confirmSellerPickup(id, sellerId, deliveryBoyLocation.lat, deliveryBoyLocation.lng);
+            const result = await confirmSellerPickup(id, sellerId, deliveryBoyLocation.lat, deliveryBoyLocation.lng, otp);
             alert(result.message || 'Pickup confirmed successfully');
             await fetchOrder(); // Refresh order data
         } catch (err: any) {
@@ -679,16 +709,61 @@ export default function DeliveryOrderDetail() {
                                         </div>
 
                                         {!isPickedUp && (
-                                            <button
-                                                onClick={() => handleSellerPickup(seller.sellerId)}
-                                                disabled={!withinRange || isLoading}
-                                                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${withinRange && !isLoading
-                                                    ? 'bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]'
-                                                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                                                    }`}
-                                            >
-                                                {isLoading ? 'Confirming...' : withinRange ? 'Confirm Pickup' : 'Move within 500m to pickup'}
-                                            </button>
+                                            <div className="space-y-3">
+                                                {!showSellerOtpInputs[seller.sellerId] ? (
+                                                    <button
+                                                        onClick={() => handleRequestSellerPickupOtp(seller.sellerId)}
+                                                        disabled={!withinRange || requestingOtp[seller.sellerId]}
+                                                        className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${withinRange && !requestingOtp[seller.sellerId]
+                                                            ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]'
+                                                            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                                            }`}
+                                                    >
+                                                        {requestingOtp[seller.sellerId] ? (
+                                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                                        ) : (
+                                                            <Icons.Clock size={16} />
+                                                        )}
+                                                        {withinRange ? 'Request Pickup OTP' : 'Move within 500m to Request OTP'}
+                                                    </button>
+                                                ) : (
+                                                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                        <div className="flex flex-col gap-1">
+                                                            <label className="text-[10px] font-bold text-neutral-500 uppercase px-1">Enter 4-Digit OTP</label>
+                                                            <input
+                                                                type="text"
+                                                                maxLength={4}
+                                                                placeholder="0000"
+                                                                value={sellerOtpValues[seller.sellerId] || ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(/\D/g, '');
+                                                                    setSellerOtpValues(prev => ({ ...prev, [seller.sellerId]: val }));
+                                                                }}
+                                                                className="w-full bg-white border-2 border-neutral-200 rounded-lg py-3 px-4 text-center text-2xl font-black tracking-[1em] focus:border-blue-500 focus:outline-none transition-colors"
+                                                            />
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleRequestSellerPickupOtp(seller.sellerId)}
+                                                                disabled={requestingOtp[seller.sellerId]}
+                                                                className="flex-[1] py-2.5 rounded-lg font-bold text-xs text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
+                                                            >
+                                                                {requestingOtp[seller.sellerId] ? '...' : 'Resend'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleSellerPickup(seller.sellerId)}
+                                                                disabled={isLoading || (sellerOtpValues[seller.sellerId]?.length !== 4)}
+                                                                className={`flex-[2] py-2.5 rounded-lg font-bold text-sm transition-all shadow-sm ${sellerOtpValues[seller.sellerId]?.length === 4 && !isLoading
+                                                                    ? 'bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]'
+                                                                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                                                    }`}
+                                                            >
+                                                                {isLoading ? 'Verifying...' : 'Confirm Pickup'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 );

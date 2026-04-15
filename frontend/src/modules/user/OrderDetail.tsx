@@ -415,7 +415,6 @@ const TipSection = () => {
   );
 };
 
-// Section item component
 const SectionItem = ({
   icon: Icon,
   title,
@@ -467,6 +466,11 @@ export default function OrderDetail() {
     distanceValue: number;
   } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [deliveryPromiseInfo, setDeliveryPromiseInfo] = useState<{
+    message: string;
+    isLate: boolean;
+    delayMins: number;
+  }>({ message: "Calculating...", isLate: false, delayMins: 0 });
 
   // Modal states
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -591,15 +595,65 @@ export default function OrderDetail() {
     }
   }, [confirmed, order]);
 
-  // Countdown timer
+  // Delivery Promise Logic (24 mins)
   useEffect(() => {
-    if (orderStatus === "Accepted" || orderStatus === "On the way") {
-      const timer = setInterval(() => {
-        setEstimatedTime((prev) => Math.max(0, prev - 1));
-      }, 60000);
+    const updatePromise = () => {
+      if (!order || !order.orderDate) return;
+
+      const orderTime = new Date(order.orderDate).getTime();
+      const now = new Date().getTime();
+      const elapsedMins = Math.floor((now - orderTime) / 60000);
+      const targetLimit = 24;
+
+      if (orderStatus === "Delivered") {
+        // Use deliveredAt if available, otherwise fallback to the time the status changed to Delivered
+        // This prevents the timer from increasing while waiting for the refetched order data
+        const deliveredTime = order.deliveredAt ? new Date(order.deliveredAt).getTime() : (now > (orderTime + elapsedMins * 60000) ? orderTime + elapsedMins * 60000 : now);
+        const totalDuration = Math.floor((deliveredTime - orderTime) / 60000);
+        
+        // Ensure duration is at least 1 min
+        const displayDuration = Math.max(1, totalDuration);
+
+        if (displayDuration < targetLimit) {
+          setDeliveryPromiseInfo({
+            message: `Delivered early by ${targetLimit - displayDuration} mins`,
+            isLate: false,
+            delayMins: 0
+          });
+        } else {
+          setDeliveryPromiseInfo({
+            message: `Delivered in ${displayDuration} mins`,
+            isLate: displayDuration > targetLimit,
+            delayMins: displayDuration > targetLimit ? displayDuration - targetLimit : 0
+          });
+        }
+      } else if (orderStatus === "Cancelled" || orderStatus === "Rejected") {
+        setDeliveryPromiseInfo({ message: "Order Cancelled", isLate: false, delayMins: 0 });
+      } else {
+        // Active orders
+        if (elapsedMins < targetLimit) {
+          setDeliveryPromiseInfo({
+            message: "Arriving within 24 mins",
+            isLate: false,
+            delayMins: 0
+          });
+        } else {
+          setDeliveryPromiseInfo({
+            message: `Delayed by ${elapsedMins - targetLimit} mins`,
+            isLate: true,
+            delayMins: elapsedMins - targetLimit
+          });
+        }
+      }
+    };
+
+    updatePromise();
+    // Only continue interval if not delivered
+    if (orderStatus !== "Delivered" && orderStatus !== "Cancelled" && orderStatus !== "Rejected") {
+      const timer = setInterval(updatePromise, 30000);
       return () => clearInterval(timer);
     }
-  }, [orderStatus]);
+  }, [order, orderStatus]);
 
   // Handler functions
   const handleRefresh = async () => {
@@ -740,28 +794,28 @@ export default function OrderDetail() {
   > = {
     Placed: {
       title: "Order placed",
-      subtitle: "Order will reach you shortly",
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#8b5cf6]",
     },
     Accepted: {
       title: "Preparing your order",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#8b5cf6]",
     },
     "On the way": {
       title: "Order picked up",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#8b5cf6]",
     },
     Delivered: {
       title: "Order delivered",
-      subtitle: "Enjoy your meal!",
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#22c55e]",
     },
     // Backend status mappings
     Received: {
       title: "Order received",
-      subtitle: "Processing your order",
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#8b5cf6]",
     },
     Pending: {
@@ -776,12 +830,12 @@ export default function OrderDetail() {
     },
     Shipped: {
       title: "Order shipped",
-      subtitle: "On the way to you",
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#3b82f6]",
     },
     "Out for Delivery": {
       title: "Out for delivery",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: deliveryPromiseInfo.message,
       color: "bg-[#8b5cf6]",
     },
     Cancelled: {
@@ -883,10 +937,16 @@ export default function OrderDetail() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}>
             <span className="text-sm font-bold">{currentStatus.subtitle}</span>
-            {(orderStatus === "Accepted" || orderStatus === "On the way") && (
+            {deliveryPromiseInfo.isLate && (
               <>
                 <span className="w-1 h-1 rounded-full bg-white" />
-                <span className="text-sm font-bold text-white">On time</span>
+                <span className="text-sm font-bold text-white">Delayed</span>
+              </>
+            )}
+            {!deliveryPromiseInfo.isLate && orderStatus !== 'Delivered' && (
+               <>
+                <span className="w-1 h-1 rounded-full bg-white" />
+                <span className="text-sm font-bold text-white">On track</span>
               </>
             )}
             <motion.button
@@ -971,8 +1031,8 @@ export default function OrderDetail() {
         </div>
       )}
 
-      {/* Delivery Partner Card */}
-      {(order?.deliveryPartner || order?.deliveryOtp) && (
+      {/* Delivery Partner Card - Only show live details if not delivered */}
+      {orderStatus !== "Delivered" && (order?.deliveryPartner || order?.deliveryOtp) && (
         <DeliveryPartnerCard
           partner={{
             name: order?.deliveryPartner?.name || "Delivery Partner",
@@ -981,7 +1041,7 @@ export default function OrderDetail() {
             vehicleNumber: order?.deliveryPartner?.vehicleNumber,
           }}
           eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
-          distance={routeInfo ? routeInfo.distanceValue : distance}
+          distance={0}
           isTracking={isConnected && !!deliveryLocation}
           deliveryOtp={order?.deliveryOtp}
           onCall={() => {
@@ -989,6 +1049,25 @@ export default function OrderDetail() {
             window.location.href = `tel:${phone}`;
           }}
         />
+      )}
+
+      {/* Simplified Delivery Info for Delivered Orders */}
+      {orderStatus === "Delivered" && order?.deliveryPartner && (
+        <motion.div 
+          className="mx-4 mt-4 bg-white rounded-xl p-4 shadow-sm border border-green-100"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-xl">
+              ✅
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Delivered By</p>
+              <p className="font-bold text-gray-900">{order.deliveryPartner.name}</p>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Scrollable Content */}

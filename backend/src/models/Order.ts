@@ -81,6 +81,10 @@ export interface IOrder extends Document {
     pickedUpBy?: mongoose.Types.ObjectId; // delivery boy who picked up
     latitude?: number; // location where pickup was confirmed
     longitude?: number;
+    pickupOtp?: string;
+    pickupOtpExpiresAt?: Date;
+    pickupOtpLastSentAt?: Date;
+    pickupOtpVerified?: boolean;
   }>;
 
   // Notes
@@ -310,6 +314,20 @@ const OrderSchema = new Schema<IOrder>(
         },
         longitude: {
           type: Number,
+        },
+        pickupOtp: {
+          type: String,
+          trim: true,
+        },
+        pickupOtpExpiresAt: {
+          type: Date,
+        },
+        pickupOtpLastSentAt: {
+          type: Date,
+        },
+        pickupOtpVerified: {
+          type: Boolean,
+          default: false,
         },
       },
     ],

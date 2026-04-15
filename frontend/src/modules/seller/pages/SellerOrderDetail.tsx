@@ -5,6 +5,7 @@ import {
   updateOrderStatus,
   OrderDetail,
 } from "../../../services/api/orderService";
+import { useSellerSocket } from "../hooks/useSellerSocket";
 import jsPDF from "jspdf";
 
 export default function SellerOrderDetail() {
@@ -15,34 +16,53 @@ export default function SellerOrderDetail() {
   const [error, setError] = useState<string>("");
   const [orderStatus, setOrderStatus] = useState<string>("Out For Delivery");
 
-  // Fetch order detail from API
-  useEffect(() => {
-    const fetchOrderDetail = async () => {
-      if (!id) return;
+  const fetchOrderDetail = async () => {
+    if (!id) return;
 
-      setLoading(true);
-      setError("");
-      try {
-        const response = await getOrderById(id);
-        if (response.success && response.data) {
-          setOrderDetail(response.data);
-          setOrderStatus(response.data.status);
-        } else {
-          setError(response.message || "Failed to fetch order details");
-        }
-      } catch (err: any) {
-        setError(
-          err.response?.data?.message ||
-            err.message ||
-            "Failed to fetch order details"
-        );
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    setError("");
+    try {
+      const response = await getOrderById(id);
+      if (response.success && response.data) {
+        setOrderDetail(response.data);
+        setOrderStatus(response.data.status);
+      } else {
+        setError(response.message || "Failed to fetch order details");
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch order details"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrderDetail();
+  }, [id]);
+
+  // Socket for real-time OTP updates
+  const { socket } = useSellerSocket();
+
+  useEffect(() => {
+    if (!socket || !id) return;
+
+    const handleOtpSent = (data: any) => {
+      // If the event is for this specific order, refresh detail
+      if (data.orderId === id || data.orderNumber === orderDetail?.invoiceNumber) {
+        fetchOrderDetail();
       }
     };
 
-    fetchOrderDetail();
-  }, [id]);
+    socket.on('pickup-otp-sent', handleOtpSent);
+
+    return () => {
+      socket.off('pickup-otp-sent', handleOtpSent);
+    };
+  }, [socket, id, orderDetail?.invoiceNumber]);
 
   // Handle status update
   const handleStatusUpdate = async (newStatus: string) => {
@@ -500,6 +520,30 @@ export default function SellerOrderDetail() {
           </div>
         </div>
       </div>
+
+      {/* Pickup OTP Banner */}
+      {orderDetail.pickupOtp && !orderDetail.pickupOtpVerified && (
+        <div className="bg-teal-50 border-l-4 border-teal-600 p-4 mb-6 rounded-r-lg shadow-sm">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div className="ml-4 flex-1">
+              <h3 className="text-sm font-bold text-teal-900 uppercase tracking-wider">Secure Pickup Required</h3>
+              <p className="text-sm text-teal-700">
+                Please share this OTP with the delivery partner to confirm handover:
+              </p>
+            </div>
+            <div className="bg-white px-6 py-2 rounded-lg border-2 border-dashed border-teal-300 shadow-inner">
+               <span className="text-2xl font-black text-teal-800 tracking-[0.3em] font-mono leading-none">
+                 {orderDetail.pickupOtp}
+               </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Order Details Section */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">

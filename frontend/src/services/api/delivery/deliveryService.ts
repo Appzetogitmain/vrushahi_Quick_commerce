@@ -119,12 +119,26 @@ export const checkSellerProximity = async (orderId: string, sellerId: string, la
     }
 };
 
-export const confirmSellerPickup = async (orderId: string, sellerId: string, latitude: number, longitude: number) => {
+export const sendSellerPickupOtp = async (orderId: string, sellerId: string, latitude: number, longitude: number) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/${orderId}/send-pickup-otp`, {
+            sellerId,
+            latitude,
+            longitude
+        });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const confirmSellerPickup = async (orderId: string, sellerId: string, latitude: number, longitude: number, otp: string) => {
     try {
         const response = await api.post(`${BASE_URL}/orders/${orderId}/confirm-seller-pickup`, {
             sellerId,
             latitude,
-            longitude
+            longitude,
+            otp
         });
         return response.data;
     } catch (error) {

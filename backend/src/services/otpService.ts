@@ -43,7 +43,7 @@ type UserType = 'Customer' | 'Delivery' | 'Seller' | 'Admin';
 /**
  * Generate numeric OTP
  */
-function generateOTP(length: number = 4): string {
+export function generateOTP(length: number = 4): string {
   const digits = '0123456789';
   let otp = '';
   for (let i = 0; i < length; i++) {
@@ -229,7 +229,7 @@ function isDeveloperBypass(otp: string): boolean {
 
 export async function sendSmsOtp(
   mobile: string,
-  userType: 'Customer' | 'Delivery' = 'Delivery'
+  userType: 'Customer' | 'Delivery' | 'Seller' = 'Delivery'
 ): Promise<OtpResponse> {
   try {
     const otp = generateOTP(4);

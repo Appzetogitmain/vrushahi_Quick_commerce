@@ -737,19 +737,35 @@ function AppContent() {
                                   />
                                   <Route
                                     path="/orders"
-                                    element={<Orders />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Orders />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/orders/:id"
-                                    element={<OrderDetail />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <OrderDetail />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/order-again"
-                                    element={<OrderAgain />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <OrderAgain />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/account"
-                                    element={<Account />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Account />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/about-us"
@@ -758,7 +774,11 @@ function AppContent() {
                                   <Route path="/faq" element={<FAQ />} />
                                   <Route
                                     path="/wishlist"
-                                    element={<Wishlist />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Wishlist />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/categories"
@@ -770,15 +790,27 @@ function AppContent() {
                                   />
                                   <Route
                                     path="/address-book"
-                                    element={<AddressBook />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <AddressBook />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/checkout"
-                                    element={<Checkout />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Checkout />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/checkout/address"
-                                    element={<CheckoutAddress />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <CheckoutAddress />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/product/:id"
@@ -786,12 +818,20 @@ function AppContent() {
                                   />
                                   <Route
                                     path="/invoice/:id"
-                                    element={<Invoice />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Invoice />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route path="/cart" element={<Cart />} />
                                   <Route
                                     path="/addresses"
-                                    element={<Addresses />}
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Addresses />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route
                                     path="/stores"

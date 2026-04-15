@@ -123,45 +123,17 @@ export default function DeliveryPartnerCard({
 
             {/* Live Metrics */}
             {isTracking && (
-                <div className="grid grid-cols-2 border-t border-gray-100">
-                    {/* ETA */}
-                    <div className="p-4 border-r border-gray-100">
+                <div className="flex border-t border-gray-100">
+                    {/* ETA Section */}
+                    <div className="flex-1 p-4 flex flex-col items-center">
                         <div className="flex items-center gap-2 mb-1">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            <span className="text-xs text-gray-500 font-medium">ETA</span>
+                            <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Estimated Arrival</span>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{formatETA(eta)}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Estimated arrival</p>
-                    </div>
-
-                    {/* Distance */}
-                    <div className="p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                <polyline points="12 5 19 12 12 19"></polyline>
-                            </svg>
-                            <span className="text-xs text-gray-500 font-medium">Distance</span>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900">{formatDistance(distance)}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Away from you</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Progress Bar */}
-            {isTracking && distance > 0 && (
-                <div className="px-4 pb-4">
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <motion.div
-                            className="h-full bg-gradient-to-r from-green-400 to-green-600"
-                            initial={{ width: '0%' }}
-                            animate={{ width: `${Math.max(10, Math.min(90, 100 - (distance / 50)))}%` }}
-                            transition={{ duration: 0.5 }}
-                        />
+                        <p className="text-3xl font-black text-gray-900">{formatETA(eta)}</p>
                     </div>
                 </div>
             )}

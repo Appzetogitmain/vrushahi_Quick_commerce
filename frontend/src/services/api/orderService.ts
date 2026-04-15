@@ -60,6 +60,8 @@ export interface OrderDetail {
   paymentMethod: string;
   paymentStatus: string;
   deliveryAddress: DeliveryAddress;
+  pickupOtp?: string;
+  pickupOtpVerified?: boolean;
 }
 
 export interface UpdateOrderStatusData {

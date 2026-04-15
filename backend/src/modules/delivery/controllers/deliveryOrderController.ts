@@ -4,7 +4,12 @@ import Order from "../../../models/Order";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import OrderItem from "../../../models/OrderItem";
 import Seller from "../../../models/Seller";
-import { generateDeliveryOtp, verifyDeliveryOtp } from "../../../services/deliveryOtpService";
+import { 
+    generateDeliveryOtp, 
+    verifyDeliveryOtp, 
+    generateSellerPickupOtp, 
+    verifySellerPickupOtp 
+} from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
 
 /**
@@ -514,16 +519,80 @@ export const checkSellerProximity = asyncHandler(async (req: Request, res: Respo
 });
 
 /**
+ * Send Seller Pickup OTP
+ * Generates OTP and sends to seller, plus emits socket event
+ */
+export const sendSellerPickupOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { sellerId, latitude, longitude } = req.body;
+    const deliveryId = req.user?.userId;
+
+    if (!sellerId) {
+        return res.status(400).json({ success: false, message: "Seller ID is required" });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.deliveryBoy?.toString() !== deliveryId) {
+        return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+    }
+
+    // Verify proximity if coordinates provided (Optional but recommended)
+    if (latitude !== undefined && longitude !== undefined) {
+        const seller = await Seller.findById(sellerId).select('latitude longitude');
+        if (seller && seller.latitude && seller.longitude) {
+            const { calculateDistance } = await import('../../../utils/locationHelper');
+            const distance = calculateDistance(
+                latitude,
+                longitude,
+                parseFloat(seller.latitude),
+                parseFloat(seller.longitude)
+            );
+            if (distance > 0.5) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `You must be within 500m of the seller to request OTP. Distance: ${Math.round(distance * 1000)}m` 
+                });
+            }
+        }
+    }
+
+    try {
+        const result = await generateSellerPickupOtp(id, sellerId);
+
+        // Emit socket event to seller
+        const io = (req.app as any).get("io");
+        if (io) {
+            io.to(`seller-${sellerId}`).emit('pickup-otp-sent', {
+                orderId: id,
+                orderNumber: order.orderNumber,
+                message: 'Delivery partner is requesting pickup OTP',
+            });
+        }
+
+        return res.status(200).json(result);
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to send pickup OTP"
+        });
+    }
+});
+
+/**
  * Confirm Seller Pickup
  * Confirms pickup from a specific seller and updates order status
  */
 export const confirmSellerPickup = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { sellerId, latitude, longitude } = req.body;
+    const { sellerId, latitude, longitude, otp } = req.body;
     const deliveryId = req.user?.userId;
 
-    if (!sellerId || latitude === undefined || longitude === undefined) {
-        return res.status(400).json({ success: false, message: "Seller ID, latitude, and longitude are required" });
+    if (!sellerId || latitude === undefined || longitude === undefined || !otp) {
+        return res.status(400).json({ success: false, message: "Seller ID, location, and OTP are required" });
     }
 
     const order = await Order.findById(id).populate('items');
@@ -553,6 +622,16 @@ export const confirmSellerPickup = asyncHandler(async (req: Request, res: Respon
         return res.status(400).json({
             success: false,
             message: `You must be within 500 meters of the seller to confirm pickup. Current distance: ${Math.round(distance * 1000)}m`
+        });
+    }
+
+    // Verify OTP
+    try {
+        await verifySellerPickupOtp(id, sellerId, otp);
+    } catch (otpError: any) {
+        return res.status(400).json({
+            success: false,
+            message: otpError.message || "OTP verification failed"
         });
     }
 
