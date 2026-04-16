@@ -23,6 +23,9 @@ export interface HomeSection {
     columns: number;
     limit: number;
     order: number;
+    backgroundImage?: string;
+    backgroundColor?: string;
+    titleColor?: string;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
@@ -39,6 +42,9 @@ export interface HomeSectionFormData {
     columns: number;
     limit: number;
     order?: number;
+    backgroundImage?: string;
+    backgroundColor?: string;
+    titleColor?: string;
     isActive: boolean;
 }
 

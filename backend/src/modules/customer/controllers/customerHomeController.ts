@@ -598,6 +598,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
           slug: section.slug,
           displayType: section.displayType,
           columns: section.columns,
+          backgroundImage: section.backgroundImage,
+          backgroundColor: section.backgroundColor,
+          titleColor: section.titleColor,
           data: sectionData,
         };
       }),

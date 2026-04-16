@@ -28,7 +28,6 @@ interface ProductWizardProps {
   brands: any[];
   taxes: any[];
   headerCategories: any[];
-  shops: any[];
   uploading: boolean;
   mainImagePreview: string;
   galleryImagePreviews: string[];
@@ -55,7 +54,6 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
   brands,
   taxes,
   headerCategories,
-  shops,
   uploading,
   mainImagePreview,
   galleryImagePreviews,

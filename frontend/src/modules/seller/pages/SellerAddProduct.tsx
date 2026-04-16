@@ -10,9 +10,7 @@ import {
   createProduct,
   updateProduct,
   getProductById,
-  getShops,
   ProductVariation,
-  Shop,
 } from "../../../services/api/productService";
 import {
   getCategories,
@@ -63,8 +61,6 @@ export default function SellerAddProduct() {
     totalAllowedQuantity: "10",
     mainImageUrl: "",
     galleryImageUrls: [] as string[],
-    isShopByStoreOnly: "No",
-    shopId: "",
     // New Fields
     costPrice: "",
     minOrderQuantity: "1",
@@ -103,18 +99,15 @@ export default function SellerAddProduct() {
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
-  const [shops, setShops] = useState<Shop[]>([]);
-
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, taxRes, brandRes, headerRes, shopRes] = await Promise.all([
+        const [catRes, taxRes, brandRes, headerRes] = await Promise.all([
           getCategories(),
           getActiveTaxes(),
           getBrands(),
           getHeaderCategoriesPublic(),
-          getShops(),
         ]);
 
         if (catRes.success) setCategories(catRes.data);
@@ -123,7 +116,6 @@ export default function SellerAddProduct() {
         if (Array.isArray(headerRes)) {
             setHeaderCategories(headerRes.filter(hc => hc.status === "Published"));
         }
-        if (shopRes.success) setShops(shopRes.data);
       } catch (err) {
         console.error("Error fetching form data:", err);
       }
@@ -167,8 +159,6 @@ export default function SellerAddProduct() {
               totalAllowedQuantity: product.totalAllowedQuantity?.toString() || "10",
               mainImageUrl: product.mainImageUrl || product.mainImage || "",
               galleryImageUrls: product.galleryImages || product.galleryImageUrls || [],
-              isShopByStoreOnly: (product as any).isShopByStoreOnly ? "Yes" : "No",
-              shopId: (product as any).shopId?._id || (product as any).shopId || "",
               // New fields
               costPrice: (product as any).costPrice?.toString() || "",
               minOrderQuantity: (product as any).minOrderQuantity?.toString() || "1",
@@ -342,8 +332,6 @@ export default function SellerAddProduct() {
         isReturnable: formData.isReturnable === "Yes",
         maxReturnDays: formData.maxReturnDays ? parseInt(formData.maxReturnDays) : undefined,
         totalAllowedQuantity: parseInt(formData.totalAllowedQuantity || "10"),
-        isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
-        shopId: (formData.isShopByStoreOnly === "Yes" && formData.shopId) ? formData.shopId : undefined,
         mainImageUrl,
         galleryImageUrls,
         variations,
@@ -397,7 +385,6 @@ export default function SellerAddProduct() {
         brands={brands}
         taxes={taxes}
         headerCategories={headerCategories}
-        shops={shops}
         uploading={uploading}
         mainImagePreview={mainImagePreview}
         galleryImagePreviews={galleryImagePreviews}

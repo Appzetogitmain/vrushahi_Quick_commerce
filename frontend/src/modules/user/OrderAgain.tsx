@@ -87,9 +87,9 @@ export default function OrderAgain() {
           className="relative block mb-2 cursor-pointer"
         >
           <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden relative border border-neutral-100 shadow-sm">
-            {product.imageUrl ? (
+            {(product.imageUrl || product.mainImage) ? (
               <img
-                src={product.imageUrl}
+                src={product.imageUrl || product.mainImage}
                 alt={product.name}
                 className="w-full h-full object-contain p-2"
               />
@@ -262,14 +262,18 @@ export default function OrderAgain() {
     if (!orders || orders.length === 0) return [];
     const productMap = new Map();
     orders.forEach(order => {
-      order.items.forEach(item => {
-        if (item.product && !productMap.has(item.product.id)) {
-          productMap.set(item.product.id, {
-            ...item.product,
-            id: item.product.id || (item.product as any)._id
+          order.items.forEach(item => {
+            if (item.product) {
+              const productId = item.product.id || (item.product as any)._id;
+              if (!productMap.has(productId)) {
+                productMap.set(productId, {
+                  ...item.product,
+                  id: productId,
+                  imageUrl: item.product.imageUrl || (item.product as any).mainImage
+                });
+              }
+            }
           });
-        }
-      });
     });
     return Array.from(productMap.values());
   }, [orders]);
@@ -291,12 +295,9 @@ export default function OrderAgain() {
             </svg>
           </div>
           <div className="flex items-center gap-1">
-             <span className="text-[13px] font-black text-neutral-900 tracking-tight line-clamp-1 max-w-[140px]">
-               {userLocation?.address || 'Select Location'}
+             <span className="text-[15px] font-black text-neutral-900 tracking-tight">
+               Order Again
              </span>
-             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9l6 6 6-6" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-             </svg>
           </div>
         </div>
         

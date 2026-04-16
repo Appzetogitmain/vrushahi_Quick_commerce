@@ -322,28 +322,58 @@ export default function Home() {
                       }[columnCount] || "grid-cols-4";
 
                     const isCompact = columnCount >= 4;
-                    const gapClass = columnCount >= 4 ? "gap-2" : "gap-3 md:gap-4";
+                    const hasBackground = !!(section.backgroundImage || section.backgroundColor);
 
                     return (
-                      <div key={section.id} className="mt-6 mb-6 md:mt-8 md:mb-8">
-                        {section.title && (
-                          <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
-                            {section.title}
-                          </h2>
+                      <div key={section.id} className="relative mt-6 mb-8 md:mt-8 md:mb-10 pb-2">
+                        {/* Split Background layer - absolute and covers top half */}
+                        {hasBackground && (
+                          <div 
+                            className="absolute top-0 left-0 w-full h-[180px] md:h-[220px]"
+                            style={{
+                              backgroundColor: section.backgroundColor || undefined,
+                              backgroundImage: section.backgroundImage ? `url(${section.backgroundImage})` : undefined,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center top',
+                              backgroundRepeat: 'no-repeat',
+                            }}
+                          />
                         )}
-                        <div className="px-4 md:px-6 lg:px-8">
-                          <div className={`grid ${gridClass} ${gapClass}`}>
-                            {section.data.map((product: any) => (
-                              <ProductCard
-                                key={product.id || product._id}
-                                product={product}
-                                categoryStyle={true}
-                                showBadge={true}
-                                showPackBadge={false}
-                                showStockInfo={false}
-                                compact={isCompact}
-                              />
-                            ))}
+
+                        <div className="relative z-10 pt-4 md:pt-6">
+                          {/* Title & See All Header */}
+                          <div className="flex justify-between items-center px-4 md:px-6 lg:px-8 mb-4">
+                            {section.title && (
+                              <h2 
+                                className={`text-xl md:text-3xl font-black tracking-tight ${hasBackground ? 'italic drop-shadow-md' : 'capitalize'}`}
+                                style={{ color: section.titleColor || (hasBackground ? '#ffffff' : '#171717') }}
+                              >
+                                {section.title}
+                              </h2>
+                            )}
+                            {hasBackground && (
+                              <button className="bg-white/90 backdrop-blur text-neutral-800 text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-sm hover:bg-white transition-colors">
+                                See All
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Horizontal Product Slider spilling over the background edge */}
+                          <div className="px-4 md:px-6 lg:px-8">
+                            <div className="flex overflow-x-auto gap-3 md:gap-4 pb-4 hide-scrollbar items-stretch">
+                              {section.data.map((product: any) => (
+                                <div key={product.id || product._id} className="w-[115px] md:w-[135px] shrink-0">
+                                  <ProductCard
+                                    product={product}
+                                    categoryStyle={true}
+                                    showBadge={true}
+                                    showPackBadge={false}
+                                    showStockInfo={false}
+                                    compact={isCompact}
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -357,33 +387,15 @@ export default function Home() {
                       tiles={section.data || []}
                       columns={columnCount as 2 | 3 | 4 | 6 | 8}
                       showProductCount={false}
+                      backgroundImage={section.backgroundImage}
+                      backgroundColor={section.backgroundColor}
+                      titleColor={section.titleColor}
                     />
                   );
                 })}
               </>
             )}
 
-            {/* Personalized Featured Section - Relocated above Shop by Store */}
-            {activeTab === "all" && (
-              <div className="mt-8">
-                <CategoryTileSection
-                  title={`${firstName}, still looking for these?`}
-                  variant="featured"
-                  size="small"
-                  tiles={
-                    homeData.bestsellers && homeData.bestsellers.length > 0
-                      ? homeData.bestsellers.slice(0, 10).map((card: any) => ({
-                        id: card.id,
-                        categoryId: card.categoryId,
-                        name: card.name || "Category",
-                        image: card.image || (card.productImages && card.productImages[0]),
-                      }))
-                      : []
-                    }
-                  showProductCount={false}
-                />
-              </div>
-            )}
           </>
         )}
       </div>

@@ -12,6 +12,9 @@ export interface IHomeSection extends Document {
     columns: number;
     limit: number;
     order: number;
+    backgroundImage?: string;
+    backgroundColor?: string;
+    titleColor?: string;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -80,6 +83,18 @@ const HomeSectionSchema = new Schema<IHomeSection>(
             type: Number,
             required: [true, "Display order is required"],
             default: 0,
+        },
+        backgroundImage: {
+            type: String,
+            trim: true,
+        },
+        backgroundColor: {
+            type: String,
+            trim: true,
+        },
+        titleColor: {
+            type: String,
+            trim: true,
         },
         isActive: {
             type: Boolean,

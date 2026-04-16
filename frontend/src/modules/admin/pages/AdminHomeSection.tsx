@@ -9,6 +9,7 @@ import {
 } from "../../../services/api/admin/adminHomeSectionService";
 import { getCategories, getSubcategories, type Category, type SubCategory } from "../../../services/api/categoryService";
 import { getHeaderCategoriesAdmin, type HeaderCategory } from "../../../services/api/headerCategoryService";
+import { uploadImage } from "../../../services/api/uploadService";
 
 const DISPLAY_TYPE_OPTIONS = [
     { value: "subcategories", label: "Subcategories" },
@@ -29,6 +30,10 @@ export default function AdminHomeSection() {
     const [displayType, setDisplayType] = useState<"subcategories" | "products" | "categories">("subcategories");
     const [columns, setColumns] = useState(4);
     const [limit, setLimit] = useState(8);
+    const [backgroundImage, setBackgroundImage] = useState<string>("");
+    const [backgroundColor, setBackgroundColor] = useState<string>("");
+    const [titleColor, setTitleColor] = useState<string>("");
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const [isActive, setIsActive] = useState(true);
 
     // Data state
@@ -192,22 +197,37 @@ export default function AdminHomeSection() {
             }
         }
 
-        const formData: HomeSectionFormData = {
-            title: title.trim(),
-            slug: slug.trim(),
-            pageLocation,
-            headerCategoryId: selectedHeaderCategory || undefined,
-            categories: selectedCategories.length > 0 ? selectedCategories : undefined,
-            // Only include subcategories if displayType is not "categories"
-            subCategories: displayType !== "categories" && selectedSubCategories.length > 0 ? selectedSubCategories : undefined,
-            displayType,
-            columns,
-            limit,
-            isActive,
-        };
-
         try {
             setLoading(true);
+
+            let finalBackgroundImage = backgroundImage;
+            if (imageFile) {
+                try {
+                    const uploadResult = await uploadImage(imageFile, "home_sections");
+                    finalBackgroundImage = uploadResult.secureUrl || uploadResult.url;
+                } catch (uploadErr: any) {
+                    setError("Failed to upload background image: " + (uploadErr.message || "Unknown error"));
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            const formData: HomeSectionFormData = {
+                title: title.trim(),
+                slug: slug.trim(),
+                pageLocation,
+                headerCategoryId: selectedHeaderCategory || undefined,
+                categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+                // Only include subcategories if displayType is not "categories"
+                subCategories: displayType !== "categories" && selectedSubCategories.length > 0 ? selectedSubCategories : undefined,
+                displayType,
+                columns,
+                limit,
+                backgroundImage: finalBackgroundImage || undefined,
+                backgroundColor: backgroundColor.trim() || undefined,
+                titleColor: titleColor.trim() || undefined,
+                isActive,
+            };
 
             if (editingId) {
                 const response = await updateHomeSection(editingId, formData);
@@ -251,6 +271,10 @@ export default function AdminHomeSection() {
         setColumns(section.columns);
         setLimit(section.limit);
         setIsActive(section.isActive);
+        setBackgroundImage(section.backgroundImage || "");
+        setBackgroundColor(section.backgroundColor || "");
+        setTitleColor(section.titleColor || "");
+        setImageFile(null);
         setEditingId(section._id);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
@@ -285,6 +309,10 @@ export default function AdminHomeSection() {
         setColumns(4);
         setLimit(8);
         setIsActive(true);
+        setBackgroundImage("");
+        setBackgroundColor("");
+        setTitleColor("");
+        setImageFile(null);
         setEditingId(null);
     };
 
@@ -583,6 +611,98 @@ export default function AdminHomeSection() {
                                     max="50"
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                 />
+                            </div>
+
+                            {/* Appearance: Background & Title Colors */}
+                            <div className="pt-4 border-t border-neutral-200 space-y-4">
+                                <h3 className="font-medium text-neutral-800">Appearance Styling (Optional)</h3>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                            Background Color
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={backgroundColor || "#ffffff"}
+                                                onChange={(e) => setBackgroundColor(e.target.value)}
+                                                className="w-10 h-10 p-1 border border-neutral-300 rounded cursor-pointer shrink-0 bg-white"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={backgroundColor}
+                                                onChange={(e) => setBackgroundColor(e.target.value)}
+                                                placeholder="#ffffff"
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 outline-none text-sm font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                            Title Text Color
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={titleColor || "#000000"}
+                                                onChange={(e) => setTitleColor(e.target.value)}
+                                                className="w-10 h-10 p-1 border border-neutral-300 rounded cursor-pointer shrink-0 bg-white"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={titleColor}
+                                                onChange={(e) => setTitleColor(e.target.value)}
+                                                placeholder="#000000"
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 outline-none text-sm font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Background Image */}
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                        Background Image
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setImageFile(e.target.files[0]);
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded text-sm text-neutral-600 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    />
+                                    {(backgroundImage || imageFile) && (
+                                        <div className="mt-2 relative inline-block">
+                                            {imageFile ? (
+                                                <img 
+                                                    src={URL.createObjectURL(imageFile)} 
+                                                    alt="Preview" 
+                                                    className="h-20 object-contain border rounded border-neutral-200"
+                                                />
+                                            ) : (
+                                                <img 
+                                                    src={backgroundImage} 
+                                                    alt="Background" 
+                                                    className="h-20 object-contain border rounded border-neutral-200"
+                                                />
+                                            )}
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setImageFile(null);
+                                                    setBackgroundImage("");
+                                                }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Active Status */}

@@ -23,6 +23,9 @@ interface CategoryTileSectionProps {
   showProductCount?: boolean;
   variant?: 'default' | 'featured';
   size?: 'small' | 'medium' | 'large';
+  backgroundImage?: string;
+  backgroundColor?: string;
+  titleColor?: string;
 }
 
 export default function CategoryTileSection({
@@ -32,8 +35,20 @@ export default function CategoryTileSection({
   showProductCount = false,
   variant = 'default',
   size = 'medium',
+  backgroundImage,
+  backgroundColor,
+  titleColor,
 }: CategoryTileSectionProps) {
   const navigate = useNavigate();
+
+  const hasBackground = !!(backgroundImage || backgroundColor);
+  const sectionStyle = hasBackground ? {
+    backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+    backgroundColor: backgroundColor || undefined,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  } : {};
 
   const handleTileClick = (tile: CategoryTile) => {
     const targetUrl = tile.subcategoryId || tile.type === "subcategory"
@@ -132,8 +147,14 @@ export default function CategoryTileSection({
   }
 
   return (
-    <div className="mb-6 md:mb-8 mt-0 overflow-visible">
-      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
+    <div 
+        className={`mb-6 md:mb-8 mt-0 overflow-visible ${hasBackground ? 'py-6 md:py-8' : ''}`}
+        style={sectionStyle}
+    >
+      <h2 
+        className="text-lg md:text-2xl font-semibold mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize"
+        style={{ color: titleColor || (hasBackground ? '#ffffff' : '#171717') }}
+      >
         {title}
       </h2>
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">

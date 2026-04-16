@@ -217,25 +217,27 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative group`}
+      className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col relative group h-full`}
     >
       <div
         onClick={handleCardClick}
-        className="relative cursor-pointer aspect-square bg-gray-50 overflow-hidden"
+        className="relative cursor-pointer aspect-square bg-white rounded-t-2xl"
       >
-        {product.imageUrl || product.mainImage ? (
-          <img
-            ref={imageRef}
-            src={product.imageUrl || product.mainImage}
-            alt={product.name || product.productName || 'Product'}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl font-bold">
-            {(product.name || product.productName || '?').charAt(0).toUpperCase()}
-          </div>
-        )}
+        <div className="w-full h-full overflow-hidden rounded-t-2xl">
+          {product.imageUrl || product.mainImage ? (
+            <img
+              ref={imageRef}
+              src={product.imageUrl || product.mainImage}
+              alt={product.name || product.productName || 'Product'}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-400 text-3xl font-bold">
+              {(product.name || product.productName || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+        </div>
 
         {/* Discount Badge */}
         {discount > 0 && (
@@ -271,28 +273,28 @@ export default function ProductCard({
           </button>
         )}
 
-        {/* Floating ADD Button Overlay */}
-        <div className="absolute bottom-2 right-2 z-20">
+        {/* Floating ADD Button Overlay - Exactly sitting on the border */}
+        <div className="absolute -bottom-[14px] right-2 z-20">
           {inCartQty === 0 ? (
             <button
               ref={addButtonRef}
               disabled={product.isAvailable === false}
               onClick={handleAdd}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+              className={`w-7 h-7 md:w-8 md:h-8 rounded bg-white flex items-center justify-center shadow-sm border ${
                 product.isAvailable === false
-                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                : 'bg-white text-[#ff3269] border border-gray-100 hover:scale-105'
+                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                : 'border-[#ff3269]/40 text-[#ff3269] active:bg-pink-50'
               }`}
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
             </button>
           ) : (
-            <div className="bg-white border border-[#ff3269]/20 rounded-xl shadow-lg flex items-center h-10 min-w-[90px] overflow-hidden">
+            <div className="bg-white border border-[#ff3269]/40 rounded shadow-sm flex items-center h-7 md:h-8 min-w-[65px] md:min-w-[75px] overflow-hidden">
               <button
                 onClick={handleDecrease}
-                className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-black text-lg"
+                className="w-7 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-semibold text-lg"
               >
                 −
               </button>
@@ -311,42 +313,49 @@ export default function ProductCard({
         </div>
       </div>
 
-      <div className="p-3 flex-1 flex flex-col" onClick={handleCardClick}>
+      <div className="px-2 py-2 pt-2.5 flex-1 flex flex-col relative" onClick={handleCardClick}>
         {/* Product Name */}
-        <h3 className="text-[14px] font-bold text-gray-900 leading-tight line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-[#ff3269] transition-colors">
+        <h3 className="text-[12px] md:text-[13px] font-semibold text-gray-900 leading-[1.3] line-clamp-2 mb-1 group-hover:text-amber-700 transition-colors pr-2 h-[32px] md:h-[34px]">
           {product.name || product.productName || ''}
         </h3>
 
         {/* Pricing */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-base font-black text-gray-900">
+        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+          <span className="text-[12px] md:text-[13px] font-bold text-gray-900">
             ₹{displayPrice.toLocaleString('en-IN')}
           </span>
           {mrp && mrp > displayPrice && (
-            <span className="text-xs text-gray-400 line-through font-medium">
+            <span className="text-[10px] text-gray-400 line-through font-medium">
               ₹{mrp.toLocaleString('en-IN')}
             </span>
           )}
         </div>
 
-        {/* Meta Info: Rating & Time */}
-        <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-2.5">
-          <div className="flex items-center gap-1">
-             <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-50 rounded-md border border-gray-100">
-                <svg className="text-amber-400 fill-amber-400" width="10" height="10" viewBox="0 0 24 24">
+        {/* Meta Info: Rating & Time Stacked */}
+        <div className="mt-auto flex flex-col gap-[3px] pt-1">
+          {/* Rating Row */}
+          <div className="flex items-center gap-[1px]">
+             {[1, 2, 3, 4, 5].map((star) => (
+                <svg 
+                  key={star} 
+                  className={star <= Math.round(product.rating || 0) ? "text-gray-400 fill-gray-400" : "text-gray-200 fill-gray-200"} 
+                  width="10" height="10" viewBox="0 0 24 24"
+                >
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                 </svg>
-                <span className="text-[10px] font-black text-gray-700">{product.rating || '5.0'}</span>
-             </div>
-             <span className="text-[9px] font-bold text-gray-400">({ (product as any).reviews || '1' })</span>
+             ))}
+             <span className="text-[10px] font-medium text-gray-400 ml-1">
+               ({(product as any).reviewsCount || (product as any).reviews || 0})
+             </span>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-sky-50 rounded-md border border-sky-100 text-sky-600">
-             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          {/* Time Row */}
+          <div className="flex items-center gap-1.5 w-fit rounded-full px-1.5 py-[2px] bg-sky-50 shadow-[0_4px_10px_-4px_rgba(56,189,248,0.4)] border border-sky-100">
+             <svg className="text-sky-600" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
              </svg>
-             <span className="text-[9px] font-black tracking-tight">21 MIN</span>
+             <span className="text-[9px] md:text-[10px] font-bold text-sky-700 tracking-tight">21 min</span>
           </div>
         </div>
       </div>

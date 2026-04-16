@@ -66,7 +66,7 @@ export const getHomeSectionById = async (req: Request, res: Response) => {
 // Create new home section
 export const createHomeSection = async (req: Request, res: Response) => {
     try {
-        const { title, slug, pageLocation, headerCategoryId, categories, subCategories, displayType, columns, limit, order, isActive } = req.body;
+        const { title, slug, pageLocation, headerCategoryId, categories, subCategories, displayType, columns, limit, order, isActive, backgroundImage, backgroundColor, titleColor } = req.body;
 
         // Validate required fields
         if (!title || !slug || !displayType) {
@@ -104,6 +104,9 @@ export const createHomeSection = async (req: Request, res: Response) => {
             limit: limit || 8,
             order: sectionOrder,
             isActive: isActive !== undefined ? isActive : true,
+            backgroundImage: backgroundImage || undefined,
+            backgroundColor: backgroundColor || undefined,
+            titleColor: titleColor || undefined,
         });
 
         await newSection.save();
@@ -133,7 +136,7 @@ export const createHomeSection = async (req: Request, res: Response) => {
 export const updateHomeSection = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { title, slug, pageLocation, headerCategoryId, categories, subCategories, displayType, columns, limit, order, isActive } = req.body;
+        const { title, slug, pageLocation, headerCategoryId, categories, subCategories, displayType, columns, limit, order, isActive, backgroundImage, backgroundColor, titleColor } = req.body;
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
@@ -173,6 +176,9 @@ export const updateHomeSection = async (req: Request, res: Response) => {
         if (limit !== undefined) section.limit = limit;
         if (order !== undefined) section.order = order;
         if (isActive !== undefined) section.isActive = isActive;
+        if (backgroundImage !== undefined) section.backgroundImage = backgroundImage;
+        if (backgroundColor !== undefined) section.backgroundColor = backgroundColor;
+        if (titleColor !== undefined) section.titleColor = titleColor;
 
         await section.save();
 
