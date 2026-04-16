@@ -48,15 +48,6 @@ import * as sellerController from "../modules/admin/controllers/adminSellerContr
 // Profile Controllers
 import * as profileController from "../modules/admin/controllers/adminProfileController";
 
-// Shop Controllers (Shop by Store)
-import {
-  createShop,
-  getAllShops,
-  getShopById,
-  updateShop,
-  deleteShop,
-} from "../modules/admin/controllers/adminShopController";
-
 // System User Controllers
 import * as systemUserController from "../modules/admin/controllers/adminSystemUserController";
 
@@ -299,21 +290,6 @@ router.delete("/policies/:id", policyController.deletePolicy);
 
 // ==================== Seller Routes ====================
 router.get("/sellers", sellerController.getAllSellers);
-
-// ==================== Shop Management ====================
-// Legacy routes (keep for backward compatibility)
-router.post("/shop/create", createShop);
-router.get("/shops", getAllShops);
-router.get("/shop/:id", getShopById);
-router.put("/shop/:id", updateShop);
-router.delete("/shop/:id", deleteShop);
-
-// Shop by Store routes (matching frontend API expectations)
-router.post("/shop-by-stores", createShop);
-router.get("/shop-by-stores", getAllShops);
-router.get("/shop-by-stores/:id", getShopById);
-router.put("/shop-by-stores/:id", updateShop);
-router.delete("/shop-by-stores/:id", deleteShop);
 
 // ==================== System User Routes ====================
 router.get("/system-users", systemUserController.getAllSystemUsers);

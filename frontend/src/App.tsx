@@ -41,15 +41,6 @@ const FAQ = lazy(() => import("./modules/user/FAQ"));
 const Wishlist = lazy(() => import("./modules/user/Wishlist"));
 const Addresses = lazy(() => import("./modules/user/Addresses"));
 const AddressBook = lazy(() => import("./modules/user/AddressBook"));
-const SpiritualStore = lazy(() => import("./modules/user/SpiritualStore"));
-const PharmaStore = lazy(() => import("./modules/user/PharmaStore"));
-const EGiftStore = lazy(() => import("./modules/user/EGiftStore"));
-const PetStore = lazy(() => import("./modules/user/PetStore"));
-const SportsStore = lazy(() => import("./modules/user/SportsStore"));
-const FashionStore = lazy(() => import("./modules/user/FashionStore"));
-const ToyStore = lazy(() => import("./modules/user/ToyStore"));
-const HobbyStore = lazy(() => import("./modules/user/HobbyStore"));
-const StorePage = lazy(() => import("./modules/user/StorePage"));
 const SellerStore = lazy(() => import("./modules/user/SellerStore"));
 const Stores = lazy(() => import("./modules/user/Stores"));
 // Lazy load delivery routes
@@ -220,9 +211,6 @@ const AdminPromoStrip = lazy(
 );
 const AdminLowestPrices = lazy(
   () => import("./modules/admin/pages/AdminLowestPrices"),
-);
-const AdminShopByStore = lazy(
-  () => import("./modules/admin/pages/AdminShopByStore"),
 );
 const AdminBanners = lazy(() => import("./modules/admin/pages/AdminBanners"));
 const AdminAllOrders = lazy(
@@ -669,10 +657,6 @@ function AppContent() {
                                       element={<AdminLowestPrices />}
                                     />
                                     <Route
-                                      path="shop-by-store"
-                                      element={<AdminShopByStore />}
-                                    />
-                                    <Route
                                       path="banners"
                                       element={<AdminBanners />}
                                     />
@@ -840,42 +824,6 @@ function AppContent() {
                                   <Route
                                     path="/store/:sellerId"
                                     element={<SellerStore />}
-                                  />
-                                  <Route
-                                    path="/store/slug/:slug"
-                                    element={<StorePage />}
-                                  />
-                                  <Route
-                                    path="/store/spiritual"
-                                    element={<SpiritualStore />}
-                                  />
-                                  <Route
-                                    path="/store/pharma"
-                                    element={<PharmaStore />}
-                                  />
-                                  <Route
-                                    path="/store/e-gifts"
-                                    element={<EGiftStore />}
-                                  />
-                                  <Route
-                                    path="/store/pet"
-                                    element={<PetStore />}
-                                  />
-                                  <Route
-                                    path="/store/sports"
-                                    element={<SportsStore />}
-                                  />
-                                  <Route
-                                    path="/store/fashion-basics"
-                                    element={<FashionStore />}
-                                  />
-                                  <Route
-                                    path="/store/toy"
-                                    element={<ToyStore />}
-                                  />
-                                  <Route
-                                    path="/store/hobby"
-                                    element={<HobbyStore />}
                                   />
                                 </Routes>
                               </Suspense>

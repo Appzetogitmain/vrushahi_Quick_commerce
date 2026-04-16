@@ -384,63 +384,9 @@ export default function Home() {
                 />
               </div>
             )}
-
-            {/* Shop by Store Section - only on 'all' tab */}
-            {activeTab === "all" && (
-              <div className="mb-6 mt-6 md:mb-8 md:mt-8">
-                <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
-                  Shop by Store
-                </h2>
-                <div className="px-4 md:px-6 lg:px-8">
-                  <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-4">
-                    {(homeData.shops || []).map((tile: any) => {
-                      const hasImages =
-                        tile.image ||
-                        (tile.productImages &&
-                          tile.productImages.filter(Boolean).length > 0);
-
-                      return (
-                        <div key={tile.id} className="flex flex-col">
-                          <div
-                            onClick={() => {
-                              const storeSlug =
-                                tile.slug || tile.id.replace("-store", "");
-                              navigate(`/store/${storeSlug}`);
-                            }}
-                            className="block bg-white rounded-xl shadow-sm border border-neutral-200 hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
-                            {hasImages ? (
-                              <img
-                                src={
-                                  tile.image ||
-                                  (tile.productImages ? tile.productImages[0] : "")
-                                }
-                                alt={tile.name}
-                                className="w-full h-16 object-cover"
-                              />
-                            ) : (
-                              <div
-                                className={`w-full h-16 flex items-center justify-center text-3xl text-neutral-300 ${tile.bgColor || "bg-neutral-50"
-                                  }`}>
-                                {tile.name.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-1.5 text-center">
-                            <span className="text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight">
-                              {tile.name}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
-    </div >
+    </div>
   );
 }

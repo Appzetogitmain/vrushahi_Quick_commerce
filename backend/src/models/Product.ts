@@ -86,10 +86,6 @@ export interface IProduct extends Document {
   // Commission
   commission?: number;
 
-  // Shop by Store
-  isShopByStoreOnly?: boolean;
-  shopId?: mongoose.Types.ObjectId;
-
   // New Fields for Modern Dashboard
   costPrice?: number;
   minOrderQuantity?: number;
@@ -129,12 +125,7 @@ const ProductSchema = new Schema<IProduct>(
     category: {
       type: Schema.Types.ObjectId,
       ref: "Category",
-      required: [
-        function (this: any) {
-          return !this.isShopByStoreOnly;
-        },
-        "Category is required",
-      ],
+      required: [true, "Category is required"],
     },
     subcategory: {
       type: Schema.Types.ObjectId,
@@ -330,16 +321,6 @@ const ProductSchema = new Schema<IProduct>(
     commission: {
       type: Number,
       min: [0, "Commission cannot be negative"],
-    },
-
-    // Shop by Store
-    isShopByStoreOnly: {
-      type: Boolean,
-      default: false,
-    },
-    shopId: {
-      type: Schema.Types.ObjectId,
-      ref: "Shop",
     },
 
     // New Fields for Modern Dashboard

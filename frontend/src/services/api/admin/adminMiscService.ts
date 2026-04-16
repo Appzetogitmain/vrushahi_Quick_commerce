@@ -64,22 +64,6 @@ export interface MiscHomeSection {
   updatedAt?: string;
 }
 
-export interface ShopByStore {
-  _id: string;
-  storeId: string;
-  name: string;
-  image: string;
-  description?: string;
-  headerCategoryId?: string | { _id: string; name: string };
-  category?: string | string[] | { _id: string; name: string } | { _id: string; name: string }[];
-  subCategory?: string | string[] | { _id: string; subcategoryName: string } | { _id: string; subcategoryName: string }[];
-  products?: string[];
-  isActive: boolean;
-  order: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface CreateReturnRequestData {
   orderId: string;
   orderItemId: string;
@@ -297,68 +281,6 @@ export const updateHomeSectionOrder = async (
   const response = await api.put<ApiResponse<void>>(
     "/admin/home-sections/order",
     { sections }
-  );
-  return response.data;
-};
-
-/**
- * Shop by Store APIs
- */
-export const getShopByStores = async (
-  params?: GetMiscParams
-): Promise<ApiResponse<ShopByStore[]>> => {
-  const response = await api.get<ApiResponse<ShopByStore[]>>(
-    "/admin/shop-by-stores",
-    { params }
-  );
-  return response.data;
-};
-
-export const createShopByStore = async (
-  data: {
-    name: string;
-    image: string;
-    description?: string;
-    category?: string;
-    subCategory?: string;
-    products?: string[];
-    order?: number;
-    isActive?: boolean;
-  }
-): Promise<ApiResponse<ShopByStore>> => {
-  const response = await api.post<ApiResponse<ShopByStore>>(
-    "/admin/shop-by-stores",
-    data
-  );
-  return response.data;
-};
-
-export const updateShopByStore = async (
-  id: string,
-  data: {
-    name?: string;
-    storeId?: string;
-    image?: string;
-    description?: string;
-    category?: string;
-    subCategory?: string;
-    products?: string[];
-    order?: number;
-    isActive?: boolean;
-  }
-): Promise<ApiResponse<ShopByStore>> => {
-  const response = await api.put<ApiResponse<ShopByStore>>(
-    `/admin/shop-by-stores/${id}`,
-    data
-  );
-  return response.data;
-};
-
-export const deleteShopByStore = async (
-  id: string
-): Promise<ApiResponse<void>> => {
-  const response = await api.delete<ApiResponse<void>>(
-    `/admin/shop-by-stores/${id}`
   );
   return response.data;
 };
