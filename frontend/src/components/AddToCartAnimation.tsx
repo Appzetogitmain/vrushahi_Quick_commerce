@@ -332,11 +332,11 @@ export default function AddToCartAnimation({
             <Link
               ref={linkRef}
               to={linkTo}
-              className={`bg-[#cdbae0] text-neutral-900 rounded-full shadow-xl shadow-purple-900/10 px-1 py-1.5 flex items-center gap-2.5 hover:bg-[#b0a0d0] transition-all duration-300 pointer-events-auto border border-white/20 backdrop-blur-sm min-w-[120px] ${pillClassName}`}
+              className={`bg-[#cdbae0] text-neutral-900 rounded-full shadow-xl shadow-purple-900/10 px-1.5 py-1 flex items-center gap-3.5 hover:bg-[#b0a0d0] transition-all duration-300 pointer-events-auto border border-white/20 backdrop-blur-sm min-w-[150px] ${pillClassName}`}
             >
               {/* Left: Cart Icon in Circle - Slightly darker purple */}
-              <div className="flex items-center justify-center w-11 h-11 rounded-full bg-[#b0a0d0] flex-shrink-0 ml-0.5 shadow-inner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#b0a0d0] flex-shrink-0 ml-0.5 shadow-inner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 3H5L5.4 5M5.4 5H21L17 13H7M5.4 5L7 13M7 13L4.707 15.293C4.077 15.923 4.523 17 5.414 17H19" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="9" cy="20" r="1.5" fill="#1a1a1a" />
                   <circle cx="17" cy="20" r="1.5" fill="#1a1a1a" />
