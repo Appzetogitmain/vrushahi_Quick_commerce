@@ -257,7 +257,7 @@ export default function ProductDetail() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors">
+          className="px-6 py-2 bg-violet-600 text-white rounded-full font-medium hover:bg-violet-700 transition-colors">
           Try Refreshing
         </button>
       </div>
@@ -508,7 +508,7 @@ export default function ProductDetail() {
                         setTimeout(() => setIsTransitioning(false), 300);
                       }}
                       className={`w-2 h-2 rounded-full transition-all ${index === selectedImageIndex
-                          ? "bg-white w-6"
+                          ? "bg-violet-600 w-6"
                           : "bg-white/50 hover:bg-white/75"
                         }`}
                       aria-label={`Go to image ${index + 1}`}
@@ -552,8 +552,8 @@ export default function ProductDetail() {
                       setSelectedImageIndex(index);
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex
-                        ? "border-green-600 ring-2 ring-green-200"
+                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${index === selectedImageIndex
+                        ? "border-violet-600 ring-2 ring-violet-200"
                         : "border-neutral-200 hover:border-neutral-300"
                       }`}>
                     <img
@@ -625,11 +625,11 @@ export default function ProductDetail() {
                       key={index}
                       onClick={() => setSelectedVariantIndex(index)}
                       disabled={isOutOfStock}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${isSelected
-                          ? "border-green-600 bg-green-50 text-green-700"
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${isSelected
+                          ? "border-violet-600 bg-violet-50 text-violet-700 shadow-sm"
                           : isOutOfStock
-                            ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                            : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
+                            ? "border-neutral-100 bg-neutral-50 text-neutral-400 cursor-not-allowed"
+                            : "border-neutral-200 bg-white text-neutral-600 hover:border-violet-300 hover:bg-violet-50/50"
                         }`}>
                       {variantTitle}
                       {isOutOfStock && (
@@ -658,7 +658,7 @@ export default function ProductDetail() {
                   ₹{variantMrp.toLocaleString("en-IN")}
                 </span>
                 {discount > 0 && (
-                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                  <Badge className="!bg-pink-500 !text-white !border-pink-500 text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
                     {discount}% OFF
                   </Badge>
                 )}
@@ -683,7 +683,7 @@ export default function ProductDetail() {
             onClick={() =>
               setIsProductDetailsExpanded(!isProductDetailsExpanded)
             }
-            className="flex items-center gap-0.5 text-sm text-green-600 font-medium">
+            className="flex items-center gap-1 text-sm text-violet-600 font-bold hover:text-violet-700 transition-colors">
             View product details
             <svg
               width="11"
@@ -1024,7 +1024,7 @@ export default function ProductDetail() {
 
           {reviewsLoading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-violet-600"></div>
             </div>
           ) : reviews.length > 0 ? (
             <div className="space-y-4">
@@ -1036,8 +1036,8 @@ export default function ProductDetail() {
                     <span className="text-base font-semibold text-neutral-900">
                       {review.customer?.name || "Customer"}
                     </span>
-                    <div className="flex items-center gap-1 bg-green-100 px-1.5 py-0.5 rounded">
-                      <span className="text-xs font-bold text-green-700">
+                    <div className="flex items-center gap-1 bg-violet-100 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-violet-700">
                         {review.rating}
                       </span>
                       <svg
@@ -1045,7 +1045,7 @@ export default function ProductDetail() {
                         height="10"
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="text-green-700">
+                        className="text-violet-700">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                     </div>
@@ -1131,6 +1131,22 @@ export default function ProductDetail() {
                         )}
                       </div>
 
+                      {/* Discount Badge for Similar Product */}
+                      {(() => {
+                        const { discount: sDiscount, hasDiscount: sHasDiscount } =
+                          calculateProductPrice(similarProduct);
+                        return (
+                          sHasDiscount &&
+                          sDiscount > 0 && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <Badge className="!bg-pink-500 !text-white !border-pink-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-md ring-1 ring-white/30">
+                                {sDiscount}% OFF
+                              </Badge>
+                            </div>
+                          )
+                        );
+                      })()}
+
                       {/* Info */}
                       <div className="p-3">
                         <h4 className="text-sm font-semibold text-neutral-900 mb-1 line-clamp-2 min-h-[2.5rem]">
@@ -1184,9 +1200,7 @@ export default function ProductDetail() {
                             return (
                               <div className="flex flex-col">
                                 {sHasDiscount && (
-                                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 w-fit">
-                                    {sDiscount}% OFF
-                                  </Badge>
+                                  <div className="h-1"></div>
                                 )}
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-sm font-bold text-neutral-900">
@@ -1220,7 +1234,7 @@ export default function ProductDetail() {
                                   e.stopPropagation();
                                   addToCart(similarProduct);
                                 }}
-                                className="w-full border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 rounded-full font-semibold text-sm h-9">
+                                className="w-full border-2 border-violet-600 text-violet-600 bg-transparent hover:bg-violet-50 rounded-full font-bold text-sm h-9">
                                 ADD
                               </Button>
                             </motion.div>
@@ -1231,7 +1245,7 @@ export default function ProductDetail() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
                               transition={{ duration: 0.2 }}
-                              className="flex items-center justify-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1.5 w-full">
+                              className="flex items-center justify-center gap-2 bg-violet-50/50 border-2 border-violet-600/20 rounded-full px-2 py-1.5 w-full">
                               <motion.div whileTap={{ scale: 0.9 }}>
                                 <Button
                                   variant="default"
@@ -1243,7 +1257,7 @@ export default function ProductDetail() {
                                       similarInCartQty - 1
                                     );
                                   }}
-                                  className="w-7 h-7 p-0"
+                                  className="w-7 h-7 p-0 bg-violet-600 hover:bg-violet-700"
                                   aria-label="Decrease quantity">
                                   −
                                 </Button>
@@ -1257,7 +1271,7 @@ export default function ProductDetail() {
                                   stiffness: 500,
                                   damping: 15,
                                 }}
-                                className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
+                                className="text-sm font-bold text-violet-600 min-w-[1.5rem] text-center">
                                 {similarInCartQty}
                               </motion.span>
                               <motion.div whileTap={{ scale: 0.9 }}>
@@ -1271,7 +1285,7 @@ export default function ProductDetail() {
                                       similarInCartQty + 1
                                     );
                                   }}
-                                  className="w-7 h-7 p-0"
+                                  className="w-7 h-7 p-0 bg-violet-600 hover:bg-violet-700"
                                   aria-label="Increase quantity">
                                   +
                                 </Button>
@@ -1290,77 +1304,69 @@ export default function ProductDetail() {
       </div>
 
       {/* Sticky Footer - positioned above mobile nav */}
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-100 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] md:pb-0">
-        <div className="px-4 py-2.5 flex items-center justify-between">
+      {/* Sticky Footer - redesigned with gradient and shadow */}
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-neutral-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] md:pb-0">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Left side - Product details */}
           <div className="flex-1">
             {/* First line - Pack size */}
-            <div>
-              <span className="text-sm text-neutral-900 font-medium">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-neutral-500 font-medium uppercase tracking-wider">
                 {variantTitle}
               </span>
             </div>
             {/* Second line - Price, MRP, and OFF */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-bold text-neutral-900">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-black text-neutral-900 tracking-tight">
                 ₹{variantPrice.toLocaleString("en-IN")}
               </span>
               {hasDiscount && (
-                <>
-                  <span className="text-xs text-neutral-500 line-through">
-                    MRP ₹{variantMrp.toLocaleString("en-IN")}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-neutral-400 line-through">
+                    ₹{variantMrp.toLocaleString("en-IN")}
                   </span>
                   {discount > 0 && (
-                    <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                    <span className="text-[11px] font-black text-pink-500 uppercase">
                       {discount}% OFF
-                    </Badge>
+                    </span>
                   )}
-                </>
+                </div>
               )}
             </div>
             {/* Third line - Inclusive of all taxes */}
-            <p className="text-[11px] text-neutral-500 leading-none">
+            <p className="text-[10px] text-neutral-400 font-medium">
               Inclusive of all taxes
             </p>
           </div>
 
           {/* Right side - Add to cart button or Quantity Stepper */}
-          <div className="ml-3 flex items-center">
+          <div className="flex items-center">
             <AnimatePresence mode="wait">
               {inCartQty === 0 ? (
                 <motion.div
                   key="add-button"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center">
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}>
                   <Button
                     ref={addButtonRef}
-                    variant="default"
-                    size="default"
                     onClick={handleAddToCart}
                     disabled={
                       !isAvailableAtLocation ||
                       (!isVariantAvailable && variantStock !== 0)
                     }
-                    className={`px-6 py-2 text-sm font-semibold h-[36px] ${!isAvailableAtLocation ||
-                        (!isVariantAvailable && variantStock !== 0)
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                      }`}
-                    title={
-                      !isAvailableAtLocation
-                        ? "Not available at your location"
-                        : !isVariantAvailable && variantStock !== 0
-                          ? "This variant is out of stock"
-                          : ""
-                    }>
+                    className={`h-[48px] px-8 rounded-2xl text-base font-bold transition-all shadow-lg hover:shadow-violet-200 active:scale-95 ${
+                      !isAvailableAtLocation ||
+                      (!isVariantAvailable && variantStock !== 0)
+                        ? "bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none"
+                        : "bg-gradient-to-r from-violet-600 via-violet-500 to-pink-500 text-white border-none"
+                    }`}>
                     {!isAvailableAtLocation
                       ? "Unavailable"
                       : !isVariantAvailable && variantStock !== 0
                         ? "Out of Stock"
-                        : "Add to cart"}
+                        : "Add to Cart"}
                   </Button>
                 </motion.div>
               ) : (
@@ -1369,10 +1375,8 @@ export default function ProductDetail() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1 h-[36px]">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
+                  className="flex items-center gap-4 bg-violet-50/50 border-2 border-violet-600/20 rounded-2xl px-3 py-1.5">
+                  <button
                     onClick={() => {
                       const productId = product.id || product._id;
                       const variantId = selectedVariant?._id;
@@ -1383,20 +1387,13 @@ export default function ProductDetail() {
                         variantTitle
                       );
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
-                    style={{ lineHeight: 1 }}>
-                    <span className="relative top-[-1px]">−</span>
-                  </motion.button>
-                  <motion.span
-                    key={inCartQty}
-                    initial={{ scale: 1.2, y: -2 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
+                    className="w-8 h-8 flex items-center justify-center bg-violet-600 text-white rounded-xl shadow-md active:scale-90 transition-all">
+                    <span className="text-xl font-bold">−</span>
+                  </button>
+                  <span className="text-lg font-black text-violet-600 min-w-[1.5rem] text-center">
                     {inCartQty}
-                  </motion.span>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
+                  </span>
+                  <button
                     onClick={() => {
                       const productId = product.id || product._id;
                       const variantId = selectedVariant?._id;
@@ -1407,10 +1404,9 @@ export default function ProductDetail() {
                         variantTitle
                       );
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
-                    style={{ lineHeight: 1 }}>
-                    <span className="relative top-[-1px]">+</span>
-                  </motion.button>
+                    className="w-8 h-8 flex items-center justify-center bg-violet-600 text-white rounded-xl shadow-md active:scale-90 transition-all">
+                    <span className="text-xl font-bold">+</span>
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
