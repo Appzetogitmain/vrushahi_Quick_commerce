@@ -116,6 +116,8 @@ export default function AdminManageSellerList() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdatingRadius, setIsUpdatingRadius] = useState(false);
     const [newRadius, setNewRadius] = useState<number>(10);
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
     // Fetch sellers from backend
     useEffect(() => {
@@ -368,6 +370,16 @@ export default function AdminManageSellerList() {
         setSelectedSeller(null);
     };
 
+    const handleImagePreview = (imageUrl: string) => {
+        setPreviewImage(imageUrl);
+        setIsPreviewModalOpen(true);
+    };
+
+    const handleClosePreviewModal = () => {
+        setIsPreviewModalOpen(false);
+        setPreviewImage(null);
+    };
+
     return (
         <div className="flex flex-col h-full bg-gray-50">
             {/* Page Content */}
@@ -544,8 +556,9 @@ export default function AdminManageSellerList() {
                                                 <img
                                                     src={(seller.logo && seller.logo.trim() !== '') ? seller.logo : FALLBACK_LOGO}
                                                     alt={seller.storeName}
-                                                    className="w-10 h-10 object-cover rounded"
+                                                    className="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
                                                     loading="lazy"
+                                                    onClick={() => (seller.logo && seller.logo.trim() !== '') && handleImagePreview(seller.logo)}
                                                     onError={(e) => {
                                                         const img = e.currentTarget;
                                                         if (img.dataset.fallbackApplied === 'true') return;
@@ -1033,14 +1046,19 @@ export default function AdminManageSellerList() {
                                 )}
 
                                 {/* Identity & Verification Documents */}
-                                {(editingSeller.idProof || editingSeller.profile || editingSeller.fssaiLicNo) && (
+                                {(editingSeller.idProof || editingSeller.profile || editingSeller.addressProof || editingSeller.fssaiLicNo) && (
                                     <div className="bg-neutral-50 rounded-lg p-4">
                                         <h4 className="text-sm font-semibold text-neutral-700 mb-3">Identity & Verification</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                             {editingSeller.profile && (
                                                 <div>
                                                     <label className="text-xs text-neutral-500 block mb-2">Owner Photo</label>
-                                                    <img src={editingSeller.profile} alt="Owner" className="w-full h-32 object-cover rounded-lg border border-neutral-200" />
+                                                    <img 
+                                                        src={editingSeller.profile} 
+                                                        alt="Owner" 
+                                                        className="w-full h-32 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                                        onClick={() => handleImagePreview(editingSeller.profile!)}
+                                                    />
                                                 </div>
                                             )}
                                             {editingSeller.idProof && (
@@ -1055,7 +1073,33 @@ export default function AdminManageSellerList() {
                                                             <span className="text-xs font-bold uppercase">View PDF</span>
                                                         </a>
                                                     ) : (
-                                                        <img src={editingSeller.idProof} alt="ID Proof" className="w-full h-32 object-cover rounded-lg border border-neutral-200" />
+                                                        <img 
+                                                            src={editingSeller.idProof} 
+                                                            alt="ID Proof" 
+                                                            className="w-full h-32 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                                            onClick={() => handleImagePreview(editingSeller.idProof!)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+                                            {editingSeller.addressProof && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">Address Proof</label>
+                                                    {editingSeller.addressProof.endsWith('.pdf') ? (
+                                                        <a href={editingSeller.addressProof} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center w-full h-32 bg-white border border-neutral-200 rounded-lg text-teal-600 hover:text-teal-700">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                                            </svg>
+                                                            <span className="text-xs font-bold uppercase">View PDF</span>
+                                                        </a>
+                                                    ) : (
+                                                        <img 
+                                                            src={editingSeller.addressProof} 
+                                                            alt="Address Proof" 
+                                                            className="w-full h-32 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                                            onClick={() => handleImagePreview(editingSeller.addressProof!)}
+                                                        />
                                                     )}
                                                 </div>
                                             )}
@@ -1125,6 +1169,55 @@ export default function AdminManageSellerList() {
                                 className="px-4 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded text-sm font-medium transition-colors"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Preview Modal */}
+            {isPreviewModalOpen && previewImage && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 transition-opacity duration-300" onClick={handleClosePreviewModal}>
+                    <div className="relative max-w-5xl w-full mx-4 flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={handleClosePreviewModal}
+                            className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full backdrop-blur-sm"
+                            aria-label="Close preview"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        
+                        <div className="bg-white p-2 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                            <img
+                                src={previewImage}
+                                alt="Document Preview"
+                                className="max-w-full max-h-[85vh] object-contain rounded-md"
+                            />
+                        </div>
+                        
+                        <div className="mt-4 flex gap-4">
+                            <a 
+                                href={previewImage} 
+                                download 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-sm font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-2 shadow-lg"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download Document
+                            </a>
+                            <button
+                                onClick={handleClosePreviewModal}
+                                className="px-6 py-2 bg-white/20 hover:bg-white/30 text-white border border-white/50 rounded-full text-sm font-semibold transition-all backdrop-blur-md"
+                            >
+                                Close Preview
                             </button>
                         </div>
                     </div>
