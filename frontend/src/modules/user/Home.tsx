@@ -219,11 +219,11 @@ export default function Home() {
           {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
             <div className={`
               ${showAllStores 
-                ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6' 
-                : 'flex overflow-x-auto md:grid md:grid-cols-4 gap-4 md:gap-6 pb-6 hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0'}
+                ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6' 
+                : 'grid grid-flow-col auto-cols-[165px] md:auto-cols-fr md:grid-cols-4 gap-4 md:gap-6 pb-6 items-stretch overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth'}
             `}>
-              {(showAllStores ? homeData.nearbyStores : homeData.nearbyStores).map((store: any) => (
-                <div key={store.id} className={showAllStores ? "w-full" : "w-[180px] md:w-full flex-shrink-0"}>
+              {homeData.nearbyStores.map((store: any) => (
+                <div key={store.id} className="h-full w-full">
                   <StoreCard store={store} />
                 </div>
               ))}
