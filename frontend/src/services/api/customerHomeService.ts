@@ -88,3 +88,20 @@ export const getGlobalSearch = async (
   const response = await api.get("/customer/home/search", { params });
   return response.data;
 };
+
+export interface FAQ {
+  _id: string;
+  question: string;
+  answer: string;
+  category?: string;
+  isActive: boolean;
+  order: number;
+}
+
+/**
+ * Get dynamic FAQs from the backend
+ */
+export const getFAQs = async (): Promise<{ success: boolean; data: FAQ[] }> => {
+  const response = await api.get<{ success: boolean; data: FAQ[] }>("/customer/home/faqs");
+  return response.data;
+};

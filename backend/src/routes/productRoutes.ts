@@ -8,7 +8,6 @@ import {
   updateStock,
   updateProductStatus,
   bulkUpdateStock,
-  getShops,
 } from "../modules/seller/controllers/productController";
 import { getBrands } from "../modules/admin/controllers/adminProductController";
 import { authenticate, requireUserType } from "../middleware/auth";
@@ -21,9 +20,6 @@ router.use(requireUserType("Seller"));
 
 // Get all brands - sellers need this for product creation
 router.get("/brands", getBrands);
-
-// Get all active shops - sellers need this for shop-by-store-only products
-router.get("/shops", getShops);
 
 // Create product
 router.post("/", createProduct);
