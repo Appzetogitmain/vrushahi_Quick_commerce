@@ -113,10 +113,10 @@ export default function Stores() {
         {loading && stores.length === 0 ? (
           <div className="space-y-8">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-[32px] p-6 border border-neutral-100 h-80">
-                <div className="h-48 bg-neutral-100 rounded-2xl mb-8"></div>
+              <div key={i} className="animate-pulse bg-white rounded-[32px] p-4 border border-neutral-100 h-56">
+                <div className="h-28 bg-neutral-100 rounded-2xl mb-6"></div>
                 <div className="flex gap-4">
-                   <div className="w-20 h-20 bg-neutral-100 rounded-full flex-shrink-0 -mt-16 border-4 border-white shadow-sm ml-2"></div>
+                   <div className="w-16 h-16 bg-neutral-100 rounded-full flex-shrink-0 -mt-12 border-[3px] border-white shadow-sm ml-2"></div>
                    <div className="flex-1 space-y-3 pt-2">
                       <div className="h-5 bg-neutral-100 rounded-full w-3/4"></div>
                       <div className="h-3 bg-neutral-100 rounded-full w-1/2"></div>
