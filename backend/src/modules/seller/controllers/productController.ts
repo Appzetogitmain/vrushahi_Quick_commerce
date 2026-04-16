@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import Product from "../../../models/Product";
-import Shop from "../../../models/Shop";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -103,17 +102,6 @@ export const createProduct = asyncHandler(
     if (!newProductData.reviewsCount) newProductData.reviewsCount = 0;
     if (!newProductData.discount) newProductData.discount = 0;
     if (!newProductData.tags) newProductData.tags = [];
-
-    // Handle Shop by Store fields
-    if (productData.isShopByStoreOnly !== undefined) {
-      newProductData.isShopByStoreOnly = productData.isShopByStoreOnly === true || productData.isShopByStoreOnly === "true";
-    }
-    if (productData.shopId) {
-      newProductData.shopId = productData.shopId;
-    } else if (newProductData.isShopByStoreOnly) {
-      // If shop by store only is true but no shopId provided, set to null
-      newProductData.shopId = null;
-    }
 
     // Handle new modern dashboard fields
     if (productData.costPrice !== undefined) newProductData.costPrice = productData.costPrice;
@@ -346,18 +334,6 @@ export const updateProduct = asyncHandler(
         (acc: number, curr: any) => acc + (parseInt(curr.stock) || 0),
         0
       );
-    }
-
-    // Handle Shop by Store fields
-    if (updateData.isShopByStoreOnly !== undefined) {
-      updateData.isShopByStoreOnly = updateData.isShopByStoreOnly === true || updateData.isShopByStoreOnly === "true";
-    }
-    if (updateData.shopId !== undefined) {
-      // Allow null to clear shopId
-      updateData.shopId = updateData.shopId || null;
-    } else if (updateData.isShopByStoreOnly === false) {
-      // If shop by store only is false, clear shopId
-      updateData.shopId = null;
     }
 
     // Map new modern dashboard fields for update
@@ -597,18 +573,4 @@ export const bulkUpdateStock = asyncHandler(
   }
 );
 
-/**
- * Get all active shops (for seller to select when creating shop-by-store-only products)
- */
-export const getShops = asyncHandler(async (_req: Request, res: Response) => {
-  const shops = await Shop.find({ isActive: true })
-    .select("_id name storeId image")
-    .sort({ order: 1, name: 1 })
-    .lean();
 
-  return res.status(200).json({
-    success: true,
-    message: "Shops fetched successfully",
-    data: shops || [],
-  });
-});
