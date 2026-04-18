@@ -441,10 +441,10 @@ export default function HomeHero({
           {/* Search Bar */}
           <div
             onClick={() => navigate("/search")}
-            className={`w-full md:w-auto md:max-w-xl md:mx-auto flex items-center gap-3 cursor-pointer transition-all duration-300 mb-2 md:mb-1.5 ${
+            className={`w-full md:w-auto md:max-w-2xl lg:max-w-3xl md:mx-auto flex items-center gap-3 cursor-pointer transition-all duration-300 mb-2 md:mb-1.5 ${
               isHome 
-                ? "bg-white rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 hover:shadow-xl" 
-                : "bg-white rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 hover:shadow-xl"
+                ? "bg-white rounded-xl shadow-lg px-4 py-3 md:px-5 md:py-3 hover:shadow-xl hover:scale-[1.01]" 
+                : "bg-white rounded-xl shadow-lg px-3 py-2 md:px-4 md:py-2 hover:shadow-xl"
             }`}
           >
             <svg

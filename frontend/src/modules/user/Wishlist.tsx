@@ -144,7 +144,7 @@ export default function Wishlist() {
             <p className="text-sm mb-6">Explore more and shortlist some items</p>
             <Button
               onClick={() => navigate("/")}
-              className="bg-[#ff3269] text-white rounded-xl px-10 py-3 font-bold transition-all hover:bg-[#ff1f5a] shadow-lg shadow-pink-100 active:scale-95 border-none"
+              className="px-10 py-6 border-2 border-pink-500 bg-white/70 backdrop-blur-xl text-pink-600 hover:bg-pink-600 hover:text-white shadow-[0_12px_40px_rgba(236,72,153,0.2)] rounded-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 font-bold"
             >
               Start Shopping
             </Button>

@@ -24,7 +24,9 @@ export default function Cart() {
         <h2 className="text-xl md:text-2xl font-bold text-neutral-900 mb-2">Your cart is empty</h2>
         <p className="text-neutral-600 mb-6 md:mb-8 md:text-lg">Add some items to get started!</p>
         <Link to="/">
-          <Button variant="default" size="lg" className="md:px-8 md:py-3 md:text-lg">
+          <Button 
+            className="md:px-10 md:py-6 md:text-lg border-2 border-pink-500 bg-white/70 backdrop-blur-xl text-pink-600 hover:bg-pink-600 hover:text-white shadow-[0_12px_40px_rgba(236,72,153,0.2)] rounded-2xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+          >
             Start Shopping
           </Button>
         </Link>

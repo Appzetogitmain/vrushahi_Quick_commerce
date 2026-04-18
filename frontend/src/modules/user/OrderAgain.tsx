@@ -282,49 +282,51 @@ export default function OrderAgain() {
   const displayProducts = hasOrders ? previousOrderedProducts : bestsellerProducts;
 
   return (
-    <div className="pb-24 min-h-screen bg-white">
-      {/* Header Bar */}
-      <div className="px-4 py-4 flex items-center justify-between sticky top-0 z-50 bg-white/80 backdrop-blur-md">
-        <div 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 cursor-pointer group"
-        >
-          <div className="p-1 rounded-full hover:bg-neutral-100 transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18l-6-6 6-6" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <div className="pb-24 min-h-screen bg-white transition-all duration-300">
+      {/* Header Bar - Responsive */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 flex items-center justify-between">
+          <div 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <div className="p-2 rounded-full hover:bg-neutral-100 transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18l-6-6 6-6" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="flex items-center gap-1">
+               <span className="text-lg md:text-2xl font-black text-neutral-900 tracking-tight">
+                 Order Again
+               </span>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => navigate('/search')}
+            className="p-3 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shadow-sm"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </div>
-          <div className="flex items-center gap-1">
-             <span className="text-[15px] font-black text-neutral-900 tracking-tight">
-               Order Again
-             </span>
-          </div>
+          </button>
         </div>
-        
-        <button 
-          onClick={() => navigate('/search')}
-          className="p-2.5 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shadow-sm"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
       </div>
 
-      {/* Purple Awning Graphic */}
-      <div className="relative w-full h-12 mb-4">
+      {/* Purple Awning Graphic - responsive height */}
+      <div className="relative w-full h-12 md:h-20 mb-4 md:mb-10">
         <div 
            className="absolute inset-0 flex" 
            style={{
              background: 'linear-gradient(to bottom, #f3e8ff, #ffffff)',
            }}
         >
-          {[...Array(12)].map((_, i) => (
+          {[...Array(24)].map((_, i) => (
             <div 
               key={i} 
-              className={`flex-1 h-10 ${i % 2 === 0 ? 'bg-[#9333ea]' : 'bg-[#cdbae0]'} rounded-b-full shadow-sm`}
+              className={`flex-1 h-10 md:h-16 ${i % 2 === 0 ? 'bg-[#9333ea]' : 'bg-[#cdbae0]'} rounded-b-full shadow-sm`}
               style={{
-                opacity: 0.2 + (Math.sin(i * 0.5) * 0.1),
+                opacity: 0.2 + (Math.sin(i * 0.3) * 0.1),
                 transform: 'scaleY(0.9)',
                 marginTop: '-4px'
               }}
@@ -333,42 +335,44 @@ export default function OrderAgain() {
         </div>
       </div>
 
-      {/* Section Title */}
-      <div className="px-6 mb-8 text-center">
-         <div className="inline-block relative">
-            <h2 className="text-3xl font-black text-neutral-900 tracking-tight uppercase">
-              Buy <span className="text-[#9333ea]">Again</span>
-            </h2>
-            <div className="absolute -bottom-2 left-0 right-0 h-1 rounded-full bg-[#9333ea] opacity-40 blur-[1px]"></div>
-         </div>
-         {displayProducts.length > 0 && !hasOrders && (
-            <p className="mt-4 text-xs font-bold text-neutral-500 tracking-wide uppercase">
-              Recommended for you
-            </p>
-         )}
-      </div>
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        {/* Section Title */}
+        <div className="mb-10 md:mb-16 text-center">
+           <div className="inline-block relative">
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-neutral-900 tracking-tight uppercase">
+                Buy <span className="text-[#9333ea]">Again</span>
+              </h2>
+              <div className="absolute -bottom-2 md:-bottom-4 left-0 right-0 h-1 md:h-2 rounded-full bg-[#9333ea] opacity-40 blur-[1px]"></div>
+           </div>
+           {displayProducts.length > 0 && !hasOrders && (
+              <p className="mt-6 md:mt-8 text-xs md:text-sm font-black text-neutral-500 tracking-widest uppercase">
+                Recommended for you
+              </p>
+           )}
+        </div>
 
-      {/* Product Grid */}
-      <div className="px-4">
-        {displayProducts.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-6">
-            {displayProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        ) : (
-          <div className="py-20 flex flex-col items-center justify-center text-center px-6">
-             <div className="w-20 h-20 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                   <path d="M16 11V7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7V11M4 9h16v12H4V9z" stroke="#94a3b8" strokeWidth="2" />
-                </svg>
-             </div>
-             <h3 className="text-lg font-black text-neutral-900 mb-1">Nothing to buy again yet</h3>
-             <p className="text-sm text-neutral-500 font-medium max-w-[240px]">
-               Start shopping and your ordered items will appear here!
-             </p>
-          </div>
-        )}
+        {/* Product Grid - Improved Responsiveness */}
+        <div className="w-full">
+          {displayProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-12">
+              {displayProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="py-24 md:py-40 flex flex-col items-center justify-center text-center px-6">
+               <div className="w-24 h-24 md:w-32 md:h-32 bg-neutral-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="md:w-16 md:h-16">
+                     <path d="M16 11V7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7V11M4 9h16v12H4V9z" stroke="#94a3b8" strokeWidth="1.5" />
+                  </svg>
+               </div>
+               <h3 className="text-xl md:text-3xl font-black text-neutral-900 mb-2">Nothing to buy again yet</h3>
+               <p className="text-sm md:text-lg text-neutral-500 font-medium max-w-[320px] md:max-w-md">
+                 Start shopping and your ordered items will appear here!
+               </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

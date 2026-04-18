@@ -178,226 +178,209 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-white min-h-screen pb-20 md:pb-0" ref={contentRef}>
+    <div className="bg-white min-h-screen pb-20 md:pb-12" ref={contentRef}>
       {/* Hero Header with Gradient and Tabs */}
       <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Dynamic Banners Carousel */}
-      {activeTab === "all" &&
-        homeData.promoBanners &&
-        homeData.promoBanners.length > 0 && (
-          <HomeBannerCarousel banners={homeData.promoBanners} />
-        )}
+      <div className="max-w-[1440px] mx-auto">
+        {/* Dynamic Banners Carousel */}
+        {activeTab === "all" &&
+          homeData.promoBanners &&
+          homeData.promoBanners.length > 0 && (
+            <HomeBannerCarousel banners={homeData.promoBanners} />
+          )}
 
-      {/* STORES NEAR YOU - Swiggy/Zomato Style */}
-      {(homeData.nearbyStores && homeData.nearbyStores.length > 0) || activeTab !== "all" ? (
-        <div className="mt-4 mb-2 md:mt-8 md:mb-4 px-4 md:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl md:text-3xl font-extrabold text-neutral-900 tracking-tight capitalize">
-              {activeTab === "all" ? "Stores Near You" : `${activeTab} Stores Near You`}
-            </h2>
-            <div 
-              onClick={() => setShowAllStores(!showAllStores)}
-              className="flex items-center gap-1 text-[#8b5cf6] font-bold text-sm cursor-pointer hover:underline"
-            >
-              <span>{showAllStores ? "Show Less" : "View All"}</span>
-              <svg 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="3"
-                className={`transition-transform duration-200 ${showAllStores ? 'rotate-90' : ''}`}
+        {/* STORES NEAR YOU - Swiggy/Zomato Style */}
+        {(homeData.nearbyStores && homeData.nearbyStores.length > 0) || activeTab !== "all" ? (
+          <div className="mt-4 mb-2 md:mt-12 md:mb-6 px-4 md:px-10 lg:px-16">
+            <div className="flex items-center justify-between mb-4 md:mb-8">
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight capitalize">
+                {activeTab === "all" ? "Stores Near You" : `${activeTab} Stores Near You`}
+              </h2>
+              <div 
+                onClick={() => setShowAllStores(!showAllStores)}
+                className="flex items-center gap-2 text-[#8b5cf6] font-extrabold text-sm md:text-base cursor-pointer hover:underline bg-violet-50 px-4 py-2 rounded-full transition-all hover:bg-violet-100"
               >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+                <span>{showAllStores ? "Show Less" : "View All"}</span>
+                <svg 
+                  width="18" 
+                  height="18" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3.5"
+                  className={`transition-transform duration-300 ${showAllStores ? 'rotate-90' : ''}`}
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </div>
             </div>
+            
+            {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
+              <div className={`
+                ${showAllStores 
+                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-8' 
+                  : 'grid grid-flow-col auto-cols-[165px] md:auto-cols-[280px] lg:auto-cols-[320px] gap-4 md:gap-8 pb-8 items-stretch overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth'}
+              `}>
+                {homeData.nearbyStores.map((store: any) => (
+                  <div key={store.id} className="h-full w-full">
+                    <StoreCard store={store} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-16 md:py-24 text-center bg-violet-50/30 rounded-[3rem] border-2 border-dashed border-violet-100/50 max-w-4xl mx-auto">
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md text-3xl">🏪</div>
+                <p className="text-xl text-neutral-600 font-black">No {activeTab} stores found nearby</p>
+                <p className="text-sm text-neutral-400 mt-2 uppercase tracking-widest font-extrabold">Try switching to another category above!</p>
+              </div>
+            )}
           </div>
+        ) : null}
+
+        {/* LOWEST PRICES EVER Section */}
+        <div className="md:px-4 lg:px-8">
+          <LowestPricesEver
+            activeTab={activeTab}
+            products={homeData.lowestPrices}
+          />
+        </div>
+
+        <div
+          ref={contentRef}
+          className="bg-white -mt-2 pt-1 space-y-6 md:space-y-16 md:pt-4">
           
-          
-          {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
-            <div className={`
-              ${showAllStores 
-                ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6' 
-                : 'grid grid-flow-col auto-cols-[165px] md:auto-cols-fr md:grid-cols-4 gap-4 md:gap-6 pb-6 items-stretch overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth'}
-            `}>
-              {homeData.nearbyStores.map((store: any) => (
-                <div key={store.id} className="h-full w-full">
-                  <StoreCard store={store} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 text-center bg-violet-50/30 rounded-[2rem] border-2 border-dashed border-violet-100/50">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-2xl">🏪</div>
-              <p className="text-neutral-500 font-bold">No {activeTab} stores found nearby</p>
-              <p className="text-xs text-neutral-400 mt-1 uppercase tracking-widest font-black">Switching tabs might help!</p>
+          {/* Filtered Products Section (from bestsellers) */}
+          {activeTab !== "all" && filteredProducts.length > 0 && (
+            <div data-products-section className="mt-6 mb-6 md:mt-12 md:mb-12 px-4 md:px-10 lg:px-16">
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-neutral-900 mb-6 md:mb-10 tracking-tight capitalize">
+                {activeTab === "grocery" ? "Grocery Items" : activeTab}
+              </h2>
+              <div>
+                {filteredProducts.length > 0 ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 md:gap-4 md:px-0">
+                    {filteredProducts.map((product) => (
+                      <div key={product.id} className="w-full">
+                        <ProductCard
+                          product={product}
+                          categoryStyle={true}
+                          showBadge={true}
+                          showPackBadge={false}
+                          showStockInfo={true}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-neutral-50 rounded-[2.5rem]">
+                    <p className="text-xl md:text-2xl font-bold text-neutral-400">No products found</p>
+                    <p className="text-neutral-500 mt-2">Try selecting a different category from above</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-        </div>
-      ) : null}
 
-      {/* LOWEST PRICES EVER Section */}
-      <LowestPricesEver
-        activeTab={activeTab}
-        products={homeData.lowestPrices}
-      />
+          {/* Dynamic Home Sections */}
+          {(activeTab === "all" || (homeData.homeSections && homeData.homeSections.length > 0)) && (
+            <div className="md:px-4 lg:px-8">
+              {homeData.homeSections && homeData.homeSections.length > 0 && (
+                <div className="space-y-8 md:space-y-20">
+                  {homeData.homeSections.map((section: any) => {
+                    if (!section.data || section.data.length === 0) return null;
 
-      <div
-        ref={contentRef}
-        className="bg-white -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
-        {/* Filtered Products Section (from bestsellers) */}
-        {activeTab !== "all" && filteredProducts.length > 0 && (
-          <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8">
-            <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
-              {activeTab === "grocery" ? "Grocery Items" : activeTab}
-            </h2>
-            <div className="px-4 md:px-6 lg:px-8">
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      categoryStyle={true}
-                      showBadge={true}
-                      showPackBadge={false}
-                      showStockInfo={true}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 md:py-16 text-neutral-500">
-                  <p className="text-lg md:text-xl mb-2">No products found</p>
-                  <p className="text-sm md:text-base">
-                    Try selecting a different category
-                  </p>
+                    const sectionTitle = section.title?.toLowerCase().trim() || "";
+                    if (
+                      sectionTitle.includes("top category") || 
+                      sectionTitle.includes("top categories") || 
+                      sectionTitle.includes("bestseller") ||
+                      sectionTitle.includes("bestsellers")
+                    ) {
+                      return null;
+                    }
+
+                    const columnCount = Number(section.columns) || 4;
+
+                    if (
+                      section.displayType === "products" &&
+                      section.data &&
+                      section.data.length > 0
+                    ) {
+                      const hasBackground = !!(section.backgroundImage || section.backgroundColor);
+
+                      return (
+                        <div key={section.id} className="relative mt-8 md:mt-0 mb-10 pb-2 overflow-hidden md:rounded-[3rem]">
+                          {/* Split Background layer */}
+                          {hasBackground && (
+                            <div 
+                              className="absolute top-0 left-0 w-full h-[200px] md:h-[280px]"
+                              style={{
+                                backgroundColor: section.backgroundColor || undefined,
+                                backgroundImage: section.backgroundImage ? `url(${section.backgroundImage})` : undefined,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center top',
+                                backgroundRepeat: 'no-repeat',
+                              }}
+                            />
+                          )}
+
+                          <div className="relative z-10 pt-6 md:pt-10">
+                            <div className="flex justify-between items-center px-4 md:px-10 mb-6 md:mb-10">
+                              {section.title && (
+                                <h2 
+                                  className={`text-xl md:text-4xl font-black tracking-tight ${hasBackground ? 'italic drop-shadow-lg' : 'capitalize'}`}
+                                  style={{ color: section.titleColor || (hasBackground ? '#ffffff' : '#171717') }}
+                                >
+                                  {section.title}
+                                </h2>
+                              )}
+                              {hasBackground && (
+                                <button className="bg-white text-neutral-900 text-xs md:text-base font-black px-5 md:px-8 py-2 md:py-3 rounded-full shadow-lg hover:bg-neutral-50 transition-all hover:scale-105 active:scale-95">
+                                  See All
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="px-4 md:px-10">
+                                <div className="flex overflow-x-auto gap-2.5 md:gap-4 pb-6 hide-scrollbar items-stretch scroll-smooth">
+                                  {section.data.map((product: any) => (
+                                    <div key={product.id || product._id} className="w-[115px] md:w-[135px] shrink-0">
+                                      <ProductCard
+                                        product={product}
+                                        categoryStyle={true}
+                                        showBadge={true}
+                                        showPackBadge={false}
+                                        showStockInfo={false}
+                                        compact={true}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={section.id} className="md:px-2">
+                        <CategoryTileSection
+                          title={section.title}
+                          tiles={section.data || []}
+                          columns={columnCount as 2 | 3 | 4 | 6 | 8}
+                          showProductCount={false}
+                          backgroundImage={section.backgroundImage}
+                          backgroundColor={section.backgroundColor}
+                          titleColor={section.titleColor}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Content Sections */}
-        {(activeTab === "all" || (homeData.homeSections && homeData.homeSections.length > 0)) && (
-          <>
-            {/* Sections only for 'All' tab */}
-            {activeTab === "all" && (
-              <>
-              </>
-            )}
-
-            {/* Dynamic Home Sections - Render sections created by admin (all tabs) */}
-            {homeData.homeSections && homeData.homeSections.length > 0 && (
-              <>
-                {homeData.homeSections.map((section: any) => {
-                  if (!section.data || section.data.length === 0) return null;
-
-                  // Skip sections we are handling manually to avoid duplication
-                  const sectionTitle = section.title?.toLowerCase().trim() || "";
-                  if (
-                    sectionTitle.includes("top category") || 
-                    sectionTitle.includes("top categories") || 
-                    sectionTitle.includes("bestseller") ||
-                    sectionTitle.includes("bestsellers")
-                  ) {
-                    return null;
-                  }
-
-                  const columnCount = Number(section.columns) || 4;
-
-                  if (
-                    section.displayType === "products" &&
-                    section.data &&
-                    section.data.length > 0
-                  ) {
-                    const gridClass =
-                      {
-                        2: "grid-cols-2",
-                        3: "grid-cols-3",
-                        4: "grid-cols-4",
-                        6: "grid-cols-6",
-                        8: "grid-cols-8",
-                      }[columnCount] || "grid-cols-4";
-
-                    const isCompact = columnCount >= 4;
-                    const hasBackground = !!(section.backgroundImage || section.backgroundColor);
-
-                    return (
-                      <div key={section.id} className="relative mt-6 mb-8 md:mt-8 md:mb-10 pb-2">
-                        {/* Split Background layer - absolute and covers top half */}
-                        {hasBackground && (
-                          <div 
-                            className="absolute top-0 left-0 w-full h-[180px] md:h-[220px]"
-                            style={{
-                              backgroundColor: section.backgroundColor || undefined,
-                              backgroundImage: section.backgroundImage ? `url(${section.backgroundImage})` : undefined,
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center top',
-                              backgroundRepeat: 'no-repeat',
-                            }}
-                          />
-                        )}
-
-                        <div className="relative z-10 pt-4 md:pt-6">
-                          {/* Title & See All Header */}
-                          <div className="flex justify-between items-center px-4 md:px-6 lg:px-8 mb-4">
-                            {section.title && (
-                              <h2 
-                                className={`text-xl md:text-3xl font-black tracking-tight ${hasBackground ? 'italic drop-shadow-md' : 'capitalize'}`}
-                                style={{ color: section.titleColor || (hasBackground ? '#ffffff' : '#171717') }}
-                              >
-                                {section.title}
-                              </h2>
-                            )}
-                            {hasBackground && (
-                              <button className="bg-white/90 backdrop-blur text-neutral-800 text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-sm hover:bg-white transition-colors">
-                                See All
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Horizontal Product Slider spilling over the background edge */}
-                          <div className="px-4 md:px-6 lg:px-8">
-                               <div className="flex overflow-x-auto gap-2.5 md:gap-4 pb-4 hide-scrollbar items-stretch">
-                                {section.data.map((product: any) => (
-                                  <div key={product.id || product._id} className="w-[110px] md:w-[130px] shrink-0">
-                                    <ProductCard
-                                      product={product}
-                                      categoryStyle={true}
-                                      showBadge={true}
-                                      showPackBadge={false}
-                                      showStockInfo={false}
-                                      compact={true}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <CategoryTileSection
-                      key={section.id}
-                      title={section.title}
-                      tiles={section.data || []}
-                      columns={columnCount as 2 | 3 | 4 | 6 | 8}
-                      showProductCount={false}
-                      backgroundImage={section.backgroundImage}
-                      backgroundColor={section.backgroundColor}
-                      titleColor={section.titleColor}
-                    />
-                  );
-                })}
-              </>
-            )}
-
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

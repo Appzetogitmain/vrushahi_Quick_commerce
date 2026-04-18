@@ -72,7 +72,7 @@ export default function Orders() {
           <p className="text-neutral-600 mb-6 md:mb-8 md:text-lg">Start shopping to see your orders here!</p>
           <Link
             to="/"
-            className="inline-block bg-[#ff3269] text-white px-8 md:px-10 py-3 rounded-xl font-bold hover:bg-[#ff1f5a] transition-all shadow-lg shadow-pink-100 hover:scale-105"
+            className="inline-block px-10 py-3 border-2 border-pink-500 bg-white/70 backdrop-blur-xl text-pink-600 hover:bg-pink-600 hover:text-white shadow-[0_12px_40px_rgba(236,72,153,0.2)] rounded-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 font-bold"
           >
             Start Shopping
           </Link>
