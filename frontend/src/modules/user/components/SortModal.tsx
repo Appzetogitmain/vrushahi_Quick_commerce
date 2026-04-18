@@ -12,6 +12,7 @@ const sortOptions = [
   { id: 'relevance', name: 'Relevance (default)' },
   { id: 'price_low', name: 'Price (low to high)' },
   { id: 'price_high', name: 'Price (high to low)' },
+  { id: 'discount', name: 'Highest Discount' },
   { id: 'rating', name: 'Top Rated' },
   { id: 'newest', name: 'Newest Arrivals' },
 ];

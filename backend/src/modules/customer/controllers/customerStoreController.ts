@@ -51,6 +51,8 @@ export const getSellerStoreDetails = async (req: Request, res: Response) => {
     else if (sort === 'price_high') sortOptions = { price: -1 };
     else if (sort === 'rating') sortOptions = { rating: -1 };
     else if (sort === 'newest') sortOptions = { createdAt: -1 };
+    else if (sort === 'discount') sortOptions = { discount: -1 };
+    else if (sort === 'popular' || sort === 'relevance') sortOptions = { popular: -1, dealOfDay: -1 };
 
     // Fetch products belonging to this seller
     const products = await Product.find(filterQuery)

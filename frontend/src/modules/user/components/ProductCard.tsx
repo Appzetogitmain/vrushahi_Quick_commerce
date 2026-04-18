@@ -212,28 +212,27 @@ export default function ProductCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col relative group h-full`}
+      className={`bg-white rounded-xl shadow-[0_2px_8px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col relative group h-full overflow-hidden`}
     >
       <div
         onClick={handleCardClick}
-        className="relative cursor-pointer aspect-square bg-white rounded-t-2xl"
+        className="relative cursor-pointer aspect-[1/0.95] bg-gray-50 flex items-center justify-center"
       >
-        <div className="w-full h-full overflow-hidden rounded-t-2xl">
+        <div className="w-full h-full overflow-hidden">
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
               src={product.imageUrl || product.mainImage}
               alt={product.name || product.productName || 'Product'}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              className="w-full h-full object-contain p-2 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-400 text-3xl font-bold">
+            <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-400 text-2xl font-bold">
               {(product.name || product.productName || '?').charAt(0).toUpperCase()}
             </div>
           )}
@@ -242,7 +241,7 @@ export default function ProductCard({
         {/* Discount Badge */}
         {discount > 0 && (
           <div className="absolute top-0 left-0 z-10">
-            <div className="bg-[#24904c] text-white text-[10px] font-black px-2 py-1 rounded-br-lg shadow-sm uppercase tracking-tighter">
+            <div className="bg-[#24904c] text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg shadow-sm uppercase tracking-tighter">
               {discount}% OFF
             </div>
           </div>
@@ -252,20 +251,20 @@ export default function ProductCard({
         {showHeartIcon && (
           <button
             onClick={toggleWishlist}
-            className="absolute top-2 right-2 z-30 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center hover:bg-white transition-all shadow-sm border border-white/50"
+            className="absolute top-1.5 right-1.5 z-30 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-sm border border-gray-100"
           >
             <svg
-              width="18"
-              height="18"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
-              fill={isWishlisted ? "#ef4444" : "none"}
+              fill={isWishlisted ? "#ff3269" : "none"}
               xmlns="http://www.w3.org/2000/svg"
-              className={`transition-colors ${isWishlisted ? "text-red-500" : "text-gray-400"}`}
+              className={`transition-colors ${isWishlisted ? "text-[#ff3269]" : "text-gray-300"}`}
             >
               <path
                 d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -274,37 +273,37 @@ export default function ProductCard({
         )}
 
         {/* Floating ADD Button Overlay - Exactly sitting on the border */}
-        <div className="absolute -bottom-[14px] right-2 z-20">
+        <div className="absolute -bottom-4 right-1.5 z-20">
           {inCartQty === 0 ? (
             <button
               ref={addButtonRef}
               disabled={product.isAvailable === false}
               onClick={handleAdd}
-              className={`w-7 h-7 md:w-8 md:h-8 rounded bg-white flex items-center justify-center shadow-sm border ${
+              className={`w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center shadow-sm transition-all border-2 ${
                 product.isAvailable === false
-                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
-                : 'border-[#ff3269]/40 text-[#ff3269] active:bg-pink-50'
+                ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white border-[#ff3269] text-[#ff3269] active:scale-90 hover:bg-pink-50 hover:shadow-pink-100'
               }`}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
             </button>
           ) : (
-            <div className="bg-white border border-[#ff3269]/40 rounded shadow-sm flex items-center h-7 md:h-8 min-w-[65px] md:min-w-[75px] overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm flex items-center h-8 md:h-9 min-w-[70px] md:min-w-[85px] overflow-hidden border-2 border-[#ff3269]">
               <button
                 onClick={handleDecrease}
-                className="w-7 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-semibold text-lg"
+                className="w-7 md:w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-bold text-lg"
               >
                 −
               </button>
-              <span className="flex-1 text-center text-xs font-black text-gray-800">
+              <span className="flex-1 text-center text-[12px] md:text-[13px] font-black text-gray-800">
                 {inCartQty}
               </span>
               <button
                 disabled={product.isAvailable === false}
                 onClick={handleIncrease}
-                className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-black text-lg"
+                className="w-7 md:w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-50 transition-colors font-black text-lg"
               >
                 +
               </button>
@@ -313,49 +312,49 @@ export default function ProductCard({
         </div>
       </div>
 
-      <div className="px-2 py-2 pt-2.5 flex-1 flex flex-col relative" onClick={handleCardClick}>
+      <div className="px-2 py-1.5 pt-2.5 flex-1 flex flex-col relative" onClick={handleCardClick}>
         {/* Product Name */}
-        <h3 className="text-[12px] md:text-[13px] font-semibold text-gray-900 leading-[1.3] line-clamp-2 mb-1 group-hover:text-amber-700 transition-colors pr-2 h-[32px] md:h-[34px]">
+        <h3 className="text-[11px] md:text-[12px] font-bold text-gray-800 leading-[1.3] line-clamp-2 mb-1 group-hover:text-[#ff3269] transition-colors pr-4 h-[28px] md:h-[32px]">
           {product.name || product.productName || ''}
         </h3>
 
         {/* Pricing */}
-        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-          <span className="text-[12px] md:text-[13px] font-bold text-gray-900">
+        <div className="flex items-center gap-1 mb-1 flex-wrap">
+          <span className="text-[11px] md:text-[12px] font-black text-gray-900">
             ₹{displayPrice.toLocaleString('en-IN')}
           </span>
           {mrp && mrp > displayPrice && (
-            <span className="text-[10px] text-gray-400 line-through font-medium">
+            <span className="text-[9px] text-gray-400 line-through font-medium">
               ₹{mrp.toLocaleString('en-IN')}
             </span>
           )}
         </div>
 
         {/* Meta Info: Rating & Time Stacked */}
-        <div className="mt-auto flex flex-col gap-[3px] pt-1">
+        <div className="mt-auto flex flex-col gap-1 pt-1">
           {/* Rating Row */}
           <div className="flex items-center gap-[1px]">
              {[1, 2, 3, 4, 5].map((star) => (
                 <svg 
                   key={star} 
-                  className={star <= Math.round(product.rating || 0) ? "text-gray-400 fill-gray-400" : "text-gray-200 fill-gray-200"} 
-                  width="10" height="10" viewBox="0 0 24 24"
+                  className={star <= Math.round(product.rating || 0) ? "text-[#ffb800] fill-[#ffb800]" : "text-gray-200 fill-gray-200"} 
+                  width="8" height="8" viewBox="0 0 24 24"
                 >
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                 </svg>
              ))}
-             <span className="text-[10px] font-medium text-gray-400 ml-1">
+             <span className="text-[9px] font-medium text-gray-400 ml-1">
                ({(product as any).reviewsCount || (product as any).reviews || 0})
              </span>
           </div>
 
           {/* Time Row */}
-          <div className="flex items-center gap-1.5 w-fit rounded-full px-1.5 py-[2px] bg-sky-50 shadow-[0_4px_10px_-4px_rgba(56,189,248,0.4)] border border-sky-100">
-             <svg className="text-sky-600" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className="flex items-center gap-1 w-fit rounded-lg px-1.5 py-[1px] bg-neutral-50 border border-neutral-100">
+             <svg className="text-gray-400" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
              </svg>
-             <span className="text-[9px] md:text-[10px] font-bold text-sky-700 tracking-tight">21 min</span>
+             <span className="text-[8px] md:text-[9px] font-black text-gray-600 uppercase tracking-tighter">21 min</span>
           </div>
         </div>
       </div>

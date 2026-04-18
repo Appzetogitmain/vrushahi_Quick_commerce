@@ -7,6 +7,7 @@ import { useCart } from '../../../context/CartContext';
 import { Product } from '../../../types/domain';
 import { useWishlist } from '../../../hooks/useWishlist';
 import { calculateProductPrice } from '../../../utils/priceUtils';
+import ProductCard from './ProductCard';
 
 interface LowestPricesEverProps {
   activeTab?: string;
@@ -21,168 +22,7 @@ const truncateText = (text: string, maxLength: number = 60): string => {
 };
 
 // Product Card Component - Defined outside to prevent recreation on every render
-const ProductCard = memo(({
-  product,
-  cartQuantity,
-  onAddToCart,
-  onUpdateQuantity
-}: {
-  product: Product;
-  cartQuantity: number;
-  onAddToCart: (product: Product, element?: HTMLElement | null) => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-}) => {
-  const navigate = useNavigate();
-  const { isWishlisted, toggleWishlist } = useWishlist(product.id);
-
-  // Get Price and MRP using utility
-  const { displayPrice, mrp, discount } = calculateProductPrice(product);
-
-  // Use cartQuantity from props
-  const inCartQty = cartQuantity;
-
-  // Get product name, clean it (remove description suffixes), and truncate if needed
-  let productName = product.name || product.productName || '';
-  // Remove common description patterns
-  productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
-  const displayName = truncateText(productName, 40);
-
-  // Clean Category name: if it's a hex ID (24 chars), use a fallback or truncate
-  let categoryName = (product.categoryId || 'BASIC STAPLE').replace(/-/g, ' ').toUpperCase();
-  if (/^[0-9a-fA-F]{24}$/.test(categoryName)) {
-    categoryName = 'PREMIUM ITEM';
-  }
-
-  return (
-    <div
-      className="flex-shrink-0 w-[150px] md:w-[180px]"
-      style={{ scrollSnapAlign: 'start' }}
-    >
-      <div
-        className="bg-white rounded-xl overflow-visible flex flex-col relative h-full cursor-pointer group"
-      >
-        {/* Product Image Area */}
-        <div 
-          onClick={() => navigate(`/product/${product.id}`)}
-          className="relative block mb-2"
-        >
-          <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden relative border border-neutral-100 shadow-sm">
-            {product.imageUrl ? (
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-300 text-3xl font-bold">
-                {(product.name || product.productName || '?').charAt(0).toUpperCase()}
-              </div>
-            )}
-
-            {/* ADD Button or Quantity Stepper - OVERLAY on Image */}
-            <div className="absolute bottom-1 right-1 z-30">
-              {inCartQty === 0 ? (
-                <button
-                  disabled={product.isAvailable === false}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onAddToCart(product, e.currentTarget);
-                  }}
-                  className="px-4 h-9 rounded-xl bg-white border-2 border-[#ff3269] flex items-center justify-center text-[#ff3269] shadow-md active:scale-95 transition-all hover:bg-pink-50 text-[13px] font-bold uppercase tracking-tighter"
-                  title="Add to Cart"
-                >
-                  ADD
-                </button>
-              ) : (
-                <div
-                  className="flex items-center justify-between bg-pink-50/50 rounded-xl h-9 px-1 shadow-sm border border-pink-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onUpdateQuantity(String(product.id || (product as any)._id), Math.max(0, inCartQty - 1));
-                    }}
-                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-bold hover:bg-pink-100 rounded-lg transition-colors"
-                  >
-                    −
-                  </button>
-                  <span className="text-neutral-700 font-bold text-xs min-w-[18px] text-center px-0.5">
-                    {inCartQty}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onUpdateQuantity(String(product.id || (product as any)._id), inCartQty + 1);
-                    }}
-                    className="w-6 h-6 flex items-center justify-center text-[#ff3269] text-lg font-bold hover:bg-pink-100 rounded-lg transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Pricing Info - Green Badge Style */}
-        <div className="px-1 mb-2">
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className="bg-[#24904c] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none">
-              ₹{product.price}
-            </div>
-            {mrp > product.price && (
-              <span className="text-[11px] text-neutral-400 line-through font-medium leading-none">
-                ₹{mrp}
-              </span>
-            )}
-          </div>
-          {discount > 0 && (
-            <div className="text-[10px] font-bold text-[#24904c] tracking-tight">
-              ₹{Math.max(0, mrp - product.price)} OFF
-            </div>
-          )}
-        </div>
-
-        {/* Product Details */}
-        <div className="px-1 flex-1 flex flex-col min-h-0">
-          <div onClick={() => navigate(`/product/${product.id}`)}>
-            <h3 className="text-[13px] font-bold text-neutral-900 line-clamp-2 leading-tight mb-1">
-              {displayName}
-            </h3>
-          </div>
-
-          <div className="text-[11px] font-medium text-neutral-500 mb-2">
-            {product.pack || '1 unit'}
-          </div>
-
-          {/* Tags & Rating */}
-          <div className="mt-auto flex flex-col gap-1.5 pb-2">
-             <div className="flex flex-wrap gap-1">
-                <span className="bg-[#eef9fa] text-[#0a8ba0] text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                  {categoryName.split(' ')[0]}
-                </span>
-             </div>
-             <div className="flex items-center gap-1 text-[10px] text-neutral-500 font-bold">
-                <span className="text-green-600">★</span>
-                <span>4.6 (9.5k)</span>
-             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}, (prevProps: any, nextProps: any) => {
-  return (
-    prevProps.product.id === nextProps.product.id &&
-    prevProps.cartQuantity === nextProps.cartQuantity
-  );
-});
-
-ProductCard.displayName = 'ProductCard';
+// Local ProductCard component removed in favor of global one
 
 export default function LowestPricesEver({ activeTab = 'all', products: adminProducts }: LowestPricesEverProps) {
   const theme = getTheme(activeTab);
@@ -373,21 +213,23 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
       {/* Product Content */}
       <div
         ref={scrollContainerRef}
-        className="flex gap-2 overflow-x-auto scrollbar-hide px-4"
+        className="flex gap-2.5 overflow-x-auto scrollbar-hide px-4"
         style={{ scrollSnapType: 'x mandatory' }}
       >
-        {discountedProducts.map((product) => {
-          const cartQuantity = cartItemsMap.get(product.id) || 0;
-          return (
+        {discountedProducts.map((product) => (
+          <div 
+            key={product.id} 
+            className="flex-shrink-0 w-[115px] md:w-[135px]"
+            style={{ scrollSnapAlign: 'start' }}
+          >
             <ProductCard
-              key={product.id}
               product={product}
-              cartQuantity={cartQuantity}
-              onAddToCart={handleAddToCart}
-              onUpdateQuantity={handleUpdateQuantity}
+              categoryStyle={true}
+              showBadge={true}
+              showHeartIcon={true}
             />
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       {/* See All Footer */}

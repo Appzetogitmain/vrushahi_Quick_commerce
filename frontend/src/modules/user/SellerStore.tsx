@@ -7,6 +7,7 @@ import ProductCard from './components/ProductCard';
 import PageLoader from '../../components/PageLoader';
 import FilterModal from './components/FilterModal';
 import SortModal from './components/SortModal';
+import NoProductsFound from './components/NoProductsFound';
 
 export default function SellerStore() {
     const { sellerId } = useParams<{ sellerId: string }>();
@@ -309,7 +310,7 @@ export default function SellerStore() {
                                 </span>
                             </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
                                 {cat.products.map((product: any) => (
                                     <ProductCard 
                                         key={product.id} 
@@ -323,16 +324,7 @@ export default function SellerStore() {
                         </div>
                     ))
                 ) : (
-                    <div className="text-center py-24 bg-white rounded-[40px] border border-dashed border-gray-200 mx-4">
-                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="text-gray-300" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                <circle cx="11" cy="11" r="8" />
-                                <path d="m21 21-4.35-4.35" />
-                            </svg>
-                        </div>
-                        <h3 className="text-gray-900 font-black uppercase tracking-tight mb-2">No matching products</h3>
-                        <p className="text-gray-400 text-sm font-medium">Try refining your filters or search</p>
-                    </div>
+                    <NoProductsFound />
                 )}
             </div>
 

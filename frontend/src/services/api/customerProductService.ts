@@ -23,7 +23,7 @@ export interface GetProductsParams {
     subcategory?: string;
     minPrice?: number;
     maxPrice?: number;
-    sort?: 'price_asc' | 'price_desc' | 'popular' | 'discount';
+    sort?: 'relevance' | 'price_low' | 'price_high' | 'popular' | 'discount' | 'rating' | 'newest';
     page?: number;
     limit?: number;
     latitude?: number; // User location latitude

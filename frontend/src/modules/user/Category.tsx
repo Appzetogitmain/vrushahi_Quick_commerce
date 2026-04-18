@@ -9,6 +9,8 @@ import {
 } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
 import CategoryNotFound from "./components/CategoryNotFound";
+import SortModal from "./components/SortModal";
+import NoProductsFound from "./components/NoProductsFound";
 
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,9 +22,18 @@ export default function CategoryPage() {
   const [subcategories, setSubcategories] = useState<ApiCategory[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<{ categories: string[], brands: string[] }>({
+    categories: [],
+    brands: []
+  });
+  const [activeFilters, setActiveFilters] = useState<{ categories: string[], brands: string[] }>({
+    categories: [],
+    brands: []
+  });
   const [filterSearchQuery, setFilterSearchQuery] = useState("");
-  const [selectedFilterCategory, setSelectedFilterCategory] = useState("Type");
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState<"Categories" | "Brands">("Categories");
+  const [sortBy, setSortBy] = useState<string>("relevance"); // Changed from popular to match SortModal
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
@@ -131,6 +142,10 @@ export default function CategoryPage() {
           params.longitude = userLocation.longitude;
         }
 
+        if (sortBy) {
+          params.sort = sortBy;
+        }
+
         const response = await getProducts(params);
         if (response.success) {
           // Ensure products have default tags/name array for filtering logic if missing
@@ -154,10 +169,46 @@ export default function CategoryPage() {
     if (id) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id, userLocation]);
+  }, [id, selectedSubcategory, category?._id, userLocation, sortBy]);
 
-  // Client-side filtering removed in favor of backend subcategory filtering
-  const categoryProducts = products;
+  // Combined Filtering and Sorting
+  const categoryProducts = useMemo(() => {
+    let result = [...products];
+
+    // Filter by Categories (Subcategories) from modal
+    if (activeFilters.categories.length > 0) {
+      result = result.filter((product) => {
+        const subId = product.subcategory?._id || product.subcategory;
+        return activeFilters.categories.includes(subId?.toString());
+      });
+    }
+
+    // Filter by Brands
+    if (activeFilters.brands.length > 0) {
+      result = result.filter((product) => {
+        const brandId = product.brand?._id || product.brand?.id || product.brand;
+        return activeFilters.brands.includes(brandId?.toString());
+      });
+    }
+
+    return result;
+  }, [products, activeFilters]);
+
+  // Extract unique brands from current products
+  const availableBrands = useMemo(() => {
+    const brandsMap = new Map<string, string>();
+    products.forEach((p) => {
+      const brand = p.brand;
+      if (brand && (brand.name || brand.productBrandName)) {
+        const name = brand.name || brand.productBrandName;
+        const id = brand._id || brand.id || name;
+        brandsMap.set(id.toString(), name);
+      }
+    });
+    return Array.from(brandsMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
     return null; // Let global IconLoader handle it
@@ -198,12 +249,11 @@ export default function CategoryPage() {
 
   // Extract filter options from products
   const getFilterOptions = () => {
-    const categoryProducts = products.filter((p) => p.categoryId === id);
     const filterMap = new Map<string, number>();
 
-    categoryProducts.forEach((product) => {
+    products.forEach((product) => {
       // Extract main ingredient/type from product name
-      const name = product.name.toLowerCase();
+      const name = (product.productName || product.name || '').toLowerCase();
       // Remove common prefixes like "fresh", "organic", etc.
       const cleanName = name
         .replace(/^(fresh|organic|premium|best|new)\s+/i, "")
@@ -285,20 +335,23 @@ export default function CategoryPage() {
     option.name.toLowerCase().includes(filterSearchQuery.toLowerCase())
   );
 
-  const handleFilterToggle = (filterName: string) => {
-    setSelectedFilters((prev) =>
-      prev.includes(filterName)
-        ? prev.filter((f) => f !== filterName)
-        : [...prev, filterName]
-    );
+  const handleFilterToggle = (id: string, type: "categories" | "brands") => {
+    setSelectedFilters((prev) => {
+      const current = prev[type];
+      const updated = current.includes(id)
+        ? current.filter((f) => f !== id)
+        : [...current, id];
+      return { ...prev, [type]: updated };
+    });
   };
 
   const handleClearFilters = () => {
-    setSelectedFilters([]);
+    setSelectedFilters({ categories: [], brands: [] });
+    setActiveFilters({ categories: [], brands: [] });
   };
 
   const handleApplyFilters = () => {
-    // Apply filters logic here
+    setActiveFilters(selectedFilters);
     setIsFiltersOpen(false);
   };
 
@@ -400,55 +453,44 @@ export default function CategoryPage() {
           </div>
         </div>
 
-        {/* Filter/Sort Bar - Updated layout */}
-        <div className="px-4 md:px-6 lg:px-8 py-1.5 md:py-2 bg-white border-b border-neutral-200 flex-shrink-0">
-          <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto scrollbar-hide -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 scroll-smooth">
-            {/* Filters Button */}
-            <button
-              onClick={() => setIsFiltersOpen(true)}
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="flex-shrink-0">
-                <circle cx="6" cy="8" r="1.5" fill="currentColor" />
-                <circle cx="6" cy="16" r="1.5" fill="currentColor" />
-                <path
-                  d="M3 8h6M3 16h6M10 8h11M10 16h11"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span>Filters</span>
-              <span className="text-neutral-500 text-[10px] ml-0.5">▾</span>
+        {/* Filter/Sort Bar - Consistent with Store Page UI */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth border-b border-neutral-100 flex-shrink-0">
+            <button 
+                onClick={() => setIsFiltersOpen(true)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border shadow-sm text-[13px] font-bold active:scale-95 transition-all whitespace-nowrap ${
+                    (activeFilters.categories.length + activeFilters.brands.length) > 0
+                    ? 'bg-pink-50 border-[#ff3269] text-[#ff3269]'
+                    : 'bg-white border-neutral-200 text-gray-700'
+                }`}
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M4 6h16M4 12h16M4 18h7" strokeLinecap="round" />
+                </svg>
+                Filter {(activeFilters.categories.length + activeFilters.brands.length) > 0 && `(${activeFilters.categories.length + activeFilters.brands.length})`}
+                <svg className="text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
             </button>
 
-            {/* Sort Button */}
-            <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="flex-shrink-0">
-                <path
-                  d="M7 8l5-5 5 5M7 16l5 5 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span>Sort</span>
-              <span className="text-neutral-500 text-[10px] ml-0.5">▾</span>
+            <button 
+                onClick={() => setIsSortOpen(true)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border shadow-sm text-[13px] font-bold active:scale-95 transition-all whitespace-nowrap ${
+                    sortBy !== 'relevance'
+                    ? 'bg-pink-50 border-[#ff3269] text-[#ff3269]'
+                    : 'bg-white border-neutral-200 text-gray-700'
+                }`}
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M3 12h18M12 3v18" strokeLinecap="round" />
+                </svg>
+                Sort {sortBy !== 'relevance' && '•'}
+                <svg className="text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
             </button>
 
-            {/* Category Buttons */}
+            {/* Sub-category Quick Filters */}
             {subcategories
               .filter((subcat) => (subcat.id || subcat._id) !== "all")
               .map((subcat) => {
@@ -458,27 +500,15 @@ export default function CategoryPage() {
                   <button
                     key={subId}
                     onClick={() => setSelectedSubcategory(subId)}
-                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition-colors flex-shrink-0 whitespace-nowrap ${
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border shadow-sm text-[13px] font-bold active:scale-95 transition-all whitespace-nowrap ${
                       isSelected
-                        ? "bg-white border border-neutral-300 text-neutral-900"
-                        : "bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+                        ? "bg-neutral-900 border-neutral-900 text-white"
+                        : "bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                     }`}>
-                    <span className="text-sm flex-shrink-0">
-                      {subcat.image ? (
-                        <img
-                          src={subcat.image}
-                          alt=""
-                          className="w-4 h-4 object-cover rounded-full"
-                        />
-                      ) : (
-                        subcat.icon || "📦"
-                      )}
-                    </span>
                     <span>{subcat.name}</span>
                   </button>
                 );
               })}
-          </div>
         </div>
 
         {/* Scrollable Content */}
@@ -501,10 +531,8 @@ export default function CategoryPage() {
               </div>
             </div>
           ) : (
-            <div className="px-4 md:px-6 lg:px-8 py-8 md:py-12 text-center">
-              <p className="text-neutral-500 md:text-lg">
-                No products found in this category.
-              </p>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <NoProductsFound />
             </div>
           )}
         </div>
@@ -540,123 +568,142 @@ export default function CategoryPage() {
                 onClick={(e) => e.stopPropagation()}
                 className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col">
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-neutral-200">
-                  <h2 className="text-base font-bold text-neutral-900">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+                  <h2 className="text-base font-bold text-neutral-900 uppercase tracking-tight">
                     Filters
                   </h2>
+                  <button onClick={() => setIsFiltersOpen(false)} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Search Bar */}
-                <div className="px-5 py-3 border-b border-neutral-200">
+                <div className="px-5 py-3 border-b border-neutral-50 bg-neutral-50/50">
                   <div className="relative">
                     <svg
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400"
+                      className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" strokeLinecap="round" />
                     </svg>
                     <input
                       type="text"
                       placeholder="Search across filters..."
                       value={filterSearchQuery}
                       onChange={(e) => setFilterSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm text-neutral-700 placeholder:text-neutral-400"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 shadow-sm"
                     />
                   </div>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex flex-1 overflow-hidden min-h-0">
-                  {/* Left Column - Filter Categories */}
-                  <div className="w-24 border-r border-neutral-200 flex-shrink-0 bg-neutral-50">
-                    <button
-                      onClick={() => setSelectedFilterCategory("Type")}
-                      className={`w-full px-3 py-3 text-left text-sm font-medium transition-colors ${
-                        selectedFilterCategory === "Type"
-                          ? "bg-purple-50 text-purple-700"
-                          : "text-neutral-600 hover:bg-neutral-100"
-                      }`}>
-                      Type
-                    </button>
-                    <button
-                      onClick={() => setSelectedFilterCategory("Properties")}
-                      className={`w-full px-3 py-3 text-left text-sm font-medium transition-colors ${
-                        selectedFilterCategory === "Properties"
-                          ? "bg-purple-50 text-purple-700"
-                          : "text-neutral-600 hover:bg-neutral-100"
-                      }`}>
-                      Properties
-                    </button>
+                <div className="flex flex-1 overflow-hidden min-h-0 bg-white">
+                  {/* Left Column - Sidebar Style */}
+                  <div className="w-28 border-r border-neutral-100 flex-shrink-0 bg-neutral-50/30">
+                    {(["Categories", "Brands"] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setSelectedFilterCategory(tab)}
+                        className={`w-full px-4 py-5 text-left text-[10px] font-black uppercase tracking-widest relative transition-all ${
+                          selectedFilterCategory === tab
+                            ? "bg-white text-[#ff3269]"
+                            : "text-neutral-400 hover:bg-neutral-50"
+                        }`}>
+                        {selectedFilterCategory === tab && (
+                          <motion.div 
+                            layoutId="activeFilterTab"
+                            className="absolute left-0 top-0 bottom-0 w-1 bg-[#ff3269]"
+                          />
+                        )}
+                        {tab}
+                      </button>
+                    ))}
                   </div>
 
                   {/* Right Column - Filter Options */}
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="p-4">
-                      {filteredOptions.map((option) => {
-                        const isChecked = selectedFilters.includes(option.name);
-                        return (
-                          <button
-                            key={option.name}
-                            onClick={() => handleFilterToggle(option.name)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 rounded-lg transition-colors">
-                            <span className="text-xl flex-shrink-0 w-6 h-6 flex items-center justify-center">
-                              {option.icon}
-                            </span>
-                            <span className="flex-1 text-left text-sm font-medium text-neutral-700">
-                              {option.name}
-                            </span>
-                            <span className="text-sm text-neutral-500">
-                              ({option.count})
-                            </span>
-                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">
-                              {isChecked ? (
-                                <div className="w-5 h-5 border-2 border-purple-600 bg-purple-600 rounded-sm flex items-center justify-center">
-                                  <svg
-                                    className="w-3 h-3 text-white"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={3}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
+                  <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
+                    <div className="p-4 space-y-1">
+                      {selectedFilterCategory === "Categories" ? (
+                        subcategories
+                          .filter(s => (s.id || s._id) !== "all")
+                          .filter(s => s.name.toLowerCase().includes(filterSearchQuery.toLowerCase()))
+                          .map((subcat) => {
+                            const id = subcat.id || subcat._id;
+                            const isChecked = selectedFilters.categories.includes(id);
+                            return (
+                              <button
+                                key={id}
+                                onClick={() => handleFilterToggle(id, "categories")}
+                                className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 rounded-xl transition-all group">
+                                <span className={`text-[13px] font-bold ${isChecked ? 'text-gray-900' : 'text-gray-500'}`}>
+                                  {subcat.name}
+                                </span>
+                                <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2 rounded-md border-2 transition-all ${
+                                  isChecked ? 'bg-[#ff3269] border-[#ff3269]' : 'border-gray-200'
+                                }`}>
+                                  {isChecked && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                                      <path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  )}
                                 </div>
-                              ) : (
-                                <div className="w-5 h-5 border-2 border-neutral-300 rounded-sm bg-white"></div>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                              </button>
+                            );
+                          })
+                      ) : (
+                        availableBrands
+                          .filter(b => b.name.toLowerCase().includes(filterSearchQuery.toLowerCase()))
+                          .map((brand) => {
+                            const isChecked = selectedFilters.brands.includes(brand.id);
+                            return (
+                              <button
+                                key={brand.id}
+                                onClick={() => handleFilterToggle(brand.id, "brands")}
+                                className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 rounded-xl transition-all group">
+                                <span className={`text-[13px] font-bold ${isChecked ? 'text-gray-900' : 'text-gray-500'}`}>
+                                  {brand.name}
+                                </span>
+                                <div className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2 rounded-md border-2 transition-all ${
+                                  isChecked ? 'bg-[#ff3269] border-[#ff3269]' : 'border-gray-200'
+                                }`}>
+                                  {isChecked && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
+                                      <path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
+                      )}
+                      
+                      {((selectedFilterCategory === "Categories" && subcategories.length <= 1) || 
+                        (selectedFilterCategory === "Brands" && availableBrands.length === 0)) && (
+                        <div className="py-20 text-center opacity-30">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">No options found</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="px-5 py-4 border-t border-neutral-200 flex gap-3 bg-white">
+                <div className="p-4 pb-24 border-t border-neutral-100 flex gap-3 bg-white/90 backdrop-blur-xl">
                   <button
                     onClick={handleClearFilters}
-                    className="flex-1 px-4 py-2.5 border border-purple-600 text-purple-600 rounded-lg font-medium text-sm hover:bg-purple-50 transition-colors bg-white">
-                    Clear Filter
+                    className="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border border-neutral-100 rounded-xl bg-neutral-50/50"
+                  >
+                    Clear All
                   </button>
                   <button
                     onClick={handleApplyFilters}
-                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-                      selectedFilters.length > 0
-                        ? "bg-purple-600 text-white hover:bg-purple-700"
-                        : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
-                    }`}
-                    disabled={selectedFilters.length === 0}>
-                    Apply
+                    className="flex-[2] py-3 bg-[#ff3269] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-100/40 active:scale-95 transition-all"
+                  >
+                    Apply Filters
                   </button>
                 </div>
               </motion.div>
@@ -664,6 +711,13 @@ export default function CategoryPage() {
           </>
         )}
       </AnimatePresence>
+
+      <SortModal 
+        isOpen={isSortOpen}
+        onClose={() => setIsSortOpen(false)}
+        onSelect={(newSort) => setSortBy(newSort)}
+        selectedOption={sortBy}
+      />
     </div>
   );
 }

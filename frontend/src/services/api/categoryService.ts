@@ -11,6 +11,8 @@ export interface Category {
   _id: string;
   name: string;
   image?: string;
+  icon?: string;
+  slug?: string;
   parentId?: string;
   headerCategoryId?: string | any; // Can be string ID or populated object
   isBestseller: boolean;
@@ -136,6 +138,14 @@ export const getAllSubcategories = async (
     "/categories/subcategories",
     { params }
   );
+  return response.data;
+};
+
+/**
+ * Get all categories for customers (active only)
+ */
+export const getCustomerCategories = async (): Promise<ApiResponse<Category[]>> => {
+  const response = await api.get<ApiResponse<Category[]>>("/customer/categories");
   return response.data;
 };
 

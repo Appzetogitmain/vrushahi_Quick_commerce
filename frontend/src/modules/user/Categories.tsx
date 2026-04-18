@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getHomeContent } from "../../services/api/customerHomeService";
-import { useLocation } from "../../hooks/useLocation";
-import CategoryTileSection from "./components/CategoryTileSection";
-import ProductCard from "./components/ProductCard";
+import { getCustomerCategories, Category } from "../../services/api/categoryService";
 import Button from "../../components/ui/button";
+import categoryHeroImgV3 from "../../assets/category_hero_v3.png";
+import { motion } from "framer-motion";
 
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
   <svg
@@ -13,7 +12,7 @@ const ArrowLeftIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
@@ -25,31 +24,24 @@ const ArrowLeftIcon = ({ className }: { className?: string }) => (
 
 export default function Categories() {
   const navigate = useNavigate();
-  const { location } = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [homeData, setHomeData] = useState<any>({
-    homeSections: [],
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await getHomeContent(
-          undefined,
-          location?.latitude,
-          location?.longitude
-        );
+        const response = await getCustomerCategories();
         if (response.success && response.data) {
-          setHomeData(response.data);
+          setCategories(response.data);
         } else {
           setError("Failed to load categories. Please try again.");
         }
       } catch (error) {
-        console.error("Failed to fetch home content:", error);
+        console.error("Failed to fetch categories:", error);
         setError("Network error. Please check your connection.");
       } finally {
         setLoading(false);
@@ -57,15 +49,15 @@ export default function Categories() {
     };
 
     fetchData();
-  }, [location?.latitude, location?.longitude]);
+  }, []);
 
-  if (loading && !homeData.homeSections.length) {
+  if (loading && !categories.length) {
     return null; // Let global IconLoader handle it
   }
 
-  if (error && !homeData.homeSections.length) {
+  if (error && !categories.length) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white border-t border-black/5">
         <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
           <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -85,84 +77,91 @@ export default function Categories() {
 
 
   return (
-    <div className="pb-20 md:pb-8 bg-white min-h-screen font-sans">
-      {/* Page Header */}
-      <div className="px-4 py-3 md:px-6 md:py-4 bg-[#cdbae0]/95 backdrop-blur-md sticky top-0 z-50 border-b border-black/5 flex items-center gap-4 transition-all duration-300">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(-1)}
-          className="text-black hover:bg-black/5 -ml-2 rounded-full"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-        </Button>
-        <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">Categories</h1>
+    <div className="pb-20 bg-white min-h-screen font-sans transition-all duration-500 overflow-x-hidden">
+      {/* Hero Header Section - Ultra Compact & Efficient */}
+      <div className="relative bg-white shadow-sm border-b border-gray-100 min-h-[90px] flex items-center">
+        {/* Background layer with curve */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[55%] h-full bg-[#f3e8ff] rounded-l-[5rem]" />
+          <div className="absolute top-[-50%] left-[-10%] w-32 h-32 bg-purple-50/50 rounded-full blur-2xl" />
+        </div>
+
+        {/* Content Row */}
+        <div className="relative z-10 w-full flex items-center px-2 py-2">
+          {/* Back Button */}
+          <motion.div whileTap={{ scale: 0.9 }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="text-gray-900 hover:bg-black/5 rounded-full"
+            >
+              <ArrowLeftIcon className="w-6 h-6" />
+            </Button>
+          </motion.div>
+
+          {/* Text Branding */}
+          <div className="flex flex-col ml-1 flex-1">
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              General Store
+            </h1>
+            <p className="text-gray-500 font-semibold text-[11px]">
+              Select product to add
+            </p>
+          </div>
+
+          {/* Hero Illustration - Smaller and Centered to avoid cutting */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-24 h-24 flex items-center justify-center mr-2 drop-shadow-xl"
+          >
+            <img 
+              src={categoryHeroImgV3} 
+              alt="Groceries" 
+              className="max-w-full max-h-full object-contain"
+            />
+          </motion.div>
+        </div>
       </div>
 
-      <div className="bg-white pt-2 space-y-6 md:space-y-10 md:pt-6">
-        {/* Render all admin-created home sections */}
-        {homeData.homeSections && homeData.homeSections.length > 0 ? (
-          <>
-            {homeData.homeSections.map((section: any) => {
-              const columnCount = Number(section.columns) || 4;
+      {/* Categories Grid - 4 Columns */}
+      <div className="mt-8 px-4">
+        {categories && categories.length > 0 ? (
+          <div className="grid grid-cols-4 gap-y-8 gap-x-3">
+            {categories.map((category) => (
+              <motion.div
+                key={category._id}
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate(`/category/${category.slug || category._id}`)}
+                className="flex flex-col items-center gap-2 cursor-pointer group"
+              >
+                {/* Squared light pink background for image */}
+                <div className="w-full aspect-square bg-[#fff1f2] rounded-2xl flex items-center justify-center p-2.5 shadow-none transition-all duration-300">
+                  <img
+                    src={category.image || category.icon}
+                    alt={category.name}
+                    className="w-full h-full object-contain drop-shadow-xs transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://cdn-icons-png.flaticon.com/512/3081/3081840.png';
+                    }}
+                  />
+                </div>
 
-              if (section.displayType === "products" && section.data && section.data.length > 0) {
-                // Products display - same as home page
-                const gridClass = {
-                  2: "grid-cols-2",
-                  3: "grid-cols-3",
-                  4: "grid-cols-4",
-                  6: "grid-cols-6",
-                  8: "grid-cols-8"
-                }[columnCount] || "grid-cols-4";
-
-                const isCompact = columnCount >= 4;
-                const gapClass = columnCount >= 4 ? "gap-2" : "gap-3 md:gap-4";
-
-                return (
-                  <div key={section.id} className="mt-6 mb-6 md:mt-8 md:mb-8">
-                    {section.title && (
-                      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
-                        {section.title}
-                      </h2>
-                    )}
-                    <div className="px-4 md:px-6 lg:px-8">
-                      <div className={`grid ${gridClass} ${gapClass}`}>
-                        {section.data.map((product: any) => (
-                          <ProductCard
-                            key={product.id || product._id}
-                            product={product}
-                            categoryStyle={true}
-                            showBadge={true}
-                            showPackBadge={false}
-                            showStockInfo={false}
-                            compact={isCompact}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Categories/Subcategories display - same as home page
-              return (
-                <CategoryTileSection
-                  key={section.id}
-                  title={section.title}
-                  tiles={section.data || []}
-                  columns={columnCount as 2 | 3 | 4 | 6 | 8}
-                  showProductCount={false}
-                />
-              );
-            })}
-          </>
+                {/* Category Name - Clean Centered Text */}
+                <span className="text-[10px] md:text-xs font-semibold text-gray-800 text-center leading-tight tracking-tight px-0.5 line-clamp-2">
+                  {category.name}
+                </span>
+              </motion.div>
+            ))}
+          </div>
         ) : (
-          <div className="text-center py-12 md:py-16 text-neutral-500 px-4">
-            <p className="text-lg md:text-xl mb-2">No categories found</p>
-            <p className="text-sm md:text-base">
-              Please create home sections from the admin panel
-            </p>
+          <div className="text-center py-16 text-neutral-400">
+            <svg className="w-10 h-10 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            <p className="text-base font-medium">No categories found</p>
           </div>
         )}
       </div>

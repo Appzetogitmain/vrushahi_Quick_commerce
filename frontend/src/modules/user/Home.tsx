@@ -360,20 +360,20 @@ export default function Home() {
 
                           {/* Horizontal Product Slider spilling over the background edge */}
                           <div className="px-4 md:px-6 lg:px-8">
-                            <div className="flex overflow-x-auto gap-3 md:gap-4 pb-4 hide-scrollbar items-stretch">
-                              {section.data.map((product: any) => (
-                                <div key={product.id || product._id} className="w-[115px] md:w-[135px] shrink-0">
-                                  <ProductCard
-                                    product={product}
-                                    categoryStyle={true}
-                                    showBadge={true}
-                                    showPackBadge={false}
-                                    showStockInfo={false}
-                                    compact={isCompact}
-                                  />
-                                </div>
-                              ))}
-                            </div>
+                               <div className="flex overflow-x-auto gap-2.5 md:gap-4 pb-4 hide-scrollbar items-stretch">
+                                {section.data.map((product: any) => (
+                                  <div key={product.id || product._id} className="w-[110px] md:w-[130px] shrink-0">
+                                    <ProductCard
+                                      product={product}
+                                      categoryStyle={true}
+                                      showBadge={true}
+                                      showPackBadge={false}
+                                      showStockInfo={false}
+                                      compact={true}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                           </div>
                         </div>
                       </div>

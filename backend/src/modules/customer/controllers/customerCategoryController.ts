@@ -15,12 +15,62 @@ export const getCategories = async (_req: Request, res: Response) => {
     let categories = cache.get(cacheKey);
 
     if (!categories) {
-      categories = await Category.find({
-        status: "Active", // Only return active categories
+      // Fetch all active root categories
+      const activeCategories = await Category.find({
+        status: "Active",
+        parentId: null
       })
         .sort({ order: 1 })
         .select("name image icon description color slug _id")
-        .lean(); // Use lean() for better performance
+        .lean();
+
+      // Get count of products per category
+      const activeProductMatch = { status: "Active", publish: true };
+      
+      const categoryCounts = await Product.aggregate([
+        { $match: activeProductMatch },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
+      ]);
+
+      const categoryCountMap = new Map<string, number>();
+      categoryCounts.forEach((item) => {
+        if (item._id) {
+          categoryCountMap.set(item._id.toString(), item.count);
+        }
+      });
+
+      // Filter categories to only those that have products (directly or via subcategories)
+      // For now, we'll check direct category products for simplicity, 
+      // but in a nested structure, we might need a more complex recursive check.
+      // However, most root categories have their own 'category' ID in Products too.
+      
+      // Let's also check subcategories
+      const subCategories = await SubCategory.find({}).lean();
+      const subCategoryCountMap = new Map<string, number>();
+      
+      const subCounts = await Product.aggregate([
+        { $match: activeProductMatch },
+        { $group: { _id: "$subcategory", count: { $sum: 1 } } }
+      ]);
+      
+      subCounts.forEach(item => {
+        if (item._id) subCategoryCountMap.set(item._id.toString(), item.count);
+      });
+
+      const filteredCategories = await Promise.all(activeCategories.map(async (cat) => {
+        const directCount = categoryCountMap.get(cat._id.toString()) || 0;
+        
+        // Find subs for this cat
+        const catSubs = subCategories.filter(s => s.category.toString() === cat._id.toString());
+        const subCount = catSubs.reduce((acc, sub) => acc + (subCategoryCountMap.get(sub._id.toString()) || 0), 0);
+        
+        const total = directCount + subCount;
+        
+        if (total > 0) return cat;
+        return null;
+      }));
+
+      categories = filteredCategories.filter(Boolean);
 
       // Cache for 10 minutes
       cache.set(cacheKey, categories, 10 * 60 * 1000);

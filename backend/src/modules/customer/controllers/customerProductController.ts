@@ -198,10 +198,12 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // Build sort object
     let sortOptions: any = { createdAt: -1 }; // Default new to old
-    if (sort === "price_asc") sortOptions = { price: 1 };
-    if (sort === "price_desc") sortOptions = { price: -1 };
+    if (sort === "price_asc" || sort === "price_low") sortOptions = { price: 1 };
+    if (sort === "price_desc" || sort === "price_high") sortOptions = { price: -1 };
     if (sort === "discount") sortOptions = { discount: -1 };
-    if (sort === "popular") sortOptions = { popular: -1, dealOfDay: -1 };
+    if (sort === "popular" || sort === "relevance") sortOptions = { popular: -1, dealOfDay: -1 };
+    if (sort === "rating") sortOptions = { rating: -1 };
+    if (sort === "newest") sortOptions = { createdAt: -1 };
 
     const products = await Product.find(query)
       .populate("category", "name icon image")
