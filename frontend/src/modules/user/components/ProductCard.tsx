@@ -354,7 +354,7 @@ export default function ProductCard({
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
              </svg>
-             <span className="text-[8px] md:text-[9px] font-black text-gray-600 uppercase tracking-tighter">21 min</span>
+             <span className="text-[8px] md:text-[9px] font-black text-gray-600 uppercase tracking-tighter">24 MINS</span>
           </div>
         </div>
       </div>

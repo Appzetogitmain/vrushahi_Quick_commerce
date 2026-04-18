@@ -93,7 +93,7 @@ export default function Login() {
           <p className="text-neutral-500 text-center text-sm mb-6 px-8 leading-relaxed">
             {showOTP
               ? `Enter the code sent to +91 ${mobileNumber}`
-              : 'Groceries delivered in 15 minutes. Login to continue.'}
+              : 'Groceries delivered in 24 minutes. Login to continue.'}
           </p>
         </div>
 

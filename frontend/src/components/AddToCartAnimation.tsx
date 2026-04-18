@@ -62,7 +62,8 @@ export default function AddToCartAnimation({
   const isOrderPage = location.pathname.startsWith('/orders/');
   const isAccountPage = location.pathname === '/account';
   const isOrderAgainPage = location.pathname === '/order-again';
-  const shouldHidePill = hideOnPages && (isCheckoutPage || isOrderPage || isAccountPage || isOrderAgainPage);
+  const isProductPage = location.pathname.startsWith('/product/');
+  const shouldHidePill = hideOnPages && (isCheckoutPage || isOrderPage || isAccountPage || isOrderAgainPage || isProductPage);
 
 
   // Detect removed products and trigger bounce-out animation

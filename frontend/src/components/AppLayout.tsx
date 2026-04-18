@@ -115,9 +115,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }, [isCategoriesActive, prevCategoriesActive]);
 
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
+  const isProductPage = location.pathname.startsWith('/product/');
   const showHeader = false; 
   const showSearchBar = false;
-  const showFooter = !isCheckoutPage;
+  const showFooter = !isCheckoutPage && !isProductPage;
   const showComingSoon = false;
 
   return (

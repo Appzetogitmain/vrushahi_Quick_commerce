@@ -17,6 +17,8 @@ export interface ProductVariation {
   name?: string; // Mapped from title if needed, or direct
   value?: string;
   title?: string; // Frontend uses title
+  color?: string;
+  size?: string;
   price: number;
   discPrice: number;
   stock: number;

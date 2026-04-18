@@ -75,12 +75,15 @@ export default function SellerAddProduct() {
     specs: "",
     sizeChartUrl: "",
     shelfLife: "",
+    netQuantity: "",
     attributes: {} as any,
   });
 
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [variationForm, setVariationForm] = useState({
     title: "",
+    color: "",
+    size: "",
     price: "",
     discPrice: "0",
     stock: "0",
@@ -173,6 +176,7 @@ export default function SellerAddProduct() {
               specs: (product as any).specs || "",
               sizeChartUrl: (product as any).sizeChartUrl || "",
               shelfLife: (product as any).shelfLife || "",
+              netQuantity: (product as any).netQuantity || "",
               attributes: (product as any).attributes || {},
             });
             setVariations(product.variations || []);
@@ -275,13 +279,15 @@ export default function SellerAddProduct() {
     }
     const newVar: ProductVariation = {
       title: variationForm.title,
+      color: variationForm.color,
+      size: variationForm.size,
       price: parseFloat(variationForm.price),
       discPrice: parseFloat(variationForm.discPrice || "0"),
       stock: parseInt(variationForm.stock || "0"),
       status: variationForm.status,
     };
     setVariations([...variations, newVar]);
-    setVariationForm({ title: "", price: "", discPrice: "0", stock: "0", status: "Available" });
+    setVariationForm({ title: "", color: "", size: "", price: "", discPrice: "0", stock: "0", status: "Available" });
   };
 
   const removeVariation = (index: number) => {
@@ -355,6 +361,7 @@ export default function SellerAddProduct() {
         specs: formData.specs || undefined,
         sizeChartUrl: formData.sizeChartUrl || undefined,
         shelfLife: formData.shelfLife || undefined,
+        netQuantity: formData.netQuantity || undefined,
         attributes: formData.attributes,
       };
 

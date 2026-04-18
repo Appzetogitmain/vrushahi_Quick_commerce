@@ -10,13 +10,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../context/CartContext";
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
+import { useAuth } from "../../context/AuthContext";
 import Button from "../../components/ui/button";
 import Badge from "../../components/ui/badge";
 import { getProductById } from "../../services/api/customerProductService";
+import { getAddresses, Address } from "../../services/api/customerAddressService";
 import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import ProductCard from "./components/ProductCard";
+import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -24,12 +27,15 @@ export default function ProductDetail() {
   const routerLocation = useRouterLocation();
   const { cart, addToCart, updateQuantity } = useCart();
   const { location } = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const { startLoading, stopLoading } = useLoading();
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [isProductDetailsExpanded, setIsProductDetailsExpanded] =
     useState(false);
   const [isHighlightsExpanded, setIsHighlightsExpanded] = useState(false);
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  const [deliveredAddress, setDeliveredAddress] = useState<Address | null>(null);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
 
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
@@ -41,6 +47,8 @@ export default function ProductDetail() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(0);
+  const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -92,8 +100,17 @@ export default function ProductDetail() {
               "Standard",
           });
 
-          // Reset selected variant and image when product changes
-          setSelectedVariantIndex(0);
+          // Initialize variations
+          if (productData.variations && productData.variations.length > 0) {
+            const firstVar = productData.variations[0];
+            setSelectedColor(firstVar.color || "");
+            setSelectedSize(firstVar.size || "");
+            setSelectedVariantIndex(0);
+          } else {
+            setSelectedVariantIndex(0);
+          }
+
+          // Reset selected image when product changes
           setSelectedImageIndex(0);
           setSimilarProducts(response.data.similarProducts || []);
 
@@ -134,6 +151,74 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [id, location?.latitude, location?.longitude]);
+
+  // Fetch User's Default Address
+  useEffect(() => {
+    const fetchDefaultAddress = async () => {
+      if (!isAuthenticated) {
+        setDeliveredAddress(null);
+        return;
+      }
+
+      setIsAddressLoading(true);
+      try {
+        const response = await getAddresses();
+        if (response.success && response.data) {
+          const addresses = Array.isArray(response.data) ? response.data : [response.data];
+          // Pick default address or first one
+          const defaultAddr = addresses.find(addr => addr.isDefault) || addresses[0] || null;
+          setDeliveredAddress(defaultAddr);
+        }
+      } catch (error) {
+        console.error("Failed to fetch addresses:", error);
+      } finally {
+        setIsAddressLoading(false);
+      }
+    };
+
+    fetchDefaultAddress();
+  }, [isAuthenticated]);
+
+  // Get variations grouped by color
+  const colorGroups = product?.variations?.reduce((acc: any, curr: any) => {
+    const color = curr.color || "Default";
+    if (!acc[color]) acc[color] = [];
+    acc[color].push(curr);
+    return acc;
+  }, {}) || {};
+
+  const colors = Object.keys(colorGroups);
+  
+  // Available sizes for selected color
+  const availableSizes = selectedColor 
+    ? [...new Set(colorGroups[selectedColor]?.map((v: any) => v.size).filter(Boolean))] as string[]
+    : [];
+
+  // Check if we should show generic variations (if color/size schema isn't fully used but multiple variants exist)
+  const showGenericVariations = 
+    product?.variations && 
+    product.variations.length > 1 && 
+    (colors.length <= 1 && colors[0] === "Default") && 
+    availableSizes.length === 0;
+
+  // Update selected variant when color or size changes
+  useEffect(() => {
+    if (product?.variations) {
+      const index = product.variations.findIndex((v: any) => {
+        if (selectedColor && selectedSize) {
+          return v.color === selectedColor && v.size === selectedSize;
+        } else if (selectedColor) {
+          return v.color === selectedColor;
+        } else if (selectedSize) {
+          return v.size === selectedSize;
+        }
+        return false;
+      });
+      if (index !== -1) {
+        setSelectedVariantIndex(index);
+      }
+    }
+  }, [selectedColor, selectedSize, product?.variations]);
 
   // Get selected variant
   const selectedVariant = product?.variations?.[selectedVariantIndex] || null;
@@ -309,46 +394,49 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-white pb-24">
-      {/* Header with back button and action icons */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-transparent">
-        <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 md:py-4">
-          {/* Back button - top left */}
+      {/* Header with Search and Cart */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-neutral-100">
+        <div className="flex items-center gap-3 px-4 py-3 max-w-7xl mx-auto">
+          {/* Back button */}
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-sm hover:bg-neutral-50 transition-colors"
+            className="p-1 hover:bg-neutral-100 rounded-full transition-colors text-neutral-600"
             aria-label="Go back">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ArrowLeft size={24} />
           </button>
 
-          {/* Action icons - top right */}
-          <div className="flex items-center gap-2">
-            {/* Heart icon */}
-            {product?.id && (
-              <WishlistButton
-                productId={product.id}
-                size="md"
-                className="bg-white rounded-full shadow-sm"
-              />
-            )}
+          {/* Search Bar */}
+          <div className="flex-1 relative group">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-pink-500 transition-colors">
+              <Search size={18} />
+            </div>
+            <input 
+              type="text"
+              placeholder="Search for products"
+              readOnly
+              onClick={() => navigate('/search')}
+              className="w-full bg-neutral-100 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-pink-500 transition-all cursor-pointer"
+            />
+          </div>
+
+          {/* Action icons */}
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => navigate('/cart')}
+              className="relative p-2 text-neutral-600 hover:text-pink-600 transition-colors">
+              <ShoppingCart size={24} />
+              {cart.items.length > 0 && (
+                <span className="absolute top-1 right-1 bg-pink-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                  {cart.items.reduce((acc, item) => acc + item.quantity, 0)}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Scrollable content */}
-      <div className="pt-16">
+      <div className="pt-16 pb-24 md:pb-32 lg:px-4 max-w-[1240px] mx-auto overflow-x-hidden relative">
         {/* Location Availability Banner */}
         {!isAvailableAtLocation && (
           <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 mx-4 mt-4 rounded-r-lg">
@@ -381,8 +469,22 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {/* Product Image Gallery */}
-        <div className="relative w-full bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
+        <div className="md:flex md:gap-8 md:py-6 lg:p-8 md:items-start w-full">
+          {/* Left Column - Image Gallery */}
+          <div className="md:w-[45%] lg:w-[42%] md:sticky md:top-28 flex-shrink-0 z-20">
+            {/* Product Image Gallery */}
+            <div className="relative w-full bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden md:rounded-[2rem] md:shadow-sm md:border md:border-neutral-200 group/gallery">
+              
+              {/* Floating Wishlist Button on Image */}
+              {product?.id && (
+                <div className="absolute top-4 right-4 z-40">
+                  <WishlistButton
+                    productId={product.id}
+                    size="md"
+                    className="bg-white/80 backdrop-blur-md shadow-lg rounded-full p-2 hover:bg-white transition-all hover:scale-110 active:scale-90"
+                  />
+                </div>
+              )}
           {/* Main Product Image - Swipeable on mobile */}
           <div
             className="w-full aspect-square relative overflow-hidden"
@@ -568,460 +670,344 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
-        {/* Product Details Card - White section */}
-        <div className="bg-white rounded-t-3xl -mt-6 relative z-10 px-4 md:px-6 lg:px-8 pt-2.5 md:pt-4 pb-2 md:pb-4">
-          {/* Delivery time */}
-          <div className="flex items-center gap-0.5 mb-1">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M12 6v6l4 2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-sm text-neutral-700 font-medium">
-              17 MINS
-            </span>
-          </div>
+          {/* Right Column - Product Details & Extras */}
+          <div className="md:w-[55%] lg:w-[58%] flex flex-col flex-1 relative z-10 w-full min-w-0">
+            {/* Product Details Section - More compact */}
+            <div className="bg-white rounded-t-3xl md:rounded-[2rem] -mt-6 md:mt-0 relative z-30 px-3 md:px-6 pt-3 md:pt-5 pb-3 md:pb-5 md:shadow-sm md:border md:border-neutral-100 md:mb-4">
+              
+              {/* Brand Name */}
+              {product.brand && (
+                <div className="text-[9px] md:text-[10px] font-bold text-pink-500 uppercase tracking-widest mb-0.5 opacity-80">
+                  {typeof product.brand === 'object' ? product.brand.name : product.brand}
+                </div>
+              )}
 
-          {/* Product name */}
-          <h2 className="text-lg md:text-2xl font-bold text-neutral-900 mb-0 leading-tight">
-            {product.name}
-          </h2>
+              {/* Product Name */}
+              <h1 className="text-lg md:text-xl font-bold text-neutral-900 mb-1 leading-tight">
+                {product.name}
+              </h1>
 
-          {/* Variant Selection - Only show if multiple variants */}
-          {product.variations && product.variations.length > 1 && (
-            <div className="mb-2">
-              <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5">
-                Select {product.variationType || "Variant"}:
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {product.variations.map((variant: any, index: number) => {
-                  const variantTitle =
-                    variant.title || variant.value || `Variant ${index + 1}`;
-                  const isOutOfStock =
-                    variant.status === "Sold out" ||
-                    (variant.stock === 0 &&
-                      variant.stock !== undefined &&
-                      variant.stock !== null);
-                  const isSelected = index === selectedVariantIndex;
+              {/* Pricing Section - Compact single line */}
+              <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+                <span className="text-xl font-bold text-neutral-900">
+                  ₹{variantPrice.toLocaleString("en-IN")}
+                </span>
+                
+                {hasDiscount && (
+                  <>
+                    <span className="text-sm text-neutral-400 line-through decoration-neutral-300">
+                      ₹{variantMrp.toLocaleString("en-IN")}
+                    </span>
+                    <div className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md flex items-center">
+                      <span className="text-[10px] font-bold">{discount}% OFF</span>
+                    </div>
+                  </>
+                )}
+              </div>
 
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedVariantIndex(index)}
-                      disabled={isOutOfStock}
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${isSelected
-                          ? "border-violet-600 bg-violet-50 text-violet-700 shadow-sm"
-                          : isOutOfStock
-                            ? "border-neutral-100 bg-neutral-50 text-neutral-400 cursor-not-allowed"
-                            : "border-neutral-200 bg-white text-neutral-600 hover:border-violet-300 hover:bg-violet-50/50"
+              {/* Variant Selection - Compact */}
+              {colors.length > 0 && colors[0] !== "Default" && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-neutral-700">
+                      Color: <span className="text-neutral-500 font-medium">{selectedColor}</span>
+                    </span>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {colors.map((color) => {
+                      const firstVariantOfColor = colorGroups[color][0];
+                      const isSelected = selectedColor === color;
+                      return (
+                        <button
+                          key={color}
+                          onClick={() => {
+                            setSelectedColor(color);
+                            // If current size not available in new color, pick first available size
+                            const firstSizeInNewColor = colorGroups[color][0]?.size;
+                            if (firstSizeInNewColor && !colorGroups[color].find((v:any) => v.size === selectedSize)) {
+                              setSelectedSize(firstSizeInNewColor);
+                            }
+                          }}
+                          className={`flex-shrink-0 w-14 h-16 rounded-lg overflow-hidden border-2 transition-all p-0.5 ${
+                            isSelected ? "border-pink-500 ring-2 ring-pink-50 bg-pink-50" : "border-neutral-100 bg-white"
+                          }`}>
+                          <div className="w-full h-full rounded-md overflow-hidden bg-neutral-100">
+                             <img 
+                               src={firstVariantOfColor.imageUrl || product.imageUrl} 
+                               alt={color}
+                               className="w-full h-full object-cover"
+                             />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Generic Variant Selection (Fallback for legacy data) */}
+              {showGenericVariations && (
+                <div className="mb-4 p-3 bg-purple-50/50 rounded-xl border border-purple-100/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select Option</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {product.variations.map((variant: any, index: number) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedVariantIndex(index)}
+                        className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
+                          selectedVariantIndex === index
+                            ? "bg-pink-500 border-pink-500 text-white shadow-sm"
+                            : variant.status === "Sold out" || variant.stock === 0
+                              ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
+                              : "bg-white border-white text-neutral-700 hover:border-pink-200"
                         }`}>
-                      {variantTitle}
-                      {isOutOfStock && (
-                        <span className="ml-1 text-xs">(Out of Stock)</span>
-                      )}
-                    </button>
-                  );
-                })}
+                        {variant.title || variant.value || `Option ${index + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Size Selection - Slimmer */}
+              {(availableSizes.length > 0 || (colors.length > 1 && !showGenericVariations)) && (
+                <div className="mb-4 p-3 bg-purple-50/50 rounded-xl border border-purple-100/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">
+                      {availableSizes.length > 0 ? "Select Size" : "Select Color Option"}
+                    </span>
+                    {availableSizes.length > 0 && (
+                      <button className="text-[9px] font-bold text-pink-500 uppercase border-b border-pink-200">Chart</button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSizes.length > 0 ? (
+                      availableSizes.map((size: string) => {
+                        const isSelected = selectedSize === size;
+                        const variant = colorGroups[selectedColor]?.find((v: any) => v.size === size);
+                        const isOutOfStock = variant?.status === "Sold out" || variant?.stock === 0;
+
+                        return (
+                          <button
+                            key={size}
+                            disabled={isOutOfStock}
+                            onClick={() => setSelectedSize(size)}
+                            className={`min-w-[40px] h-[40px] flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
+                              isSelected
+                                ? "bg-pink-500 border-pink-500 text-white shadow-sm"
+                                : isOutOfStock
+                                  ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
+                                  : "bg-white border-white text-neutral-700 hover:border-pink-200"
+                            }`}>
+                            {size}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      // If no sizes but multiple colors, show color names in chips as fallback/addition
+                      colorGroups[selectedColor]?.map((variant: any, index: number) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            const vIndex = product.variations.indexOf(variant);
+                            if (vIndex !== -1) setSelectedVariantIndex(vIndex);
+                          }}
+                          className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
+                            selectedVariantIndex === product.variations.indexOf(variant)
+                              ? "bg-pink-500 border-pink-500 text-white shadow-sm"
+                              : variant.status === "Sold out" || variant.stock === 0
+                                ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
+                                : "bg-white border-white text-neutral-700 hover:border-pink-200"
+                          }`}>
+                          {variant.title || variant.value || selectedColor}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Delivery Details Card - Dynamic & Small */}
+              <div className="mb-4 p-4 bg-white border border-neutral-100 rounded-2xl shadow-sm">
+                <h3 className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mb-2.5">Delivery details</h3>
+                
+                {/* User Address */}
+                <button 
+                  onClick={() => navigate('/addresses')}
+                  className="w-full flex items-start gap-2.5 mb-3.5 text-left group">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
+                    <MapPin size={16} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                       <span className="text-[11px] font-bold text-neutral-900 uppercase tracking-tighter">
+                         {user ? "DELIVER TO" : "SELECT ADDRESS"}
+                       </span>
+                       <ChevronRight className="text-neutral-300" size={16} />
+                    </div>
+                    <p className="text-[11px] text-neutral-500 leading-tight mt-0.5 line-clamp-2">
+                       {isAddressLoading ? (
+                         "Fetching your address..."
+                       ) : user ? (
+                         deliveredAddress ? (
+                           `${deliveredAddress.address}, ${deliveredAddress.city}`
+                         ) : (
+                           "No address found. Click to add one."
+                         )
+                       ) : (
+                         "Login to see your saved addresses"
+                       )}
+                    </p>
+                  </div>
+                </button>
+
+                <div className="h-px bg-neutral-50 mb-3.5"></div>
+
+                {/* Delivery Message */}
+                <div className="flex items-center gap-2.5 mb-3.5">
+                   <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-pink-600">
+                     <Truck size={16} />
+                   </div>
+                   <div>
+                     <p className="text-xs font-bold text-neutral-900">Blink and it’s there</p>
+                     <p className="text-[11px] text-neutral-500 font-medium">— 24 minutes.</p>
+                   </div>
+                </div>
+
+                {/* Fulfilled By - Dynamic Seller */}
+                <div className="flex items-center gap-2.5 p-2.5 bg-neutral-50 rounded-lg">
+                   <div className="w-8 h-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-neutral-400">
+                     <Package size={16} />
+                   </div>
+                   <div className="flex-1">
+                     <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest leading-none">Fulfilled by</p>
+                     <p className="text-xs font-bold text-neutral-900 leading-tight">
+                        {product.seller?.storeName || "Premium Store"}
+                        {product.seller?.city && <span className="text-[10px] text-neutral-400 font-medium ml-1">· {product.seller.city}</span>}
+                     </p>
+                   </div>
+                </div>
+              </div>
+
+              {/* Product Highlights & Info - Direct access */}
+              <div className="space-y-1.5 mb-4">
+                {/* Highlights Section */}
+                <div className="bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100">
+                  <button
+                    onClick={() => setIsHighlightsExpanded(!isHighlightsExpanded)}
+                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-neutral-100/50 transition-colors">
+                    <span className="text-[13px] font-bold text-neutral-800">
+                      Highlights
+                    </span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`transition-transform text-neutral-400 ${isHighlightsExpanded ? "rotate-180" : ""}`}>
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  {isHighlightsExpanded && (
+                    <div className="bg-white px-4 pb-3 pt-0.5">
+                      <div className="space-y-1">
+                        {product.tags && product.tags.length > 0 && (
+                          <div className="flex items-start">
+                            <span className="text-[11px] font-bold text-neutral-400 w-24 flex-shrink-0 uppercase tracking-tight">Key Features</span>
+                            <span className="text-[11px] text-neutral-700 font-medium">
+                              {product.tags.map((tag: string, index: number) => (
+                                <span key={tag}>
+                                  {tag.replace(/-/g, " ").split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                                  {index < (product.tags?.length || 0) - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-start">
+                          <span className="text-[11px] font-bold text-neutral-400 w-24 flex-shrink-0 uppercase tracking-tight">Source</span>
+                          <span className="text-[11px] text-neutral-700 font-medium">{product.madeIn || "From India"}</span>
+                        </div>
+                        {category && (
+                          <div className="flex items-start">
+                            <span className="text-[11px] font-bold text-neutral-400 w-24 flex-shrink-0 uppercase tracking-tight">Category</span>
+                            <span className="text-[11px] text-neutral-700 font-medium">{category.name}</span>
+                          </div>
+                        )}
+                        {product.netQuantity && (
+                          <div className="flex items-start">
+                            <span className="text-[11px] font-bold text-neutral-400 w-24 flex-shrink-0 uppercase tracking-tight">Net Quantity</span>
+                            <span className="text-[11px] text-neutral-700 font-medium">{product.netQuantity}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Section */}
+                <div className="bg-neutral-50 rounded-xl overflow-hidden border border-neutral-100">
+                  <button
+                    onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+                    className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-neutral-100/50 transition-colors">
+                    <span className="text-[13px] font-bold text-neutral-800">
+                      Info
+                    </span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`transition-transform text-neutral-400 ${isInfoExpanded ? "rotate-180" : ""}`}>
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  {isInfoExpanded && (
+                    <div className="bg-white px-4 pb-3 pt-0.5">
+                       <div className="space-y-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">Cancellation Policy</span>
+                          <p className="text-[11px] text-neutral-600 font-medium leading-relaxed">
+                            Product cannot be cancelled once the store has accepted the order.
+                          </p>
+                        </div>
+                        
+                        {product.manufacturer && (
+                          <div className="flex flex-col gap-1 border-t border-neutral-50 pt-1.5">
+                            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">Manufacturer Details</span>
+                            <p className="text-[11px] text-neutral-600 font-medium leading-relaxed">{product.manufacturer}</p>
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-col gap-1 border-t border-neutral-50 pt-1.5">
+                          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none">About Product</span>
+                          <p className="text-[11px] text-neutral-600 font-medium leading-relaxed">
+                            {product.description || "No additional information available for this product."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Quantity/Pack */}
-          <p className="text-sm md:text-base text-neutral-600 mb-1">
-            {variantTitle}
-          </p>
-
-          {/* Price section */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xl font-bold text-neutral-900">
-              ₹{variantPrice.toLocaleString("en-IN")}
-            </span>
-            {hasDiscount && (
-              <>
-                <span className="text-sm text-neutral-500 line-through">
-                  ₹{variantMrp.toLocaleString("en-IN")}
-                </span>
-                {discount > 0 && (
-                  <Badge className="!bg-pink-500 !text-white !border-pink-500 text-xs px-2 py-0.5 rounded-full font-bold animate-pulse">
-                    {discount}% OFF
-                  </Badge>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Stock Status */}
-          {variantStock !== 0 &&
-            variantStock !== undefined &&
-            variantStock !== null && (
-              <p className="text-sm text-neutral-600 mb-1">
-                {variantStock > 0 ? `${variantStock} in stock` : "Out of stock"}
-              </p>
-            )}
-
-          {/* Divider line */}
-          <div className="border-t border-neutral-200 mb-1.5"></div>
-
-          {/* View product details link */}
-          <button
-            onClick={() =>
-              setIsProductDetailsExpanded(!isProductDetailsExpanded)
-            }
-            className="flex items-center gap-1 text-sm text-violet-600 font-bold hover:text-violet-700 transition-colors">
-            View product details
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`transition-transform ${isProductDetailsExpanded ? "rotate-180" : ""
-                }`}>
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
 
         {/* Expanded Product Details Section */}
-        {isProductDetailsExpanded && (
-          <div className="mt-1.5">
-            {/* Service Guarantees Card */}
-            <div className="bg-white rounded-lg p-3 mb-2">
-              <div className="grid grid-cols-3 gap-2">
-                {/* Replacement */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3M20.49 15a9 9 0 0 1-14.85 3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    48 hours
-                  </span>
-                  <span className="text-xs text-neutral-600">Replacement</span>
-                </div>
 
-                {/* Support */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M13 8H7M17 12H7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    24/7
-                  </span>
-                  <span className="text-xs text-neutral-600">Support</span>
-                </div>
 
-                {/* Delivery */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M5 17H2l1-7h18l1 7h-3M5 17l-1-5h20l-1 5M5 17v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5M9 22h6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    Fast
-                  </span>
-                  <span className="text-xs text-neutral-600">Delivery</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Highlights Section */}
-            <div className="bg-neutral-100 rounded-lg mb-2 overflow-hidden">
-              <button
-                onClick={() => setIsHighlightsExpanded(!isHighlightsExpanded)}
-                className="w-full px-2 py-2.5 flex items-center justify-between bg-neutral-100">
-                <span className="text-sm font-semibold text-neutral-700">
-                  Highlights
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`transition-transform ${isHighlightsExpanded ? "rotate-180" : ""
-                    }`}>
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isHighlightsExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
-                    {product.tags && product.tags.length > 0 && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Key Features:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {product.tags.map((tag: string, index: number) => (
-                            <span key={tag}>
-                              {tag
-                                .replace(/-/g, " ")
-                                .split(" ")
-                                .map(
-                                  (word: string) =>
-                                    word.charAt(0).toUpperCase() + word.slice(1)
-                                )
-                                .join(" ")}
-                              {index < (product.tags?.length || 0) - 1
-                                ? ", "
-                                : ""}
-                            </span>
-                          ))}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Source:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.madeIn || "From India"}
-                      </span>
-                    </div>
-                    {category && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Category:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {category.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Info Section */}
-            <div className="bg-neutral-100 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setIsInfoExpanded(!isInfoExpanded)}
-                className="w-full px-2 py-2.5 flex items-center justify-between bg-neutral-100">
-                <span className="text-sm font-semibold text-neutral-700">
-                  Info
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`transition-transform ${isInfoExpanded ? "rotate-180" : ""
-                    }`}>
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isInfoExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
-                    {product.description && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Description:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          {product.description}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Unit:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.pack}
-                      </span>
-                    </div>
-                    {product.fssaiLicNo && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          FSSAI License:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {product.fssaiLicNo}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Shelf Life:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Refer to package
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Disclaimer:
-                      </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                        Every effort is made to maintain accuracy of all
-                        Information. However, actual product packaging and
-                        materials may contain more and/or different information.
-                        It is recommended not to solely rely on the information
-                        presented.
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Customer Care Details:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Email: help@vrushahi.com
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Country of Origin:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.madeIn || "India"}
-                      </span>
-                    </div>
-                    {product.manufacturer && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Manufacturer:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          {product.manufacturer}
-                        </span>
-                      </div>
-                    )}
-                    {/* Marketer same as manufacturer if not present, or hidden */}
-
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Return Policy:
-                      </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                        {product.isReturnable
-                          ? `This product is returnable within ${product.maxReturnDays || 2
-                          } days.`
-                          : "This product is non-returnable."}
-                      </span>
-                    </div>
-                    {product.sellerId && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Seller:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          vrushahi Partner (
-                          {product.sellerId.slice(-6).toUpperCase()})
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Reviews Section */}
-        <div className="bg-white px-4 md:px-6 lg:px-8 py-6 border-t border-neutral-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-neutral-900">
-              Ratings & Reviews
-            </h3>
-            {reviews.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-bold text-neutral-900">
-                  {product.rating || "4.5"}
-                </span>
-                <div className="flex text-yellow-500">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                </div>
-                <span className="text-xs text-neutral-500">
-                  ({reviews.length} reviews)
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Reviews Section - Content only */}
+        <div className="bg-white px-4 md:px-6 lg:px-8 py-2">
+          {reviews.length > 0 && (
+             <h3 className="text-sm font-bold text-neutral-900 mb-4 uppercase tracking-wider opacity-50">
+               Customer Feedback
+             </h3>
+          )}
 
           {reviewsLoading ? (
             <div className="flex justify-center py-4">
@@ -1060,13 +1046,7 @@ export default function ProductDetail() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-neutral-500">
-                No reviews yet. Be the first to review!
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Top products in this category */}
@@ -1094,73 +1074,43 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Sticky Footer - positioned above mobile nav */}
       {/* Sticky Footer - redesigned with gradient and shadow */}
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-neutral-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] md:pb-0">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Left side - Product details */}
+      {/* Sticky Footer - redesigned with side-by-side pink buttons */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-neutral-100 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-4 py-3">
+        <div className="max-w-7xl mx-auto flex gap-3">
+          {/* Add to cart / Quantity Stepper */}
           <div className="flex-1">
-            {/* First line - Pack size */}
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] text-neutral-500 font-medium uppercase tracking-wider">
-                {variantTitle}
-              </span>
-            </div>
-            {/* Second line - Price, MRP, and OFF */}
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-black text-neutral-900 tracking-tight">
-                ₹{variantPrice.toLocaleString("en-IN")}
-              </span>
-              {hasDiscount && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-neutral-400 line-through">
-                    ₹{variantMrp.toLocaleString("en-IN")}
-                  </span>
-                  {discount > 0 && (
-                    <span className="text-[11px] font-black text-pink-500 uppercase">
-                      {discount}% OFF
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Third line - Inclusive of all taxes */}
-            <p className="text-[10px] text-neutral-400 font-medium">
-              Inclusive of all taxes
-            </p>
-          </div>
-
-          {/* Right side - Add to cart button or Quantity Stepper */}
-          <div className="flex items-center">
             <AnimatePresence mode="wait">
               {inCartQty === 0 ? (
                 <motion.div
                   key="add-button"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}>
-                  <Button
+                  exit={{ opacity: 0, y: -10 }}>
+                  <button
                     ref={addButtonRef}
                     onClick={handleAddToCart}
                     disabled={
                       !isAvailableAtLocation ||
                       (!isVariantAvailable && variantStock !== 0)
                     }
-                    className={`h-[48px] px-8 rounded-2xl text-base font-bold transition-all shadow-lg hover:shadow-violet-200 active:scale-95 ${
+                    className={`w-full h-11 rounded-xl text-sm font-bold transition-all border-2 flex items-center justify-center gap-2 ${
                       !isAvailableAtLocation ||
                       (!isVariantAvailable && variantStock !== 0)
-                        ? "bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none"
-                        : "bg-gradient-to-r from-violet-600 via-violet-500 to-pink-500 text-white border-none"
+                        ? "bg-neutral-50 text-neutral-300 border-neutral-100 cursor-not-allowed uppercase tracking-wider"
+                        : "bg-white text-pink-500 border-pink-500 hover:bg-pink-50 active:scale-95 shadow-md shadow-pink-50"
                     }`}>
                     {!isAvailableAtLocation
                       ? "Unavailable"
                       : !isVariantAvailable && variantStock !== 0
                         ? "Out of Stock"
                         : "Add to Cart"}
-                  </Button>
+                  </button>
                 </motion.div>
               ) : (
                 <motion.div
@@ -1168,7 +1118,7 @@ export default function ProductDetail() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="flex items-center gap-4 bg-violet-50/50 border-2 border-violet-600/20 rounded-2xl px-3 py-1.5">
+                  className="flex items-center justify-between bg-pink-500 text-white rounded-xl h-11 px-2 shadow-md shadow-pink-100">
                   <button
                     onClick={() => {
                       const productId = product.id || product._id;
@@ -1180,10 +1130,10 @@ export default function ProductDetail() {
                         variantTitle
                       );
                     }}
-                    className="w-8 h-8 flex items-center justify-center bg-violet-600 text-white rounded-xl shadow-md active:scale-90 transition-all">
-                    <span className="text-xl font-bold">−</span>
+                    className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                    <span className="text-lg font-bold">−</span>
                   </button>
-                  <span className="text-lg font-black text-violet-600 min-w-[1.5rem] text-center">
+                  <span className="text-base font-bold min-w-[1.2rem] text-center">
                     {inCartQty}
                   </span>
                   <button
@@ -1197,13 +1147,24 @@ export default function ProductDetail() {
                         variantTitle
                       );
                     }}
-                    className="w-8 h-8 flex items-center justify-center bg-violet-600 text-white rounded-xl shadow-md active:scale-90 transition-all">
-                    <span className="text-xl font-bold">+</span>
+                    className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                    <span className="text-lg font-bold">+</span>
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
+          {/* Buy Now Button */}
+          <button
+            onClick={() => {
+              if (inCartQty === 0) handleAddToCart();
+              navigate('/checkout');
+            }}
+            disabled={!isVariantAvailable && variantStock !== 0}
+            className="flex-1 h-11 bg-pink-500 text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-pink-600 active:scale-95 transition-all shadow-md shadow-pink-100 disabled:opacity-50 disabled:cursor-not-allowed">
+            Buy Now
+          </button>
         </div>
       </div>
     </div>

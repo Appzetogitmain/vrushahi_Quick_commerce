@@ -143,6 +143,18 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Net Quantity (e.g. 500ml, 1kg, 1 Unit)</label>
+                <input
+                  type="text"
+                  name="netQuantity"
+                  value={formData.netQuantity}
+                  onChange={handleChange}
+                  placeholder="Selling item quantity"
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-medium"
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">Category <span className="text-rose-500">*</span></label>
                 <select
                   name="category"
@@ -425,8 +437,28 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
               
               <div className="bg-neutral-50 p-6 rounded-2xl border border-neutral-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-semibold text-neutral-500 mb-1 uppercase tracking-wider">Color</label>
+                    <input
+                      type="text"
+                      value={variationForm.color || ''}
+                      onChange={(e) => setVariationForm({...variationForm, color: e.target.value})}
+                      placeholder="e.g. Lavender"
+                      className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="block text-xs font-semibold text-neutral-500 mb-1 uppercase tracking-wider">Size</label>
+                    <input
+                      type="text"
+                      value={variationForm.size || ''}
+                      onChange={(e) => setVariationForm({...variationForm, size: e.target.value})}
+                      placeholder="e.g. M, XL"
+                      className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-neutral-500 mb-1 uppercase tracking-wider">Variation Title</label>
+                    <label className="block text-xs font-semibold text-neutral-500 mb-1 uppercase tracking-wider">Variation Title (Internal)</label>
                     <input
                       type="text"
                       value={variationForm.title}
@@ -480,7 +512,8 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     <table className="w-full text-left">
                       <thead className="bg-neutral-50 border-b border-neutral-200">
                         <tr>
-                          <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase">Variant</th>
+                          <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase">Color</th>
+                          <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase">Size</th>
                           <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase">Price</th>
                           <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase">Stock</th>
                           <th className="px-4 py-3 text-xs font-bold text-neutral-500 uppercase text-right">Actions</th>
@@ -489,7 +522,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                       <tbody>
                         {variations.map((v, i) => (
                           <tr key={i} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors">
-                            <td className="px-4 py-3 font-semibold text-neutral-800">{v.title || v.value}</td>
+                             <td className="px-4 py-3 font-semibold text-neutral-800">
+                                {v.color || "—"}
+                             </td>
+                             <td className="px-4 py-3 font-semibold text-neutral-800">
+                                {v.size || "—"}
+                             </td>
                             <td className="px-4 py-3">
                               <span className="font-bold text-teal-700">₹{v.discPrice || v.price}</span>
                               {v.discPrice > 0 && v.discPrice < v.price && (

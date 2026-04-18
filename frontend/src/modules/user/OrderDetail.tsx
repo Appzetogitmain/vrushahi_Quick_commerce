@@ -826,7 +826,7 @@ export default function OrderDetail() {
         const elapsedMins = Math.floor((now - orderTime) / 60000);
         if (elapsedMins < targetLimit) {
           setDeliveryPromiseInfo({
-            message: "Arriving within 24 mins",
+            message: "Arriving within 24 minutes",
             isLate: false,
             delayMins: 0
           });

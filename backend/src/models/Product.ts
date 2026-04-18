@@ -33,6 +33,8 @@ export interface IProduct extends Document {
   variations?: Array<{
     name: string;
     value: string;
+    color?: string;
+    size?: string;
     price?: number;
     discPrice?: number;
     stock?: number;
@@ -99,6 +101,7 @@ export interface IProduct extends Document {
   specs?: any;
   sizeChartUrl?: string;
   attributes?: any;
+  netQuantity?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -203,6 +206,8 @@ const ProductSchema = new Schema<IProduct>(
         {
           name: String,
           value: String,
+          color: String,
+          size: String,
           price: Number,
           discPrice: { type: Number, default: 0 },
           stock: Number,
@@ -372,6 +377,10 @@ const ProductSchema = new Schema<IProduct>(
     attributes: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    netQuantity: {
+      type: String,
+      trim: true,
     },
   },
   {
