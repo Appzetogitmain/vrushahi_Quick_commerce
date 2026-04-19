@@ -19,7 +19,7 @@ import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import ProductCard from "./components/ProductCard";
-import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package } from "lucide-react";
+import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package, Home, Store, Star, DoorOpen, RotateCcw, Banknote, ShieldCheck, X } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -47,8 +47,6 @@ export default function ProductDetail() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(0);
-  const [selectedColor, setSelectedColor] = useState<string>("");
-  const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -101,14 +99,7 @@ export default function ProductDetail() {
           });
 
           // Initialize variations
-          if (productData.variations && productData.variations.length > 0) {
-            const firstVar = productData.variations[0];
-            setSelectedColor(firstVar.color || "");
-            setSelectedSize(firstVar.size || "");
-            setSelectedVariantIndex(0);
-          } else {
-            setSelectedVariantIndex(0);
-          }
+          setSelectedVariantIndex(0);
 
           // Reset selected image when product changes
           setSelectedImageIndex(0);
@@ -179,49 +170,10 @@ export default function ProductDetail() {
     fetchDefaultAddress();
   }, [isAuthenticated]);
 
-  // Get variations grouped by color
-  const colorGroups = product?.variations?.reduce((acc: any, curr: any) => {
-    const color = curr.color || "Default";
-    if (!acc[color]) acc[color] = [];
-    acc[color].push(curr);
-    return acc;
-  }, {}) || {};
+  // Variation Selection logic refined
+  const variations = product?.variations || [];
+  const selectedVariant = variations[selectedVariantIndex] || null;
 
-  const colors = Object.keys(colorGroups);
-  
-  // Available sizes for selected color
-  const availableSizes = selectedColor 
-    ? [...new Set(colorGroups[selectedColor]?.map((v: any) => v.size).filter(Boolean))] as string[]
-    : [];
-
-  // Check if we should show generic variations (if color/size schema isn't fully used but multiple variants exist)
-  const showGenericVariations = 
-    product?.variations && 
-    product.variations.length > 1 && 
-    (colors.length <= 1 && colors[0] === "Default") && 
-    availableSizes.length === 0;
-
-  // Update selected variant when color or size changes
-  useEffect(() => {
-    if (product?.variations) {
-      const index = product.variations.findIndex((v: any) => {
-        if (selectedColor && selectedSize) {
-          return v.color === selectedColor && v.size === selectedSize;
-        } else if (selectedColor) {
-          return v.color === selectedColor;
-        } else if (selectedSize) {
-          return v.size === selectedSize;
-        }
-        return false;
-      });
-      if (index !== -1) {
-        setSelectedVariantIndex(index);
-      }
-    }
-  }, [selectedColor, selectedSize, product?.variations]);
-
-  // Get selected variant
-  const selectedVariant = product?.variations?.[selectedVariantIndex] || null;
   const {
     displayPrice: variantPrice,
     mrp: variantMrp,
@@ -233,14 +185,16 @@ export default function ProductDetail() {
     selectedVariant?.stock !== undefined
       ? selectedVariant.stock
       : product?.stock || 0;
+
   const variantTitle =
     selectedVariant?.title ||
     selectedVariant?.value ||
     product?.pack ||
     "Standard";
+
   const isVariantAvailable =
     selectedVariant?.status !== "Sold out" &&
-    (variantStock > 0 || variantStock === 0); // 0 means unlimited
+    variantStock > 0;
 
   // Get all images for gallery
   const allImages =
@@ -686,9 +640,14 @@ export default function ProductDetail() {
               )}
 
               {/* Product Name */}
-              <h1 className="text-lg md:text-xl font-bold text-neutral-900 mb-1 leading-tight">
+              <h1 className="text-lg md:text-xl font-bold text-neutral-900 leading-tight">
                 {product.name}
               </h1>
+              {product.smallDescription && (
+                <p className="text-[13px] text-neutral-500 mb-1.5 font-medium leading-tight">
+                  {product.smallDescription}
+                </p>
+              )}
 
               {/* Pricing Section - Compact single line */}
               <div className="flex items-center gap-2.5 mb-3 flex-wrap">
@@ -708,39 +667,30 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {/* Variant Selection - Compact */}
-              {colors.length > 0 && colors[0] !== "Default" && (
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-neutral-700">
-                      Color: <span className="text-neutral-500 font-medium">{selectedColor}</span>
-                    </span>
+              {/* Variant Selection - Modern Chips */}
+              {variations.length > 1 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select Variant</span>
                   </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    {colors.map((color) => {
-                      const firstVariantOfColor = colorGroups[color][0];
-                      const isSelected = selectedColor === color;
+                  <div className="flex flex-wrap gap-2">
+                    {variations.map((variant: any, index: number) => {
+                      const isSelected = selectedVariantIndex === index;
+                      const isOutOfStock = variant.status === "Sold out" || variant.stock === 0;
+
                       return (
                         <button
-                          key={color}
-                          onClick={() => {
-                            setSelectedColor(color);
-                            // If current size not available in new color, pick first available size
-                            const firstSizeInNewColor = colorGroups[color][0]?.size;
-                            if (firstSizeInNewColor && !colorGroups[color].find((v:any) => v.size === selectedSize)) {
-                              setSelectedSize(firstSizeInNewColor);
-                            }
-                          }}
-                          className={`flex-shrink-0 w-14 h-16 rounded-lg overflow-hidden border-2 transition-all p-0.5 ${
-                            isSelected ? "border-pink-500 ring-2 ring-pink-50 bg-pink-50" : "border-neutral-100 bg-white"
+                          key={index}
+                          disabled={isOutOfStock}
+                          onClick={() => setSelectedVariantIndex(index)}
+                          className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
+                            isSelected
+                              ? "bg-pink-500 border-pink-500 text-white shadow-md scale-[1.02]"
+                              : isOutOfStock
+                                ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
+                                : "bg-white border-neutral-100 text-neutral-700 hover:border-pink-200"
                           }`}>
-                          <div className="w-full h-full rounded-md overflow-hidden bg-neutral-100">
-                             <img 
-                               src={firstVariantOfColor.imageUrl || product.imageUrl} 
-                               alt={color}
-                               className="w-full h-full object-cover"
-                             />
-                          </div>
+                          {variant.title || variant.value || `Option ${index + 1}`}
                         </button>
                       );
                     })}
@@ -748,148 +698,95 @@ export default function ProductDetail() {
                 </div>
               )}
 
-              {/* Generic Variant Selection (Fallback for legacy data) */}
-              {showGenericVariations && (
-                <div className="mb-4 p-3 bg-purple-50/50 rounded-xl border border-purple-100/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select Option</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {product.variations.map((variant: any, index: number) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedVariantIndex(index)}
-                        className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
-                          selectedVariantIndex === index
-                            ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-                            : variant.status === "Sold out" || variant.stock === 0
-                              ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
-                              : "bg-white border-white text-neutral-700 hover:border-pink-200"
-                        }`}>
-                        {variant.title || variant.value || `Option ${index + 1}`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Size Selection - Slimmer */}
-              {(availableSizes.length > 0 || (colors.length > 1 && !showGenericVariations)) && (
-                <div className="mb-4 p-3 bg-purple-50/50 rounded-xl border border-purple-100/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">
-                      {availableSizes.length > 0 ? "Select Size" : "Select Color Option"}
-                    </span>
-                    {availableSizes.length > 0 && (
-                      <button className="text-[9px] font-bold text-pink-500 uppercase border-b border-pink-200">Chart</button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {availableSizes.length > 0 ? (
-                      availableSizes.map((size: string) => {
-                        const isSelected = selectedSize === size;
-                        const variant = colorGroups[selectedColor]?.find((v: any) => v.size === size);
-                        const isOutOfStock = variant?.status === "Sold out" || variant?.stock === 0;
-
-                        return (
-                          <button
-                            key={size}
-                            disabled={isOutOfStock}
-                            onClick={() => setSelectedSize(size)}
-                            className={`min-w-[40px] h-[40px] flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
-                              isSelected
-                                ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-                                : isOutOfStock
-                                  ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
-                                  : "bg-white border-white text-neutral-700 hover:border-pink-200"
-                            }`}>
-                            {size}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      // If no sizes but multiple colors, show color names in chips as fallback/addition
-                      colorGroups[selectedColor]?.map((variant: any, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            const vIndex = product.variations.indexOf(variant);
-                            if (vIndex !== -1) setSelectedVariantIndex(vIndex);
-                          }}
-                          className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
-                            selectedVariantIndex === product.variations.indexOf(variant)
-                              ? "bg-pink-500 border-pink-500 text-white shadow-sm"
-                              : variant.status === "Sold out" || variant.stock === 0
-                                ? "bg-neutral-50 border-neutral-100 text-neutral-300 cursor-not-allowed"
-                                : "bg-white border-white text-neutral-700 hover:border-pink-200"
-                          }`}>
-                          {variant.title || variant.value || selectedColor}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Delivery Details Card - Dynamic & Small */}
-              <div className="mb-4 p-4 bg-white border border-neutral-100 rounded-2xl shadow-sm">
-                <h3 className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mb-2.5">Delivery details</h3>
+              {/* Delivery Details Section - Professional & Branded */}
+              <div className="mb-4">
+                <h3 className="text-sm font-bold text-neutral-800 mb-2.5">Delivery details</h3>
                 
-                {/* User Address */}
-                <button 
-                  onClick={() => navigate('/addresses')}
-                  className="w-full flex items-start gap-2.5 mb-3.5 text-left group">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-100 transition-colors">
-                    <MapPin size={16} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                       <span className="text-[11px] font-bold text-neutral-900 uppercase tracking-tighter">
-                         {user ? "DELIVER TO" : "SELECT ADDRESS"}
-                       </span>
-                       <ChevronRight className="text-neutral-300" size={16} />
+                <div className="space-y-1.5">
+                  {/* User Address Box */}
+                  <button 
+                    onClick={() => navigate('/addresses')}
+                    className="w-full flex items-center justify-between p-3 bg-violet-50 rounded-xl group transition-all hover:bg-violet-100 border border-violet-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-violet-600 shadow-sm">
+                        <Home size={18} />
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-neutral-900 uppercase tracking-wider">HOME</span>
+                          <span className="text-[10px] text-violet-600 font-bold bg-violet-100 px-1.5 py-0.5 rounded uppercase">Current</span>
+                        </div>
+                        <p className="text-[11px] text-neutral-500 font-medium truncate max-w-[180px] mt-0.5">
+                          {deliveredAddress ? `${deliveredAddress.address}, ${deliveredAddress.city}` : "Select delivery address"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-neutral-500 leading-tight mt-0.5 line-clamp-2">
-                       {isAddressLoading ? (
-                         "Fetching your address..."
-                       ) : user ? (
-                         deliveredAddress ? (
-                           `${deliveredAddress.address}, ${deliveredAddress.city}`
-                         ) : (
-                           "No address found. Click to add one."
-                         )
-                       ) : (
-                         "Login to see your saved addresses"
-                       )}
-                    </p>
+                    <ChevronRight size={16} className="text-violet-400 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+
+                  {/* Delivery Time Box */}
+                  <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100/50">
+                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-neutral-600 shadow-sm">
+                      <Truck size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
+                        Delivery in <span className="font-black text-violet-600 italic">24 Minutes</span>
+                      </p>
+                    </div>
                   </div>
-                </button>
 
-                <div className="h-px bg-neutral-50 mb-3.5"></div>
+                  {/* Seller Info Box */}
+                  <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-100/50">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-neutral-600 shadow-sm">
+                        <Store size={18} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest leading-none mb-1">Fulfilled by</p>
+                        <p className="text-[12px] font-bold text-neutral-800 leading-none">
+                          {product.seller?.storeName || "SuperComNet"}
+                        </p>
+                      </div>
+                    </div>
+                    </div>
+                  </div>
 
-                {/* Delivery Message */}
-                <div className="flex items-center gap-2.5 mb-3.5">
-                   <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-pink-600">
-                     <Truck size={16} />
-                   </div>
-                   <div>
-                     <p className="text-xs font-bold text-neutral-900">Blink and it’s there</p>
-                     <p className="text-[11px] text-neutral-500 font-medium">— 24 minutes.</p>
-                   </div>
-                </div>
+                {/* Service Icons Row */}
+                <div className="grid grid-cols-4 gap-2 mt-5 pt-5 border-t border-neutral-100">
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 relative border border-neutral-100 group-hover:bg-red-50 transition-colors">
+                       <DoorOpen size={20} className="text-neutral-500 group-hover:text-red-500 transition-colors" />
+                       <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-neutral-100 shadow-sm">
+                         <X size={10} className="text-red-500 font-bold" strokeWidth={3} />
+                       </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">Doorstep<br/>cancellation</span>
+                  </div>
 
-                {/* Fulfilled By - Dynamic Seller */}
-                <div className="flex items-center gap-2.5 p-2.5 bg-neutral-50 rounded-lg">
-                   <div className="w-8 h-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center text-neutral-400">
-                     <Package size={16} />
-                   </div>
-                   <div className="flex-1">
-                     <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest leading-none">Fulfilled by</p>
-                     <p className="text-xs font-bold text-neutral-900 leading-tight">
-                        {product.seller?.storeName || "Premium Store"}
-                        {product.seller?.city && <span className="text-[10px] text-neutral-400 font-medium ml-1">· {product.seller.city}</span>}
-                     </p>
-                   </div>
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 relative border border-neutral-100 group-hover:bg-red-50 transition-colors">
+                       <RotateCcw size={20} className="text-neutral-500 group-hover:text-red-500 transition-colors" />
+                       <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-neutral-100 shadow-sm">
+                         <X size={10} className="text-red-500 font-bold" strokeWidth={3} />
+                       </div>
+                    </div>
+                    <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">No<br/>returns</span>
+                  </div>
+
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 border border-neutral-100 group-hover:bg-violet-50 transition-colors">
+                       <Banknote size={20} className="text-neutral-500 group-hover:text-violet-600 transition-colors" />
+                    </div>
+                    <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">Cash on<br/>Delivery</span>
+                  </div>
+
+                  <div className="flex flex-col items-center text-center group">
+                    <div className="w-10 h-10 rounded-full bg-violet-50 flex items-center justify-center mb-1.5 border border-violet-100 shadow-sm group-hover:bg-violet-100 transition-colors">
+                       <ShieldCheck size={20} className="text-violet-600" />
+                    </div>
+                    <span className="text-[9px] font-bold text-violet-600 leading-tight uppercase tracking-tighter">Vrushahi<br/>assured</span>
+                  </div>
                 </div>
               </div>
 

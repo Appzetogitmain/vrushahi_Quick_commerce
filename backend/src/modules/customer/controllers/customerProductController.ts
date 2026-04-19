@@ -270,7 +270,7 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName city fssaiLicNo address location serviceRadiusKm"
+        "storeName city fssaiLicNo address location serviceRadiusKm rating reviewsCount createdAt"
       );
 
     if (!product) {

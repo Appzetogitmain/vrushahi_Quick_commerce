@@ -82,8 +82,6 @@ export default function SellerAddProduct() {
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [variationForm, setVariationForm] = useState({
     title: "",
-    color: "",
-    size: "",
     price: "",
     discPrice: "0",
     stock: "0",
@@ -273,21 +271,35 @@ export default function SellerAddProduct() {
   };
 
   const addVariation = () => {
+    const price = parseFloat(variationForm.price);
+    const stock = parseInt(variationForm.stock);
+
     if (!variationForm.title || !variationForm.price) {
       showToast("Title and Price are required", "error");
       return;
     }
+
+    if (price <= 0) {
+      showToast("Price must be greater than 0", "error");
+      return;
+    }
+
+    if (stock <= 0) {
+      showToast("Stock must be greater than 0", "error");
+      return;
+    }
+
     const newVar: ProductVariation = {
       title: variationForm.title,
-      color: variationForm.color,
-      size: variationForm.size,
+      color: "",
+      size: "",
       price: parseFloat(variationForm.price),
       discPrice: parseFloat(variationForm.discPrice || "0"),
       stock: parseInt(variationForm.stock || "0"),
       status: variationForm.status,
     };
     setVariations([...variations, newVar]);
-    setVariationForm({ title: "", color: "", size: "", price: "", discPrice: "0", stock: "0", status: "Available" });
+    setVariationForm({ title: "", price: "", discPrice: "0", stock: "0", status: "Available" });
   };
 
   const removeVariation = (index: number) => {

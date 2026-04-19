@@ -79,13 +79,27 @@ export const createProduct = asyncHandler(
       newProductData.tax = productData.taxId;
     }
 
-    // Validate variation prices
-    for (const variation of productData.variations) {
-      if (Number(variation.discPrice) > Number(variation.price)) {
-        return res.status(400).json({
-          success: false,
-          message: `Discounted price (${variation.discPrice}) cannot be greater than price (${variation.price}) for variation ${variation.title}`,
-        });
+    // Validate variation prices and stock
+    if (newProductData.variations) {
+      for (const variation of newProductData.variations) {
+        if (Number(variation.price) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Price must be greater than 0 for variation ${variation.title || variation.value}`,
+          });
+        }
+        if (Number(variation.stock) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Stock must be greater than 0 for variation ${variation.title || variation.value}`,
+          });
+        }
+        if (Number(variation.discPrice) > Number(variation.price)) {
+          return res.status(400).json({
+            success: false,
+            message: `Discounted price (${variation.discPrice}) cannot be greater than price (${variation.price}) for variation ${variation.title || variation.value}`,
+          });
+        }
       }
     }
 
@@ -317,6 +331,18 @@ export const updateProduct = asyncHandler(
       }));
 
       for (const variation of updateData.variations) {
+        if (Number(variation.price) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Price must be greater than 0 for variation ${variation.title || variation.value}`,
+          });
+        }
+        if (Number(variation.stock) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Stock must be greater than 0 for variation ${variation.title || variation.value}`,
+          });
+        }
         if (Number(variation.discPrice) > Number(variation.price)) {
           return res.status(400).json({
             success: false,
