@@ -50,8 +50,12 @@ export const getAllOrdersHistory = asyncHandler(async (req: Request, res: Respon
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        paidVia: order.paidVia,
+        qrPaymentStatus: order.qrPaymentStatus,
 
-        address: `${order.deliveryAddress.address}, ${order.deliveryAddress.city}`,
+        address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         deliveryAddress: order.deliveryAddress,
         totalAmount: order.total,
         items: mapOrderItems(order.items),
@@ -98,6 +102,10 @@ export const getTodayOrders = asyncHandler(async (req: Request, res: Response) =
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        paidVia: order.paidVia,
+        qrPaymentStatus: order.qrPaymentStatus,
 
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         deliveryAddress: order.deliveryAddress,
@@ -135,6 +143,10 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        paidVia: order.paidVia,
+        qrPaymentStatus: order.qrPaymentStatus,
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         items: mapOrderItems(order.items), // Real items
         totalAmount: order.total,
@@ -169,6 +181,11 @@ export const getOrderDetails = asyncHandler(async (req: Request, res: Response) 
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         deliveryAddress: order.deliveryAddress,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        paidVia: order.paidVia,
+        qrPaymentStatus: order.qrPaymentStatus,
+        qrExpiryAt: order.qrExpiryAt,
         items: mapOrderItems(order.items), // Real populated items
         totalAmount: order.total,
         createdAt: order.createdAt,
@@ -281,6 +298,10 @@ export const getReturnOrders = asyncHandler(async (req: Request, res: Response) 
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
+        paidVia: order.paidVia,
+        qrPaymentStatus: order.qrPaymentStatus,
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         items: mapOrderItems(order.items),
         totalAmount: order.total,
@@ -365,6 +386,10 @@ export const sendDeliveryOtp = asyncHandler(async (req: Request, res: Response) 
 
     try {
         const result = await generateDeliveryOtp(id);
+        
+        // Mark as sent so it appears on the customer's screen
+        order.deliveryOtpSent = true;
+        await order.save();
 
         // Emit otp-sent event to delivery boy
         const io = (req.app as any).get("io");
@@ -819,7 +844,12 @@ export const createQrPayment = asyncHandler(async (req: Request, res: Response) 
         id,
         razorpayOrderId!,
         order.total,
-        `Payment for Order ${order.orderNumber}`
+        `Payment for Order ${order.orderNumber}`,
+        {
+            name: order.customerName,
+            contact: order.customerPhone,
+            email: order.customerEmail
+        }
     );
 
     if (!linkResult.success) {
@@ -875,10 +905,23 @@ export const markCashPaid = asyncHandler(async (req: Request, res: Response) => 
         }
     }
 
+    const previousStatus = order.status;
     order.paymentStatus = "Paid";
     order.paidVia = "CASH";
     order.paymentMethod = "COD";
+
+    // Auto-mark as Delivered for COD
+    order.status = "Delivered";
+    order.deliveryBoyStatus = "Delivered";
+    order.deliveredAt = new Date();
     await order.save();
+
+    // Financial transaction processing
+    try {
+        await processOrderStatusTransition(id, 'Delivered', previousStatus);
+    } catch (transitionError: any) {
+        console.error('Error processing order status transition in markCashPaid:', transitionError);
+    }
 
     return res.status(200).json({
         success: true,

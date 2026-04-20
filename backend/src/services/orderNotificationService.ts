@@ -5,6 +5,7 @@ import Seller from '../models/Seller';
 import DeliveryTracking from '../models/DeliveryTracking';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
+import { sendPushNotification } from './firebaseAdmin';
 
 // Track order notification state
 export interface OrderNotificationState {
@@ -324,22 +325,56 @@ export async function notifyDeliveryBoysOfNewOrder(
             createdAt: order.createdAt,
         };
 
+        // Fetch delivery boy documents to get FCM tokens
+        const deliveryBoys = await Delivery.find({
+            _id: { $in: nearbyDeliveryBoyIds }
+        }).select('_id fcmTokens fcmTokenMobile name');
+
+        const deliveryBoyMap = new Map(deliveryBoys.map(db => [db._id.toString(), db]));
+
         // Initialize notification state
         const orderId = order._id.toString();
         const notifiedIds = new Set<string>();
 
-        // Only add delivery boys who are actually connected to the notification room
+        // Notify delivery boys
         for (const id of nearbyDeliveryBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
             const room = io.sockets.adapter.rooms.get(roomName);
+            const deliveryBoy = deliveryBoyMap.get(idString);
 
             if (room && room.size > 0) {
+                // Connected: Send socket notification
                 notifiedIds.add(idString);
                 io.to(roomName).emit('new-order', orderData);
                 console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName}`);
+            } else if (deliveryBoy) {
+                // Disconnected: Fallback to FCM Push Notification
+                const tokens = [
+                    ...(deliveryBoy.fcmTokenMobile || []),
+                    ...(deliveryBoy.fcmTokens || [])
+                ];
+
+                if (tokens.length > 0) {
+                    notifiedIds.add(idString);
+                    // Send FCM in background (don't await to avoid blocking other notifications)
+                    sendPushNotification(tokens, {
+                        title: 'New Order Available! 📦',
+                        body: `Order #${order.orderNumber} is available for delivery near you.`,
+                        data: {
+                            type: 'new_order',
+                            orderId: orderId,
+                            orderNumber: order.orderNumber,
+                            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                        }
+                    }).catch(err => console.error(`Failed to send FCM to delivery boy ${idString}:`, err));
+                    
+                    console.log(`📱 Sent FCM fallback to disconnected delivery boy: ${deliveryBoy.name} (${idString})`);
+                } else {
+                    console.log(`⏩ Skipping disconnected delivery boy (no tokens): ${idString}`);
+                }
             } else {
-                console.log(`⏩ Skipping disconnected delivery boy: ${idString}`);
+                console.log(`⏩ Skipping disconnected delivery boy (not found): ${idString}`);
             }
         }
 

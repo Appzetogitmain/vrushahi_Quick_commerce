@@ -516,9 +516,14 @@ export const getOrderById = async (req: Request, res: Response) => {
             });
         }
 
-        // Get customer's permanent delivery OTP
+        // Get customer's permanent delivery OTP - only if sent and not COD
         const customer = await Customer.findById(userId).select('deliveryOtp');
-        const deliveryOtp = customer?.deliveryOtp;
+        // OTP should only show if:
+        // 1. It's not a COD order (COD uses cash collection logic)
+        // 2. The delivery partner has explicitly clicked "Get OTP" (deliveryOtpSent is true)
+        const deliveryOtp = (order.paymentMethod !== 'COD' && order.deliveryOtpSent) 
+            ? customer?.deliveryOtp 
+            : undefined;
 
         // Transform order to match frontend Order type
         const orderObj = order.toObject();

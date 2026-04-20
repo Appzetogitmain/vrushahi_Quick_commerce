@@ -848,7 +848,7 @@ export default function DeliveryOrderDetail() {
                         {order.paymentStatus === 'Paid' ? (
                             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-tight flex items-center gap-1">
                                 <Icons.CheckCircle size={12} />
-                                {order.paidVia === 'ONLINE_QR' ? 'Paid Online' : 'Collection Done'}
+                                {order.paidVia === 'ONLINE_QR' ? 'Paid via QR' : order.paymentMethod === 'Online' ? 'Paid Online' : 'Collection Done'}
                             </span>
                         ) : (
                             <span className={`px-3 py-1 ${order.paymentMethod === 'COD' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'} rounded-full text-[10px] font-bold uppercase tracking-tight`}>
@@ -1058,8 +1058,8 @@ export default function DeliveryOrderDetail() {
 
             </div>
 
-            {/* Customer Delivery OTP Section (only when order is Out for Delivery) */}
-            {order.status === 'Out for Delivery' && (
+            {/* Customer Delivery OTP Section (only for Prepaid orders and when status is Out for Delivery) */}
+            {order.status === 'Out for Delivery' && order.paymentMethod !== 'COD' && (
                 <div className="fixed bottom-24 left-6 right-6 z-30">
                     <div className="bg-white rounded-2xl p-4 shadow-2xl border border-neutral-200">
                         <p className="text-sm font-semibold text-neutral-900 mb-3">Customer Delivery OTP</p>

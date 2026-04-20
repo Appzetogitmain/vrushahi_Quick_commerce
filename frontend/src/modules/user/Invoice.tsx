@@ -285,7 +285,9 @@ export default function Invoice() {
                             </p>
                             {item.variant && (
                               <p className="text-sm text-gray-500">
-                                {item.variant}
+                                {typeof item.variant === 'object' ? 
+                                  ((item.variant as any).title || (item.variant as any).name || (item.variant as any).value) : 
+                                  item.variant}
                               </p>
                             )}
                           </div>

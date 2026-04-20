@@ -234,7 +234,7 @@ export default function Checkout() {
     fetchSimilar();
   }, [cart?.items?.length]);
 
-  if (cartLoading || ((cart?.items?.length || 0) === 0 && !showOrderSuccess)) {
+  if (cartLoading || ((cart?.items?.length || 0) === 0 && !buyNowItem && !showOrderSuccess)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
@@ -1153,7 +1153,11 @@ export default function Checkout() {
                 </h3>
               </div>
               <div className="text-[10px] text-neutral-500 mb-2">
-                {item.variant ? item.variant : item.product?.pack}
+                {item.variant ? (
+                  typeof item.variant === 'object' ? (
+                    (item.variant as any).title || (item.variant as any).name || (item.variant as any).value || "Standard"
+                  ) : item.variant
+                ) : item.product?.pack}
               </div>
 
               <div className="flex items-center justify-between">
@@ -2117,8 +2121,8 @@ export default function Checkout() {
     <div className="p-3">
       <button
         onClick={handlePlaceOrder}
-        disabled={cart.items.length === 0}
-        className={`w-full py-3 px-4 font-bold text-base uppercase tracking-wider rounded-xl transition-all shadow-lg ${cart.items.length > 0
+        disabled={displayItems.length === 0}
+        className={`w-full py-3 px-4 font-bold text-base uppercase tracking-wider rounded-xl transition-all shadow-lg ${displayItems.length > 0
           ? "bg-[#ff3269] text-white hover:bg-[#ff1f5a] shadow-pink-100"
           : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
           }`}>

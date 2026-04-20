@@ -267,7 +267,11 @@ const OrderSummaryCard = ({ order }: { order: any }) => {
                   {item.variation && (
                     <>
                       <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span>{item.variation}</span>
+                      <span>
+                        {typeof item.variation === 'object' ? 
+                          ((item.variation as any).title || (item.variation as any).name || (item.variation as any).value) : 
+                          item.variation}
+                      </span>
                     </>
                   )}
                 </div>

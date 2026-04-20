@@ -58,10 +58,28 @@ export const createRazorpayOrder = async (
             },
         };
     } catch (error: any) {
-        console.error('Error creating Razorpay order:', error);
+        // Log the full error object for server-side debugging
+        console.error('CRITICAL: Razorpay Order Creation Error:', {
+            statusCode: error.statusCode,
+            error: error.error || error
+        });
+        
+        let errorMessage = 'Failed to create Razorpay order';
+        
+        // Drill down into Razorpay's error structure
+        if (error.statusCode === 401) {
+            errorMessage = 'Razorpay Authentication Failed - Please check your API Keys in .env';
+        } else if (error.error && error.error.description) {
+            errorMessage = error.error.description;
+        } else if (error.description) {
+            errorMessage = error.description;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
         return {
             success: false,
-            message: error.message || 'Failed to create Razorpay order',
+            message: errorMessage,
         };
     }
 };
@@ -74,25 +92,35 @@ export const createRazorpayPaymentLink = async (
     razorpayOrderId: string,
     amount: number,
     description: string,
+    customerInfo: { name: string; contact: string; email?: string },
     notes: any = {}
 ) => {
     try {
         const razorpay = getRazorpayInstance();
 
-        // 10 minutes expiry
-        const expireBy = Math.floor(Date.now() / 1000) + (10 * 60);
+        // 20 minutes expiry (Razorpay requires minimum 15 minutes for Payment Links)
+        const expireBy = Math.floor(Date.now() / 1000) + (20 * 60);
 
         const options = {
             amount: Math.round(amount * 100),
             currency: 'INR',
             accept_partial: false,
             description,
-            order_id: razorpayOrderId,
+            // Removed 'order_id' and 'upi_link' as they are not supported in the root of Payment Link V1 API
             expire_by: expireBy,
-            upi_link: true,
+            customer: {
+                name: customerInfo.name || "Customer",
+                contact: customerInfo.contact || "+919999999999",
+                email: customerInfo.email || "customer@example.com"
+            },
+            notify: {
+                sms: false,
+                email: false
+            },
             notes: {
                 ...notes,
-                orderId
+                orderId,
+                razorpayOrderId // Moving the order ID to notes for reference
             }
         };
 
@@ -103,10 +131,26 @@ export const createRazorpayPaymentLink = async (
             data: paymentLink as any
         };
     } catch (error: any) {
-        console.error('Error creating Razorpay payment link:', error);
+        console.error('CRITICAL: Razorpay Payment Link Error:', {
+            statusCode: error.statusCode,
+            error: error.error || error
+        });
+
+        let errorMessage = 'Failed to create Razorpay payment link';
+
+        if (error.statusCode === 401) {
+            errorMessage = 'Razorpay Authentication Failed - Please check your API Keys in .env';
+        } else if (error.error && error.error.description) {
+            errorMessage = error.error.description;
+        } else if (error.description) {
+            errorMessage = error.description;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
         return {
             success: false,
-            message: error.message || 'Failed to create Razorpay payment link',
+            message: errorMessage,
         };
     }
 };
@@ -403,6 +447,23 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
                 order.paidVia = 'ONLINE_QR';
             }
             order.paymentId = razorpayPaymentId;
+
+            // Auto-mark as Delivered for COD QR payment during delivery
+            const previousStatus = order.status;
+            if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
+                order.status = 'Delivered';
+                order.deliveryBoyStatus = 'Delivered';
+                order.deliveredAt = new Date();
+
+                // Financial transition logic
+                try {
+                    const { processOrderStatusTransition } = await import('./orderService');
+                    await processOrderStatusTransition(order._id.toString(), 'Delivered', previousStatus);
+                } catch (transitionError) {
+                    console.error('Error processing auto-delivery transition in handlePaymentCaptured:', transitionError);
+                }
+            }
+            
             await order.save();
 
             // Emit socket if available
@@ -437,10 +498,27 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
             return; 
         }
 
+        const previousStatus = order.status;
         order.paymentStatus = 'Paid';
         order.qrPaymentStatus = 'Paid';
         order.paidVia = 'ONLINE_QR';
         order.paymentId = razorpayPaymentId;
+
+        // Auto-mark as Delivered for COD QR payment during delivery
+        if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
+            order.status = 'Delivered';
+            order.deliveryBoyStatus = 'Delivered';
+            order.deliveredAt = new Date();
+
+            // Financial transition logic
+            try {
+                const { processOrderStatusTransition } = await import('./orderService');
+                await processOrderStatusTransition(orderId, 'Delivered', previousStatus);
+            } catch (transitionError) {
+                console.error('Error processing auto-delivery transition in handlePaymentLinkPaid:', transitionError);
+            }
+        }
+
         await order.save();
 
         if (io && order.deliveryBoy) {

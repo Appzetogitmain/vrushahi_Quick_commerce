@@ -101,18 +101,28 @@ export default function SellerStore() {
         }
     };
 
+    // Local search filtering (additive to backend filtering)
+    const filteredCategories = useMemo(() => {
+        if (!storeData?.categories) return [];
+        
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return storeData.categories;
+
+        return storeData.categories.map((cat: any) => ({
+            ...cat,
+            products: cat.products.filter((p: any) => {
+                const name = (p.productName || p.name || '').toLowerCase();
+                const description = (p.description || p.productDescription || '').toLowerCase();
+                const brand = (p.brand?.name || '').toLowerCase();
+                return name.includes(query) || description.includes(query) || brand.includes(query);
+            })
+        })).filter((cat: any) => cat.products.length > 0);
+    }, [storeData?.categories, searchQuery]);
+
     if (loading && !storeData) return <PageLoader />;
     if (!storeData) return <div className="p-10 text-center">Store not found</div>;
 
-    const { seller, categories } = storeData;
-
-    // Local search filtering (additive to backend filtering)
-    const filteredCategories = categories.map((cat: any) => ({
-        ...cat,
-        products: cat.products.filter((p: any) => 
-            (p.productName || p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    })).filter((cat: any) => cat.products.length > 0);
+    const { seller } = storeData;
 
     return (
         <div className="min-h-screen bg-neutral-50 pb-20 pt-[72px] md:pt-[100px] transition-all duration-300">
