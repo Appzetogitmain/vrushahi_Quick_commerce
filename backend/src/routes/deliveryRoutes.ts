@@ -42,6 +42,10 @@ router.post("/orders/:id/send-pickup-otp", deliveryOrderController.sendSellerPic
 router.post("/orders/:id/confirm-seller-pickup", deliveryOrderController.confirmSellerPickup);
 router.post("/orders/:id/check-customer-proximity", deliveryOrderController.checkCustomerProximity);
 
+// New Payment Routes
+router.post("/orders/:id/create-qr-payment", deliveryOrderController.createQrPayment);
+router.post("/orders/:id/mark-cash-paid", deliveryOrderController.markCashPaid);
+
 // Earnings
 router.get("/earnings", deliveryEarningController.getEarningsHistory);
 

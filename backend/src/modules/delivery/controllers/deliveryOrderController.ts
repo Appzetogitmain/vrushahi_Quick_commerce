@@ -779,3 +779,110 @@ export const checkCustomerProximity = asyncHandler(async (req: Request, res: Res
         }
     });
 });
+
+/**
+ * Create QR Payment
+ */
+export const createQrPayment = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.deliveryBoy?.toString() !== deliveryId) {
+        return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+    }
+
+    // Lock Check: Ensure no other payment is "Paid"
+    if (order.paymentStatus === "Paid" || order.qrPaymentStatus === "Paid") {
+        return res.status(400).json({ success: false, message: "Payment already completed for this order" });
+    }
+
+    const { createRazorpayOrder, createRazorpayPaymentLink } = await import('../../../services/paymentService');
+
+    // 1. Create/Get Razorpay Order
+    let razorpayOrderId = order.qrRazorpayOrderId || order.paymentId;
+    if (!razorpayOrderId || (order.paymentMethod !== 'Online' && !order.qrRazorpayOrderId)) {
+        const result = await createRazorpayOrder(id, order.total);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        const orderData = result.data as any;
+        razorpayOrderId = orderData.razorpayOrderId;
+    }
+
+    // 2. Create Payment Link with 10-Min Expiry
+    const linkResult = await createRazorpayPaymentLink(
+        id,
+        razorpayOrderId!,
+        order.total,
+        `Payment for Order ${order.orderNumber}`
+    );
+
+    if (!linkResult.success) {
+        return res.status(400).json(linkResult);
+    }
+
+    // 3. Update Order with Payment Link details and Lock status
+    const paymentLinkData = linkResult.data as any;
+    order.qrRazorpayOrderId = razorpayOrderId;
+    order.qrPaymentLinkId = paymentLinkData.id;
+    order.qrPaymentStatus = 'Pending';
+    order.qrExpiryAt = new Date(paymentLinkData.expire_by * 1000);
+    await order.save();
+
+    return res.status(200).json({
+        success: true,
+        data: {
+            qrString: paymentLinkData.short_url,
+            amount: order.total,
+            expiresAt: order.qrExpiryAt
+        }
+    });
+});
+
+/**
+ * Mark Order as Paid (Cash)
+ */
+export const markCashPaid = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (order.deliveryBoy?.toString() !== deliveryId) {
+        return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+    }
+
+    // Lock Check
+    if (order.qrPaymentStatus === "Paid") {
+        return res.status(400).json({ success: false, message: "Order already paid via Online QR" });
+    }
+
+    if (order.qrPaymentStatus === "Pending") {
+        const now = new Date();
+        if (order.qrExpiryAt && order.qrExpiryAt > now) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "A QR payment is currently active. Please wait for it to expire or fail before marking as cash." 
+            });
+        }
+    }
+
+    order.paymentStatus = "Paid";
+    order.paidVia = "CASH";
+    order.paymentMethod = "COD";
+    await order.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Order marked as Paid via Cash",
+        data: order
+    });
+});

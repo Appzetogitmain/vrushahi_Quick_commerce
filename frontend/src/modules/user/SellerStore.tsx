@@ -8,6 +8,8 @@ import PageLoader from '../../components/PageLoader';
 import FilterModal from './components/FilterModal';
 import SortModal from './components/SortModal';
 import NoProductsFound from './components/NoProductsFound';
+import CartIconButton from '../../components/CartIconButton';
+
 
 export default function SellerStore() {
     const { sellerId } = useParams<{ sellerId: string }>();
@@ -141,6 +143,11 @@ export default function SellerStore() {
                             <path d="m21 21-4.35-4.35" strokeLinecap="round" />
                         </svg>
                     </div>
+
+                    <CartIconButton 
+                        className="bg-gray-100 hover:bg-gray-200 transition-colors"
+                        iconColor="#171717"
+                    />
                 </div>
             </nav>
 

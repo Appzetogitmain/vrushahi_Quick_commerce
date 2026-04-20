@@ -4,6 +4,8 @@ import { getCustomerCategories, Category } from "../../services/api/categoryServ
 import Button from "../../components/ui/button";
 import categoryHeroImgV3 from "../../assets/category_hero_v3.png";
 import { motion } from "framer-motion";
+import CartIconButton from "../../components/CartIconButton";
+
 
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
   <svg
@@ -109,6 +111,11 @@ export default function Categories() {
               Select product to add
             </p>
           </div>
+
+          <CartIconButton 
+            className="bg-black/5 hover:bg-black/10 transition-colors mr-2 md:mr-4"
+            iconColor="#171717"
+          />
 
           {/* Hero Illustration - Responsive size */}
           <motion.div 

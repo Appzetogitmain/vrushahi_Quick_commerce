@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, sendSellerPickupOtp } from '../../../services/api/delivery/deliveryService';
+import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, sendSellerPickupOtp, createQrPayment, markCashPaid } from '../../../services/api/delivery/deliveryService';
+import QrPaymentModal from '../components/QrPaymentModal';
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
 
@@ -117,6 +118,12 @@ export default function DeliveryOrderDetail() {
     const [showSellerOtpInputs, setShowSellerOtpInputs] = useState<Record<string, boolean>>({});
     const [requestingOtp, setRequestingOtp] = useState<Record<string, boolean>>({});
 
+    // QR Payment State
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [qrData, setQrData] = useState<{ qrString: string; amount: number; expiresAt: Date } | null>(null);
+    const [qrPaymentStatus, setQrPaymentStatus] = useState<'none' | 'pending' | 'paid' | 'failed'>('none');
+    const [paymentProcessing, setPaymentProcessing] = useState(false);
+
     const fetchOrder = async () => {
         if (!id) return;
         try {
@@ -160,6 +167,50 @@ export default function DeliveryOrderDetail() {
         };
     }, []);
 
+    const handleCreateQrPayment = async () => {
+        if (!id) return;
+        try {
+            setPaymentProcessing(true);
+            const result = await createQrPayment(id);
+            if (result.success) {
+                setQrData({
+                    qrString: result.data.qrString,
+                    amount: result.data.amount,
+                    expiresAt: new Date(result.data.expiresAt)
+                });
+                setQrPaymentStatus('pending');
+                setShowQrModal(true);
+            } else {
+                alert(result.message || 'Failed to generate QR payment');
+            }
+        } catch (err: any) {
+            alert(err.message || 'Error generating QR payment');
+        } finally {
+            setPaymentProcessing(false);
+        }
+    };
+
+    const handleMarkCashPaid = async () => {
+        if (!id) return;
+        
+        const confirm = window.confirm(`Mark this order as PAID via CASH? Have you collected ₹${order?.totalAmount || 'amount'}?`);
+        if (!confirm) return;
+
+        try {
+            setPaymentProcessing(true);
+            const result = await markCashPaid(id);
+            if (result.success) {
+                alert('Order marked as Paid via Cash');
+                await fetchOrder();
+            } else {
+                alert(result.message || 'Failed to mark as paid');
+            }
+        } catch (err: any) {
+            alert(err.message || 'Error marking cash payment');
+        } finally {
+            setPaymentProcessing(false);
+        }
+    };
 
     const handleSendOtp = async () => {
         if (!id) return;
@@ -424,6 +475,19 @@ export default function DeliveryOrderDetail() {
                         setOrder((prev: any) => prev ? { ...prev, status: 'Cancelled' } : null);
                         // Optional: Navigate back or force re-fetch
                         fetchOrder();
+                    }
+                });
+
+                // Listen for QR Payment Success
+                socket.on('qr-payment-success', (data: any) => {
+                    if (isMounted && data.orderId === id) {
+                        console.log('✅ QR Payment Success received via socket');
+                        setQrPaymentStatus('paid');
+                        // Allow some time for the modal to show success state
+                        setTimeout(() => {
+                            setShowQrModal(false);
+                            fetchOrder();
+                        }, 2000);
                     }
                 });
 
@@ -773,19 +837,94 @@ export default function DeliveryOrderDetail() {
                 </div>
             )}
 
-            {/* COD Banner */}
-            {order.paymentMethod === 'COD' && order.status !== 'Delivered' && (
-                <div className="mx-4 mt-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700">
-                            <Icons.ShoppingBag size={20} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold text-yellow-800 uppercase tracking-wider">Cash to Collect</p>
-                            <p className="text-lg font-black text-yellow-900">₹{order.totalAmount}</p>
-                        </div>
+            {/* Payment Collection Panel */}
+            {order.status !== 'Delivered' && (
+                <div className="mx-4 mt-4 bg-white border border-neutral-100 rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                            <Icons.ShoppingBag size={18} className="text-neutral-500" />
+                            Payment Collection
+                        </h3>
+                        {order.paymentStatus === 'Paid' ? (
+                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-tight flex items-center gap-1">
+                                <Icons.CheckCircle size={12} />
+                                {order.paidVia === 'ONLINE_QR' ? 'Paid Online' : 'Collection Done'}
+                            </span>
+                        ) : (
+                            <span className={`px-3 py-1 ${order.paymentMethod === 'COD' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'} rounded-full text-[10px] font-bold uppercase tracking-tight`}>
+                                {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Paid'}
+                            </span>
+                        )}
                     </div>
-                    <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-lg text-[10px] font-bold uppercase tracking-tight">COD Order</span>
+
+                    {order.paymentStatus === 'Paid' ? (
+                        <div className="bg-neutral-50 rounded-xl p-4 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                                <Icons.CheckCircle size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Amount Received</p>
+                                <p className="text-xl font-black text-neutral-900">₹{order.totalAmount}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="bg-neutral-50 rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">To be Collected</p>
+                                    <p className="text-2xl font-black text-neutral-900">₹{order.totalAmount}</p>
+                                </div>
+                                {qrPaymentStatus === 'pending' && (
+                                    <div className="text-right">
+                                        <div className="flex items-center gap-1 text-xs font-bold text-blue-600 uppercase">
+                                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></div>
+                                            QR Active
+                                        </div>
+                                        <button 
+                                            onClick={() => setShowQrModal(true)}
+                                            className="text-[10px] font-bold text-neutral-500 underline"
+                                        >
+                                            View QR
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={handleMarkCashPaid}
+                                    disabled={paymentProcessing || order.status !== 'Out for Delivery' || (qrPaymentStatus === 'pending' && qrData?.expiresAt && new Date(qrData.expiresAt) > new Date())}
+                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1 ${
+                                        paymentProcessing || order.status !== 'Out for Delivery' || (qrPaymentStatus === 'pending' && qrData?.expiresAt && new Date(qrData.expiresAt) > new Date())
+                                            ? 'bg-neutral-50 border-neutral-100 text-neutral-300'
+                                            : 'bg-white border-neutral-200 text-neutral-700 hover:border-yellow-500 hover:bg-yellow-50'
+                                    }`}
+                                >
+                                    <Icons.ShoppingBag size={20} />
+                                    <span className="text-[10px] font-bold uppercase">Collect Cash</span>
+                                </button>
+                                
+                                <button
+                                    onClick={handleCreateQrPayment}
+                                    disabled={paymentProcessing || order.status !== 'Out for Delivery'}
+                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1 ${
+                                        paymentProcessing || order.status !== 'Out for Delivery'
+                                            ? 'bg-neutral-50 border-neutral-100 text-neutral-300'
+                                            : 'bg-white border-neutral-200 text-neutral-700 hover:border-blue-500 hover:bg-blue-50 text-blue-600 border-blue-100'
+                                    }`}
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                        <rect x="7" y="7" width="3" height="3" />
+                                        <rect x="14" y="7" width="3" height="3" />
+                                        <rect x="7" y="14" width="3" height="3" />
+                                        <rect x="14" y="14" width="3" height="3" />
+                                    </svg>
+                                    <span className="text-[10px] font-bold uppercase">Pay via QR</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1003,6 +1142,19 @@ export default function DeliveryOrderDetail() {
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
                     </button>
                 </div>
+            )}
+
+            {/* QR Payment Modal */}
+            {qrData && (
+                <QrPaymentModal
+                    isOpen={showQrModal}
+                    onClose={() => setShowQrModal(false)}
+                    qrString={qrData.qrString}
+                    amount={qrData.amount}
+                    orderNumber={order.orderNumber}
+                    expiresAt={qrData.expiresAt}
+                    paymentStatus={qrPaymentStatus}
+                />
             )}
         </div>
     );

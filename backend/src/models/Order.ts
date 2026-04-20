@@ -39,6 +39,13 @@ export interface IOrder extends Document {
   paymentMethod: string;
   paymentStatus: "Pending" | "Paid" | "Failed" | "Refunded";
   paymentId?: string;
+  paidVia?: "CASH" | "ONLINE_QR";
+
+  // QR / Online Payment via Delivery
+  qrPaymentStatus?: "None" | "Pending" | "Paid" | "Failed";
+  qrRazorpayOrderId?: string;
+  qrPaymentLinkId?: string;
+  qrExpiryAt?: Date;
 
   // Order Status
   status:
@@ -229,6 +236,28 @@ const OrderSchema = new Schema<IOrder>(
     paymentId: {
       type: String,
       trim: true,
+    },
+    paidVia: {
+      type: String,
+      enum: ["CASH", "ONLINE_QR"],
+    },
+
+    // QR / Online Payment via Delivery
+    qrPaymentStatus: {
+      type: String,
+      enum: ["None", "Pending", "Paid", "Failed"],
+      default: "None",
+    },
+    qrRazorpayOrderId: {
+      type: String,
+      trim: true,
+    },
+    qrPaymentLinkId: {
+      type: String,
+      trim: true,
+    },
+    qrExpiryAt: {
+      type: Date,
     },
 
     // Order Status

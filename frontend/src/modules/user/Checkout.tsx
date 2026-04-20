@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../context/CartContext";
 import { useOrders } from "../../hooks/useOrders";
@@ -56,6 +57,9 @@ export default function Checkout() {
   const { showToast: showGlobalToast } = useToast();
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const buyNowItem = location.state?.buyNowItem;
+
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [customTipAmount, setCustomTipAmount] = useState<number>(0);
   const [showCustomTipInput, setShowCustomTipInput] = useState(false);
@@ -114,10 +118,10 @@ export default function Checkout() {
 
   // Redirect if empty
   useEffect(() => {
-    if (!cartLoading && cart.items.length === 0 && !showOrderSuccess) {
+    if (!cartLoading && cart.items.length === 0 && !buyNowItem && !showOrderSuccess) {
       navigate("/");
     }
-  }, [cart.items.length, cartLoading, navigate, showOrderSuccess]);
+  }, [cart.items.length, cartLoading, buyNowItem, navigate, showOrderSuccess]);
 
   // Load addresses and coupons
   useEffect(() => {
@@ -243,9 +247,10 @@ export default function Checkout() {
     );
   }
 
-  const displayItems = (cart?.items || []).filter(
-    (item) => item && item.product
-  );
+  const displayItems = buyNowItem 
+    ? [buyNowItem]
+    : (cart?.items || []).filter((item) => item && item.product);
+
   const displayCart = {
     ...cart,
     items: displayItems,
@@ -277,8 +282,13 @@ export default function Checkout() {
 
   const discountedTotal = displayCart.total;
   const savedAmount = itemsTotal - discountedTotal;
-  const handlingCharge = cart.platformFee ?? appConfig.platformFee;
-  const deliveryCharge = cart.estimatedDeliveryFee ?? (displayCart.total >= threshold ? 0 : appConfig.deliveryFee);
+  const handlingCharge = buyNowItem 
+    ? appConfig.platformFee 
+    : (cart.platformFee ?? appConfig.platformFee);
+
+  const deliveryCharge = buyNowItem
+    ? (displayCart.total >= threshold ? 0 : appConfig.deliveryFee)
+    : (cart.estimatedDeliveryFee ?? (displayCart.total >= threshold ? 0 : appConfig.deliveryFee));
 
   // Recalculate or use validated discount
   // If we have a selected coupon, we should re-validate if cart total changes,
@@ -391,7 +401,7 @@ export default function Checkout() {
     // Only bypass if explicitly passed true (handles event objects from onClick)
     const bypassProfileCheck = arg === true;
 
-    if (!selectedAddress || cart.items.length === 0) {
+    if (!selectedAddress || displayItems.length === 0) {
       return;
     }
 
@@ -441,8 +451,8 @@ export default function Checkout() {
 
     const order: Order = {
       id: orderId,
-      items: cart.items,
-      totalItems: cart.itemCount,
+      items: displayItems,
+      totalItems: displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
       subtotal: discountedTotal,
       fees: {
         platformFee: handlingCharge,
@@ -467,7 +477,7 @@ export default function Checkout() {
           setShowRazorpayCheckout(true);
         } else {
           setPlacedOrderId(placedId);
-          clearCart();
+          if (!buyNowItem) clearCart();
           setShowOrderSuccess(true);
         }
       }

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useOrders } from '../../hooks/useOrders';
 import { useCart } from '../../context/CartContext';
 import Button from '../../components/ui/button';
+import CartIconButton from '../../components/CartIconButton';
+
 
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
   <svg
@@ -302,14 +304,20 @@ export default function OrderAgain() {
             </div>
           </div>
           
-          <button 
-            onClick={() => navigate('/search')}
-            className="p-3 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shadow-sm"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate('/search')}
+              className="p-3 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shadow-sm"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 21l-4.35-4.35M19 11a8 8 0 11-16 0 8 8 0 0116 0z" stroke="#1a1a1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <CartIconButton 
+              className="bg-neutral-50 hover:bg-neutral-100"
+              iconColor="#171717"
+            />
+          </div>
         </div>
       </div>
 

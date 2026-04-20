@@ -67,6 +67,51 @@ export const createRazorpayOrder = async (
 };
 
 /**
+ * Create a Razorpay Payment Link linked to an Order
+ */
+export const createRazorpayPaymentLink = async (
+    orderId: string,
+    razorpayOrderId: string,
+    amount: number,
+    description: string,
+    notes: any = {}
+) => {
+    try {
+        const razorpay = getRazorpayInstance();
+
+        // 10 minutes expiry
+        const expireBy = Math.floor(Date.now() / 1000) + (10 * 60);
+
+        const options = {
+            amount: Math.round(amount * 100),
+            currency: 'INR',
+            accept_partial: false,
+            description,
+            order_id: razorpayOrderId,
+            expire_by: expireBy,
+            upi_link: true,
+            notes: {
+                ...notes,
+                orderId
+            }
+        };
+
+        const paymentLink = await razorpay.paymentLink.create(options as any);
+
+        return {
+            success: true,
+            data: paymentLink as any
+        };
+    } catch (error: any) {
+        console.error('Error creating Razorpay payment link:', error);
+        return {
+            success: false,
+            message: error.message || 'Failed to create Razorpay payment link',
+        };
+    }
+};
+
+/**
  * Verify Razorpay payment signature
  */
 export const verifyPaymentSignature = (
@@ -267,7 +312,8 @@ export const processRefund = async (
  */
 export const handleWebhook = async (
     body: any,
-    signature: string
+    signature: string,
+    io?: any
 ): Promise<{ success: boolean; message: string }> => {
     try {
         const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -276,33 +322,34 @@ export const handleWebhook = async (
             throw new Error('Razorpay webhook secret not configured');
         }
 
-        // Verify webhook signature
-        const expectedSignature = crypto
-            .createHmac('sha256', webhookSecret)
-            .update(JSON.stringify(body))
-            .digest('hex');
+        // Verify webhook signature explicitly
+        const shasum = crypto.createHmac('sha256', webhookSecret);
+        shasum.update(JSON.stringify(body));
+        const digest = shasum.digest('hex');
 
-        if (expectedSignature !== signature) {
+        if (digest !== signature) {
+            console.error('Webhook signature mismatch');
             throw new Error('Invalid webhook signature');
         }
 
         const event = body.event;
-        const payload = body.payload.payment.entity;
+        console.log('Razorpay Webhook Event:', event);
 
         // Handle different events
         switch (event) {
             case 'payment.captured':
-                // Payment was captured successfully
-                await handlePaymentCaptured(payload);
+                await handlePaymentCaptured(body.payload.payment.entity, io);
+                break;
+
+            case 'payment_link.paid':
+                await handlePaymentLinkPaid(body, io);
                 break;
 
             case 'payment.failed':
-                // Payment failed
-                await handlePaymentFailed(payload);
+                await handlePaymentFailed(body.payload.payment.entity);
                 break;
 
             case 'refund.created':
-                // Refund was created
                 await handleRefundCreated(body.payload.refund.entity);
                 break;
 
@@ -324,28 +371,86 @@ export const handleWebhook = async (
 };
 
 // Helper functions for webhook events
-const handlePaymentCaptured = async (payload: any) => {
+const handlePaymentCaptured = async (payload: any, io?: any) => {
     try {
         const razorpayPaymentId = payload.id;
         const razorpayOrderId = payload.order_id;
+        const orderIdFromNotes = payload.notes?.orderId;
 
-        // Find payment record
-        const payment = await Payment.findOne({ razorpayOrderId });
+        // Find order either by Order ID in notes (for QR) or Razorpay Order ID
+        let order;
+        if (orderIdFromNotes) {
+            order = await Order.findById(orderIdFromNotes);
+        } else if (razorpayOrderId) {
+            order = await Order.findOne({ $or: [{ qrRazorpayOrderId: razorpayOrderId }, { paymentId: razorpayOrderId }] });
+        }
 
-        if (payment) {
-            payment.status = 'Completed';
-            payment.razorpayPaymentId = razorpayPaymentId;
-            payment.paidAt = new Date();
-            await payment.save();
+        if (!order) {
+            // Check if payment mapping exists
+            const payment = await Payment.findOne({ razorpayOrderId });
+            if (payment) order = await Order.findById(payment.order);
+        }
 
-            // Update order
-            await Order.findByIdAndUpdate(payment.order, {
-                paymentStatus: 'Paid',
-                paymentId: razorpayPaymentId,
-            });
+        if (order) {
+            // Double Check Lock
+            if (order.paymentStatus === "Paid" && order.qrPaymentStatus === "Paid") {
+                return; 
+            }
+
+            order.paymentStatus = 'Paid';
+            if (orderIdFromNotes) {
+                order.qrPaymentStatus = 'Paid';
+                order.paidVia = 'ONLINE_QR';
+            }
+            order.paymentId = razorpayPaymentId;
+            await order.save();
+
+            // Emit socket if available
+            if (io && order.deliveryBoy) {
+                io.to(`delivery-${order.deliveryBoy}`).emit('qr-payment-success', {
+                    orderId: order._id,
+                    message: 'Payment confirmed successfully'
+                });
+            }
         }
     } catch (error) {
         console.error('Error handling payment captured:', error);
+    }
+};
+
+const handlePaymentLinkPaid = async (body: any, io?: any) => {
+    try {
+        const payload = body.payload;
+        const paymentLink = payload.payment_link.entity;
+        const razorpayPaymentId = payload.payment.entity.id;
+        
+        // Exact mapping as requested: payload?.payload?.payment_link?.entity?.notes?.orderId
+        const orderId = paymentLink.notes?.orderId;
+        
+        if (!orderId) return;
+
+        const order = await Order.findById(orderId);
+        if (!order) return;
+
+        // Double Check Lock
+        if (order.paymentStatus === "Paid" && order.qrPaymentStatus === "Paid") {
+            return; 
+        }
+
+        order.paymentStatus = 'Paid';
+        order.qrPaymentStatus = 'Paid';
+        order.paidVia = 'ONLINE_QR';
+        order.paymentId = razorpayPaymentId;
+        await order.save();
+
+        if (io && order.deliveryBoy) {
+            io.to(`delivery-${order.deliveryBoy}`).emit('qr-payment-success', { 
+                orderId: order._id,
+                message: 'Payment received successfully via QR'
+            });
+        }
+    } catch (error) {
+        console.error('Error handling payment link paid:', error);
     }
 };
 

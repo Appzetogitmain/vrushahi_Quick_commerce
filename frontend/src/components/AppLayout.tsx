@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import FloatingCartPill from './FloatingCartPill';
+
 import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import ComingSoonScreen from './ComingSoonScreen';
@@ -174,7 +174,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </AnimatePresence>
               </main>
 
-              <FloatingCartPill bottomOffset={88} />
+
 
               {/* Floating Navigation Dock */}
               {showFooter && (

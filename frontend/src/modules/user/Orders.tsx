@@ -1,6 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useOrders } from '../../hooks/useOrders';
 import Button from '../../components/ui/button';
+import CartIconButton from '../../components/CartIconButton';
+
 
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
   <svg
@@ -55,14 +57,20 @@ export default function Orders() {
 
   return (
     <div className="pb-4 md:pb-8">
-      <header className="sticky top-0 z-[100] bg-white border-b border-neutral-100 px-4 py-2 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
-        >
-          <ArrowLeftIcon className="w-6 h-6" />
-        </button>
-        <h1 className="text-sm font-bold text-neutral-900 tracking-tight">My Orders</h1>
+      <header className="sticky top-0 z-[100] bg-white border-b border-neutral-100 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
+          >
+            <ArrowLeftIcon className="w-6 h-6" />
+          </button>
+          <h1 className="text-sm font-bold text-neutral-900 tracking-tight">My Orders</h1>
+        </div>
+        <CartIconButton 
+          className="hover:bg-black/5 transition-colors"
+          iconColor="#171717"
+        />
       </header>
 
       {orders.length === 0 ? (

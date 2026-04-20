@@ -20,6 +20,8 @@ import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import ProductCard from "./components/ProductCard";
 import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package, Home, Store, Star, DoorOpen, RotateCcw, Banknote, ShieldCheck, X } from "lucide-react";
+import CartIconButton from "../../components/CartIconButton";
+
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -374,17 +376,11 @@ export default function ProductDetail() {
           </div>
 
           {/* Action icons */}
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={() => navigate('/cart')}
-              className="relative p-2 text-neutral-600 hover:text-pink-600 transition-colors">
-              <ShoppingCart size={24} />
-              {cart.items.length > 0 && (
-                <span className="absolute top-1 right-1 bg-pink-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
-                  {cart.items.reduce((acc, item) => acc + item.quantity, 0)}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            <CartIconButton 
+              className="bg-neutral-100/80 hover:bg-neutral-200 transition-colors"
+              iconColor="#171717"
+            />
           </div>
         </div>
       </div>
@@ -1055,8 +1051,13 @@ export default function ProductDetail() {
           {/* Buy Now Button */}
           <button
             onClick={() => {
-              if (inCartQty === 0) handleAddToCart();
-              navigate('/checkout');
+              // Prepare item for direct checkout (Buy Now)
+              const buyNowItem = {
+                product: product,
+                quantity: 1,
+                variant: selectedVariant
+              };
+              navigate('/checkout', { state: { buyNowItem } });
             }}
             disabled={!isVariantAvailable && variantStock !== 0}
             className="flex-1 h-11 bg-pink-500 text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-pink-600 active:scale-95 transition-all shadow-md shadow-pink-100 disabled:opacity-50 disabled:cursor-not-allowed">

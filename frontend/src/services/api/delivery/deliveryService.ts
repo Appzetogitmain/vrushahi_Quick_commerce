@@ -159,6 +159,24 @@ export const checkCustomerProximity = async (orderId: string, latitude: number, 
 };
 
 
+export const createQrPayment = async (orderId: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/${orderId}/create-qr-payment`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const markCashPaid = async (orderId: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/${orderId}/mark-cash-paid`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
 // --- Tracking ---
 export const updateGeneralLocation = async (latitude: number, longitude: number) => {
     try {

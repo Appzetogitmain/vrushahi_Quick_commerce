@@ -11,6 +11,8 @@ import { useLocation as useLocationContext } from "../../hooks/useLocation";
 import CategoryNotFound from "./components/CategoryNotFound";
 import SortModal from "./components/SortModal";
 import NoProductsFound from "./components/NoProductsFound";
+import CartIconButton from "../../components/CartIconButton";
+
 
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
@@ -432,25 +434,32 @@ export default function CategoryPage() {
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
         {/* Simplified Header with Breadcrumbs */}
         <div className="sticky top-0 z-40 bg-white border-b border-neutral-100 flex-shrink-0">
-          <div className="px-5 py-4">
-            {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-[13px] text-neutral-500 font-medium mb-2 overflow-x-auto scrollbar-hide whitespace-nowrap">
-               <button onClick={() => navigate('/')} className="hover:text-neutral-900 transition-colors">Home</button>
-               <span>›</span>
-               <span className={`${id === 'lowest-prices' ? 'text-neutral-900 font-bold' : 'hover:text-neutral-900 transition-colors line-clamp-1'}`} onClick={() => id !== 'lowest-prices' && navigate(-1)}>{category?.name}</span>
-               {id !== 'lowest-prices' && (
-                 <>
+            <div className="flex items-center justify-between">
+              <div>
+                {/* Breadcrumbs */}
+                <div className="flex items-center gap-2 text-[13px] text-neutral-500 font-medium mb-2 overflow-x-auto scrollbar-hide whitespace-nowrap">
+                   <button onClick={() => navigate('/')} className="hover:text-neutral-900 transition-colors">Home</button>
                    <span>›</span>
-                   <span className="text-neutral-900 font-bold">{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
-                 </>
-               )}
-            </div>
+                   <span className={`${id === 'lowest-prices' ? 'text-neutral-900 font-bold' : 'hover:text-neutral-900 transition-colors line-clamp-1'}`} onClick={() => id !== 'lowest-prices' && navigate(-1)}>{category?.name}</span>
+                   {id !== 'lowest-prices' && (
+                     <>
+                       <span>›</span>
+                       <span className="text-neutral-900 font-bold">{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
+                     </>
+                   )}
+                </div>
 
-            {/* Bold Section Title */}
-            <h1 className="text-xl font-black text-neutral-900 tracking-tight">
-              {subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}
-            </h1>
-          </div>
+                {/* Bold Section Title */}
+                <h1 className="text-xl font-black text-neutral-900 tracking-tight">
+                  {subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}
+                </h1>
+              </div>
+              
+              <CartIconButton 
+                className="bg-neutral-50 hover:bg-neutral-100"
+                iconColor="#171717"
+              />
+            </div>
         </div>
 
         {/* Filter/Sort Bar - Consistent with Store Page UI */}

@@ -6,6 +6,8 @@ import StoreCard from './components/StoreCard';
 import { getHomeContent, getGlobalSearch } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
 import { useLocation } from '../../hooks/useLocation';
+import CartIconButton from '../../components/CartIconButton';
+
 
 export default function Search() {
   const navigate = useNavigate();
@@ -141,6 +143,10 @@ export default function Search() {
               </button>
             )}
           </div>
+          <CartIconButton 
+            className="bg-neutral-100/80 hover:bg-neutral-200 transition-colors"
+            iconColor="#171717"
+          />
         </div>
       </div>
 

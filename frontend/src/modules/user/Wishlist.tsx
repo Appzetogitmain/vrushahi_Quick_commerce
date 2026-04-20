@@ -8,6 +8,8 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../../components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateProductPrice } from '../../utils/priceUtils';
+import CartIconButton from '../../components/CartIconButton';
+
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -57,25 +59,31 @@ export default function Wishlist() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <header className="sticky top-0 z-[100] bg-white border-b border-neutral-100 px-4 py-2 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Back"
-          className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+      <header className="sticky top-0 z-[100] bg-white border-b border-neutral-100 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Back"
+            className="w-10 h-10 flex items-center justify-center text-black hover:bg-black/5 rounded-full transition-colors"
           >
-            <path d="M15 18 9 12l6-6" />
-          </svg>
-        </button>
-        <h1 className="text-sm font-bold text-neutral-900 tracking-tight">My Wishlist</h1>
+            <svg
+              viewBox="0 0 24 24"
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M15 18 9 12l6-6" />
+            </svg>
+          </button>
+          <h1 className="text-sm font-bold text-neutral-900 tracking-tight">My Wishlist</h1>
+        </div>
+        <CartIconButton 
+          className="hover:bg-black/5 transition-colors"
+          iconColor="#171717"
+        />
       </header>
 
       <div className="px-4">

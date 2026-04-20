@@ -5,6 +5,8 @@ import {
   getProfile,
   CustomerProfile,
 } from "../../services/api/customerService";
+import CartIconButton from "../../components/CartIconButton";
+
 
 export default function Account() {
   const navigate = useNavigate();
@@ -79,22 +81,26 @@ export default function Account() {
       <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
       <div className="bg-[#f0e6f7] border-b border-neutral-100 pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
           <div className="px-4 md:px-6 lg:px-8">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-1 text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
-              aria-label="Back">
-
-
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+            <div className="flex items-center justify-between mb-1">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
+                aria-label="Back">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M15 18L9 12L15 6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <CartIconButton 
+                className="hover:bg-black/5 transition-colors"
+                iconColor="#171717"
+              />
+            </div>
             <div className="flex flex-col items-center mb-2 md:mb-3">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
                 <svg
@@ -180,22 +186,26 @@ export default function Account() {
     <div className="pb-24 md:pb-8 bg-white min-h-screen font-sans">
       <div className="bg-[#f0e6f7] border-b border-neutral-100 pb-3 md:pb-4 pt-4 md:pt-6 text-neutral-900">
         <div className="px-4 md:px-6 lg:px-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-1 text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
-            aria-label="Back">
-
-
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M15 18L9 12L15 6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center justify-between mb-1">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-neutral-900 hover:bg-black/5 p-1 rounded-full transition-colors"
+              aria-label="Back">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 18L9 12L15 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            <CartIconButton 
+              className="hover:bg-black/5 transition-colors"
+              iconColor="#171717"
+            />
+          </div>
           <div className="flex flex-col items-center mb-2 md:mb-3">
             <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
               <svg
