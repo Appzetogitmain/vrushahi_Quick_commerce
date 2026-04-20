@@ -4,6 +4,7 @@ import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import mongoose from "mongoose";
 import HeaderCategory from "../../../models/HeaderCategory";
+import HomeSection from "../../../models/HomeSection";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with filtering options (public)
@@ -139,6 +140,29 @@ export const getProducts = async (req: Request, res: Response) => {
           
           if (subCats.length > 0) {
             query.category = { $in: subCats.map(c => c._id) };
+          }
+        } else {
+          // If neither found, check if it's a HomeSection slug
+          const section = await HomeSection.findOne({
+            slug: { $regex: new RegExp(`^${category as string}$`, "i") },
+            isActive: true
+          }).lean();
+
+          if (section) {
+            const sectionQueryOR: any[] = [];
+            if (section.categories && section.categories.length > 0) {
+              sectionQueryOR.push({ category: { $in: section.categories } });
+            }
+            if (section.subCategories && section.subCategories.length > 0) {
+              sectionQueryOR.push({ subcategory: { $in: section.subCategories } });
+            }
+            if (section.products && section.products.length > 0) {
+              sectionQueryOR.push({ _id: { $in: section.products } });
+            }
+
+            if (sectionQueryOR.length > 0) {
+              query.$or = sectionQueryOR;
+            }
           }
         }
       }

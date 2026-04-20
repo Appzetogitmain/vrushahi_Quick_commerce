@@ -96,10 +96,7 @@ export default function Account() {
                   />
                 </svg>
               </button>
-              <CartIconButton 
-                className="hover:bg-black/5 transition-colors"
-                iconColor="#171717"
-              />
+              {/* Removed from here to move to menu options */}
             </div>
             <div className="flex flex-col items-center mb-2 md:mb-3">
               <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
@@ -201,10 +198,7 @@ export default function Account() {
                 />
               </svg>
             </button>
-            <CartIconButton 
-              className="hover:bg-black/5 transition-colors"
-              iconColor="#171717"
-            />
+            {/* Removed from here to move to menu options */}
           </div>
           <div className="flex flex-col items-center mb-2 md:mb-3">
             <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 flex items-center justify-center mb-1.5 md:mb-1.5 border-2 border-white/60 shadow-sm backdrop-blur-sm">
@@ -370,6 +364,21 @@ export default function Account() {
           Your information
         </h2>
         <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden divide-y divide-neutral-100">
+          <button
+            onClick={() => navigate("/cart")}
+            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-neutral-500">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-[13px] font-medium text-neutral-900">
+                My Cart
+              </span>
+            </div>
+            <span className="text-neutral-400">›</span>
+          </button>
           <button
             onClick={() => navigate("/address-book")}
             className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">

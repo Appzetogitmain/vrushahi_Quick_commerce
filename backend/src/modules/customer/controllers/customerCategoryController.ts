@@ -4,6 +4,7 @@ import SubCategory from "../../../models/SubCategory";
 import Product from "../../../models/Product";
 import mongoose from "mongoose";
 import HeaderCategory from "../../../models/HeaderCategory";
+import HomeSection from "../../../models/HomeSection";
 import { cache } from "../../../utils/cache";
 
 // Get all categories (public) - with caching
@@ -313,7 +314,54 @@ export const getCategoryById = async (req: Request, res: Response) => {
         });
       }
 
-      console.log(`[getCategoryById] Category not found: ${id}`);
+      // Try to find if it's a HomeSection slug
+      const section = await HomeSection.findOne({
+        slug: { $regex: new RegExp(`^${id}$`, "i") },
+        isActive: true
+      }).lean();
+
+      if (section) {
+        console.log(`[getCategoryById] Found HomeSection: ${section.title}`);
+        
+        // Fetch categories that belong to this section to show as "subcategories" in the sidebar
+        const sectionCategories = section.categories && section.categories.length > 0
+          ? await Category.find({ _id: { $in: section.categories }, status: "Active" })
+            .select("name image icon slug _id")
+            .lean()
+          : [];
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            category: {
+              _id: section._id,
+              name: section.title,
+              icon: "🏷️",
+              isCollection: true,
+              slug: section.slug,
+              backgroundImage: section.backgroundImage,
+              backgroundColor: section.backgroundColor,
+              titleColor: section.titleColor
+            },
+            subcategories: [
+              {
+                _id: "all",
+                id: "all",
+                name: "All",
+                icon: "📦",
+                isActive: true,
+              },
+              ...sectionCategories.map(c => ({
+                ...c,
+                id: c.slug || c._id.toString()
+              }))
+            ],
+            currentSubcategory: null
+          }
+        });
+      }
+
+      console.log(`[getCategoryById] Category/Section not found: ${id}`);
       return res.status(404).json({
         success: false,
         message: `Category not found: ${id}`,

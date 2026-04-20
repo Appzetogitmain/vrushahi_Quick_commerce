@@ -334,11 +334,7 @@ export default function Home() {
                                   {section.title}
                                 </h2>
                               )}
-                              {hasBackground && (
-                                <button className="bg-white text-neutral-900 text-xs md:text-base font-black px-5 md:px-8 py-2 md:py-3 rounded-full shadow-lg hover:bg-neutral-50 transition-all hover:scale-105 active:scale-95">
-                                  See All
-                                </button>
-                              )}
+                              {/* See All button removed as requested */}
                             </div>
 
                             <div className="px-4 md:px-10">

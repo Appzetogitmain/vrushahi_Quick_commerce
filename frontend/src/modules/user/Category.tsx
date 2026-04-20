@@ -83,13 +83,14 @@ export default function CategoryPage() {
 
           setCategory(cat);
           setSubcategories([
-            {
+            // Add 'All' only if it's not already in the subs from API
+            ...(!subs?.find((s: any) => (s.id || s._id) === 'all') ? [{
               _id: "all",
               id: "all",
               name: "All",
               icon: "📦",
               isActive: true,
-            } as any,
+            } as any] : []),
             ...(subs || []),
           ]);
 
@@ -363,30 +364,37 @@ export default function CategoryPage() {
       <div className="w-24 bg-white border-r border-neutral-100 overflow-y-auto scrollbar-hide flex-shrink-0 py-2">
         <div className="space-y-1">
           {subcategories.map((subcat) => {
-            const isSelected =
-              selectedSubcategory === (subcat.id || subcat._id);
+            const isSelected = selectedSubcategory === (subcat.id || subcat._id);
             return (
               <button
                 key={subcat.id || subcat._id}
                 type="button"
-                onClick={() => {
-                  console.log("Clicked subcategory:", subcat.id || subcat._id);
-                  setSelectedSubcategory(subcat.id || subcat._id);
-                }}
-                className={`w-full flex flex-col items-center justify-center py-3 relative transition-all duration-200 group ${
-                  isSelected ? "bg-[#f0e6f7] rounded-r-2xl" : "hover:bg-neutral-50 px-1"
+                onClick={() => setSelectedSubcategory(subcat.id || subcat._id)}
+                className={`w-full flex flex-col items-center justify-center py-4 relative transition-all duration-300 group ${
+                  isSelected 
+                    ? (category?.isCollection ? "bg-white" : "bg-[#f0e6f7] rounded-r-2xl") 
+                    : "hover:bg-neutral-50/50"
                 }`}
                 style={{
-                  minHeight: "90px",
+                  minHeight: "100px",
                 }}>
+                
+                {isSelected && (
+                  <motion.div 
+                    layoutId="activeSubcatMarker"
+                    className={`absolute left-0 top-1 bottom-1 w-1.5 rounded-r-full z-10 ${!category?.isCollection ? 'bg-purple-600' : ''}`}
+                    style={category?.isCollection ? { backgroundColor: category.backgroundColor || '#000' } : {}}
+                  />
+                )}
 
-                {/* Image Container */}
+                {/* Image/Icon Container */}
                 <div
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl mb-1.5 flex-shrink-0 overflow-hidden transition-all duration-200 ${
+                  className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center text-xl mb-2 flex-shrink-0 overflow-hidden transition-all duration-300 ${
                     isSelected
-                      ? ""
-                      : "bg-neutral-50 group-hover:shadow-sm"
-                  }`}>
+                      ? "shadow-md scale-105"
+                      : "bg-neutral-50 group-hover:scale-105"
+                  }`}
+                  style={isSelected && category?.isCollection ? { border: `2px solid ${category.backgroundColor || '#eee'}` } : {}}>
                   {subcat.image ? (
                     <img
                       src={subcat.image}
@@ -397,8 +405,7 @@ export default function CategoryPage() {
                         target.style.display = "none";
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.textContent =
-                            subcat.icon || subcat.name?.charAt(0) || "📦";
+                          parent.innerHTML = `<span class="text-2xl">${subcat.icon || "📦"}</span>`;
                         }
                       }}
                     />
@@ -409,10 +416,10 @@ export default function CategoryPage() {
 
                 {/* Text Label */}
                 <span
-                  className={`text-[11px] text-center leading-tight px-1 transition-colors ${
+                  className={`text-[10px] text-center leading-tight px-2 transition-all uppercase tracking-wider ${
                     isSelected
-                      ? "font-black text-neutral-900"
-                      : "text-neutral-500 font-medium group-hover:text-neutral-900"
+                      ? "font-black text-neutral-900 scale-105"
+                      : "font-bold text-neutral-400 group-hover:text-neutral-600"
                   }`}
                   style={{
                     wordBreak: "break-word",
@@ -433,32 +440,43 @@ export default function CategoryPage() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
         {/* Simplified Header with Breadcrumbs */}
-        <div className="sticky top-0 z-40 bg-white border-b border-neutral-100 flex-shrink-0">
-            <div className="flex items-center justify-between">
+        <div 
+          className={`sticky top-0 z-40 border-b border-neutral-100 flex-shrink-0 transition-all duration-500 ${category?.isCollection ? 'py-6 md:py-10 shadow-2xl overflow-hidden' : 'bg-white px-4 py-4 md:px-8'}`}
+          style={{
+            backgroundColor: category?.backgroundColor || (category?.isCollection ? '#f8f8f8' : 'white'),
+            backgroundImage: category?.backgroundImage ? `url(${category.backgroundImage})` : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            color: category?.titleColor || (category?.isCollection ? 'white' : 'inherit')
+          }}
+        >
+          {category?.isCollection && category?.backgroundImage && (
+            <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] pointer-events-none" />
+          )}
+          <div className={`relative z-10 flex items-center justify-between ${category?.isCollection ? 'px-6 md:px-12' : ''}`}>
               <div>
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-2 text-[13px] text-neutral-500 font-medium mb-2 overflow-x-auto scrollbar-hide whitespace-nowrap">
-                   <button onClick={() => navigate('/')} className="hover:text-neutral-900 transition-colors">Home</button>
-                   <span>›</span>
-                   <span className={`${id === 'lowest-prices' ? 'text-neutral-900 font-bold' : 'hover:text-neutral-900 transition-colors line-clamp-1'}`} onClick={() => id !== 'lowest-prices' && navigate(-1)}>{category?.name}</span>
+                <div className={`flex items-center gap-2 text-[13px] font-medium mb-3 overflow-x-auto scrollbar-hide whitespace-nowrap ${category?.isCollection ? 'opacity-90 drop-shadow-sm' : 'text-neutral-500'}`}>
+                   <button onClick={() => navigate('/')} className={`${category?.isCollection ? 'text-white hover:underline' : 'hover:text-neutral-900 transition-colors'}`}>Home</button>
+                   <span className={category?.isCollection ? 'text-white/60' : ''}>›</span>
+                   <span className={`${id === 'lowest-prices' ? (category?.isCollection ? 'text-white font-bold' : 'text-neutral-900 font-bold') : (category?.isCollection ? 'text-white hover:underline' : 'hover:text-neutral-900 transition-colors line-clamp-1')}`} onClick={() => id !== 'lowest-prices' && navigate(-1)}>{category?.name}</span>
                    {id !== 'lowest-prices' && (
                      <>
-                       <span>›</span>
-                       <span className="text-neutral-900 font-bold">{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
+                       <span className={category?.isCollection ? 'text-white/60' : ''}>›</span>
+                       <span className={`${category?.isCollection ? 'text-white font-black' : 'text-neutral-900 font-bold'}`}>{subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}</span>
                      </>
                    )}
                 </div>
 
                 {/* Bold Section Title */}
-                <h1 className="text-xl font-black text-neutral-900 tracking-tight">
-                  {subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All'}
+                <h1 
+                  className={`text-2xl md:text-5xl font-black tracking-tight ${category?.isCollection ? 'drop-shadow-lg italic' : 'text-neutral-900'}`}
+                  style={{ color: category?.titleColor }}
+                >
+                  {category?.isCollection ? category.name : (subcategories.find(s => (s.id || s._id) === selectedSubcategory)?.name || 'All')}
                 </h1>
               </div>
               
-              <CartIconButton 
-                className="bg-neutral-50 hover:bg-neutral-100"
-                iconColor="#171717"
-              />
+              {/* Cart intentionally removed for cleaner collection view */}
             </div>
         </div>
 

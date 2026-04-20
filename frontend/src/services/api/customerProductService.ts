@@ -15,6 +15,10 @@ export interface Category {
     subcategories?: Category[];
     headerCategoryId?: string | { _id: string; name?: string };
     totalProducts?: number;
+    isCollection?: boolean;
+    backgroundColor?: string;
+    backgroundImage?: string;
+    titleColor?: string;
 }
 
 export interface GetProductsParams {
