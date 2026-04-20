@@ -320,62 +320,99 @@ export const getAllSubcategories = asyncHandler(
       search,
       page = "1",
       limit = "10",
-      sortBy = "name",
+      sortBy = "subcategoryName",
       sortOrder = "asc",
     } = req.query;
 
-    const query: any = {};
+    // Build Search Query
+    const searchQuery = search
+      ? { name: { $regex: search as string, $options: "i" } }
+      : {};
 
-    // Search filter
-    if (search) {
-      query.name = { $regex: search, $options: "i" };
-    }
+    // 1. Get all top-level categories to identify their children (subcategories)
+    const topLevelCategories = await Category.find({ parentId: null }).select("_id name");
+    const topLevelIds = topLevelCategories.map(c => c._id);
+    const topLevelMap = new Map(topLevelCategories.map(c => [c._id.toString(), c.name]));
 
-    // Pagination
+    // 2. Fetch subcategories from new Category model (level 1)
+    const categorySubQuery: any = { 
+        parentId: { $in: topLevelIds },
+        ...searchQuery
+    };
+    const categorySubs = await Category.find(categorySubQuery).lean();
+
+    // 3. Fetch subcategories from old SubCategory model
+    const subCategoryQuery: any = { ...searchQuery };
+    const oldSubs = await SubCategory.find(subCategoryQuery).populate("category", "name").lean();
+
+    // 4. Combine and Format
+    const allSubs = [
+      ...categorySubs.map(cat => ({
+        _id: cat._id,
+        id: cat._id.toString(),
+        categoryName: topLevelMap.get(cat.parentId?.toString() || "") || "Unknown",
+        subcategoryName: cat.name,
+        subcategoryImage: cat.image || "",
+        totalProduct: 0, // Calculated below
+        createdAt: cat.createdAt
+      })),
+      ...oldSubs.map(sub => ({
+        _id: sub._id,
+        id: sub._id.toString(),
+        categoryName: (sub.category as any)?.name || "Unknown",
+        subcategoryName: sub.name,
+        subcategoryImage: sub.image || "",
+        totalProduct: 0, // Calculated below
+        createdAt: sub.createdAt
+      }))
+    ];
+
+    // 5. Unique by ID
+    const uniqueSubs = Array.from(
+      new Map(allSubs.map(item => [item.id, item])).values()
+    );
+
+    // 6. Sort
+    const sortMultiplier = sortOrder === "desc" ? -1 : 1;
+    uniqueSubs.sort((a, b) => {
+        let valA: any = (a as any)[sortBy as string] || "";
+        let valB: any = (b as any)[sortBy as string] || "";
+        
+        if (sortBy === "id") { valA = a._id.toString(); valB = b._id.toString(); }
+
+        if (typeof valA === "string") valA = valA.toLowerCase();
+        if (typeof valB === "string") valB = valB.toLowerCase();
+
+        if (valA < valB) return -1 * sortMultiplier;
+        if (valA > valB) return 1 * sortMultiplier;
+        return 0;
+    });
+
+    // 7. Pagination
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
+    const total = uniqueSubs.length;
+    
+    const paginatedSubs = uniqueSubs.slice(skip, skip + limitNum);
 
-    // Sort
-    const sort: any = {};
-    const sortField =
-      sortBy === "subcategoryName" ? "name" : (sortBy as string);
-    sort[sortField] = sortOrder === "asc" ? 1 : -1;
-
-    // Fetch subcategories from the SubCategory model instead of Category model
-    // This fixes the issue where subcategories created by Admin (in SubCategory collection)
-    // were not visible to Sellers because this controller was looking in Category collection
-    const subcategories = await SubCategory.find(query)
-      .populate("category", "name image")
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNum);
-
-    // Get product counts and format response
-    const subcategoriesWithCounts = await Promise.all(
-      subcategories.map(async (subcategory) => {
+    // 8. Product Counts
+    const dataWithCounts = await Promise.all(
+      paginatedSubs.map(async (sub) => {
         const productCount = await Product.countDocuments({
-          subcategory: subcategory._id, // Note: Product model uses 'subcategory', not 'subcategoryId'
+          $or: [
+            { subcategory: sub._id },
+            { category: sub._id }
+          ]
         });
-
-        const parentCategory = subcategory.category as any;
-
-        return {
-          id: subcategory._id,
-          categoryName: parentCategory?.name || "Unknown",
-          subcategoryName: subcategory.name,
-          subcategoryImage: subcategory.image || "",
-          totalProduct: productCount,
-        };
+        return { ...sub, totalProduct: productCount };
       })
     );
-
-    const total = await SubCategory.countDocuments(query);
 
     return res.status(200).json({
       success: true,
       message: "Subcategories fetched successfully",
-      data: subcategoriesWithCounts,
+      data: dataWithCounts,
       pagination: {
         page: pageNum,
         limit: limitNum,

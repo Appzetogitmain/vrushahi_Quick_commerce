@@ -67,17 +67,26 @@ export const getDashboardStats = asyncHandler(
             else if (isLowStock) lowStockProducts++;
         });
 
-        // 3. New Orders Table (Latest 10)
+        const { page = "1", limit = "10" } = req.query;
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
+        // 3. New Orders Table (Paginated)
         const newOrders = await Order.find({ _id: { $in: sellerOrderIds } })
             .sort({ createdAt: -1 })
-            .limit(10);
+            .skip(skip)
+            .limit(limitNum);
 
         const formattedNewOrders = newOrders.map(order => ({
-            id: order.orderNumber || order._id.toString(), // Use orderNumber if available
+            id: order._id.toString(),
+            orderNumber: order.orderNumber || order._id.toString().slice(-6).toUpperCase(),
             orderDate: new Date(order.orderDate).toLocaleDateString('en-GB'),
             status: order.status === 'Out for Delivery' ? 'Out For Delivery' : order.status,
-            amount: order.total, // Use total instead of grandTotal (check Schema)
+            amount: order.total,
         }));
+
+        const totalNewOrders = totalOrders; // totalOrders was already calculated in KPI Metrics
 
         // 4. Chart Data (Last 12 months)
         const currentYear = new Date().getFullYear();
@@ -152,7 +161,13 @@ export const getDashboardStats = asyncHandler(
                     yearlyOrderData,
                     dailyOrderData
                 },
-                newOrders: formattedNewOrders
+                newOrders: formattedNewOrders,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    total: totalNewOrders,
+                    pages: Math.ceil(totalNewOrders / limitNum)
+                }
             }
         });
     }
