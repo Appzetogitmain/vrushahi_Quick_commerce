@@ -3,7 +3,7 @@ import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Seller from "../../../models/Seller";
-import WalletTransaction from "../../../models/WalletTransaction";
+import { creditWallet } from "../../../services/walletManagementService";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
 import { Server as SocketIOServer } from "socket.io";
 
@@ -325,18 +325,13 @@ export const updateOrderStatus = asyncHandler(
           const netEarning = sellerSubtotal - commissionAmount;
 
           if (!isNaN(netEarning)) {
-            seller.balance = (seller.balance || 0) + netEarning;
-            await seller.save();
-
-            // Log transaction
-            await WalletTransaction.create({
+            await creditWallet(
               sellerId,
-              amount: netEarning,
-              type: 'Credit',
-              description: `Earnings from Order #${order.orderNumber || order._id}`,
-              reference: `ORD-${order._id}-${Date.now()}`,
-              status: 'Completed'
-            });
+              'SELLER',
+              netEarning,
+              `Earnings from Order #${order.orderNumber || order._id}`,
+              order._id.toString()
+            );
           }
         }
       }
