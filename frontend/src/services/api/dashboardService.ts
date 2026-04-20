@@ -17,6 +17,7 @@ export interface DashboardStats {
 
 export interface NewOrder {
     id: string;
+    orderNumber: string;
     orderDate: string;
     status: string;
     amount: number;
@@ -28,13 +29,21 @@ export interface DashboardResponse {
     data: {
         stats: DashboardStats;
         newOrders: NewOrder[];
+        pagination: {
+            page: number;
+            limit: number;
+            total: number;
+            pages: number;
+        };
     };
 }
 
 /**
  * Get seller's dashboard statistics
  */
-export const getSellerDashboardStats = async (): Promise<DashboardResponse> => {
-    const response = await api.get<DashboardResponse>('/seller/dashboard/stats');
+export const getSellerDashboardStats = async (page: number = 1, limit: number = 10): Promise<DashboardResponse> => {
+    const response = await api.get<DashboardResponse>('/seller/dashboard/stats', {
+        params: { page, limit }
+    });
     return response.data;
 };

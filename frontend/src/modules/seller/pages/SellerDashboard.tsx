@@ -19,28 +19,34 @@ export default function SellerDashboard() {
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    pages: 0,
+    limit: 10,
+    page: 1
+  });
 
+  // Fetch initial stats and profile
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true);
         const [statsResponse, profileResponse] = await Promise.all([
-          getSellerDashboardStats(),
+          getSellerDashboardStats(1, entriesPerPage),
           getSellerProfile()
         ]);
 
         if (statsResponse.success) {
           setStats(statsResponse.data.stats);
           setNewOrders(statsResponse.data.newOrders);
+          setPagination(statsResponse.data.pagination);
         } else {
           setError(statsResponse.message || 'Failed to fetch dashboard data');
         }
 
         if (profileResponse.success) {
           setProfile(profileResponse.data);
-          // Use nullish coalescing to default to true if isShopOpen is undefined
           const shopStatus = profileResponse.data.isShopOpen ?? true;
-          console.log('Initial shop status from profile:', shopStatus, 'Raw value:', profileResponse.data.isShopOpen);
           setIsShopOpen(shopStatus);
         }
       } catch (err: any) {
@@ -50,8 +56,28 @@ export default function SellerDashboard() {
       }
     };
 
-    fetchDashboardData();
+    fetchInitialData();
   }, []);
+
+  // Fetch only table data when pagination changes
+  useEffect(() => {
+    // Skip the first run to avoid duplicate calls on mount
+    if (loading) return;
+
+    const fetchTableData = async () => {
+      try {
+        const response = await getSellerDashboardStats(currentPage, entriesPerPage);
+        if (response.success) {
+          setNewOrders(response.data.newOrders);
+          setPagination(response.data.pagination);
+        }
+      } catch (err: any) {
+        console.error('Failed to update table data:', err);
+      }
+    };
+
+    fetchTableData();
+  }, [currentPage, entriesPerPage]);
 
   const handleToggleShop = async () => {
     try {
@@ -96,10 +122,9 @@ export default function SellerDashboard() {
     }
   };
 
-  const totalPages = Math.ceil(newOrders.length / entriesPerPage);
+  const totalPages = pagination.pages || 1;
   const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const displayedOrders = newOrders.slice(startIndex, endIndex);
+  const displayedOrders = newOrders; // Data is already paginated from server
 
   // Icons for KPI cards
   const userIcon = (
@@ -436,8 +461,8 @@ export default function SellerDashboard() {
             </thead>
             <tbody className="bg-white divide-y divide-neutral-200">
               {displayedOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-neutral-50">
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">{order.id}</td>
+                <tr key={order.id} className="hover:bg-neutral-50 transition-colors">
+                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">{order.orderNumber}</td>
                   <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">{order.orderDate}</td>
                   <td className="px-4 sm:px-6 py-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
@@ -486,7 +511,7 @@ export default function SellerDashboard() {
         {/* Pagination Footer */}
         <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
           <div className="text-xs sm:text-sm text-neutral-700">
-            Showing {startIndex + 1} to {Math.min(endIndex, newOrders.length)} of {newOrders.length} entries
+            Showing {startIndex + 1} to {Math.min(startIndex + newOrders.length, pagination.total)} of {pagination.total} entries
           </div>
           <div className="flex items-center gap-2">
             <button

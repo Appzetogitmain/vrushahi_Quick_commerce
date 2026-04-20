@@ -58,11 +58,11 @@ export default function SellerSalesReport() {
     const handleSort = (column: string) => {
         // Map frontend table column names to backend model fields if necessary
         const columnMap: Record<string, string> = {
-            'orderId': 'orderId',
+            'orderId': 'createdAt', // Sorting by date instead of populated order number
             'orderItemId': '_id',
             'product': 'productName',
-            'variant': 'variantTitle',
-            'total': 'subtotal',
+            'variant': 'variation',
+            'total': 'total',
             'date': 'createdAt'
         };
 

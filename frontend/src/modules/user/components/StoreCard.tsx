@@ -85,9 +85,6 @@ export default function StoreCard({ store }: StoreCardProps) {
                     <span className="text-sky-500 text-[9px] font-black uppercase tracking-widest bg-sky-50/80 px-2 py-1 rounded-md border border-sky-100 flex-shrink-0">
                         Express
                     </span>
-                    <span className="text-[9px] font-black text-neutral-400 uppercase tracking-tighter line-clamp-1">
-                        Free Delivery
-                    </span>
                 </div>
             </div>
         </motion.div>

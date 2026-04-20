@@ -197,23 +197,25 @@ export default function Home() {
               <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight capitalize">
                 {activeTab === "all" ? "Stores Near You" : `${activeTab} Stores Near You`}
               </h2>
-              <div 
-                onClick={() => setShowAllStores(!showAllStores)}
-                className="flex items-center gap-2 text-[#8b5cf6] font-extrabold text-sm md:text-base cursor-pointer hover:underline bg-violet-50 px-4 py-2 rounded-full transition-all hover:bg-violet-100"
-              >
-                <span>{showAllStores ? "Show Less" : "View All"}</span>
-                <svg 
-                  width="18" 
-                  height="18" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="3.5"
-                  className={`transition-transform duration-300 ${showAllStores ? 'rotate-90' : ''}`}
+              {homeData.nearbyStores && homeData.nearbyStores.length > 0 && (
+                <div 
+                  onClick={() => setShowAllStores(!showAllStores)}
+                  className="flex items-center gap-2 text-[#8b5cf6] font-bold text-xs md:text-base cursor-pointer hover:underline bg-violet-50 px-3 md:px-4 py-1.5 md:py-2 rounded-full transition-all hover:bg-violet-100 flex-shrink-0"
                 >
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </div>
+                  <span>{showAllStores ? "Show Less" : "View All"}</span>
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="3"
+                    className={`transition-transform duration-300 ${showAllStores ? 'rotate-90' : ''}`}
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              )}
             </div>
             
             {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
@@ -229,10 +231,10 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="py-16 md:py-24 text-center bg-violet-50/30 rounded-[3rem] border-2 border-dashed border-violet-100/50 max-w-4xl mx-auto">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md text-3xl">🏪</div>
-                <p className="text-xl text-neutral-600 font-black">No {activeTab} stores found nearby</p>
-                <p className="text-sm text-neutral-400 mt-2 uppercase tracking-widest font-extrabold">Try switching to another category above!</p>
+              <div className="py-12 md:py-24 text-center bg-violet-50/20 rounded-[2.5rem] border-2 border-dashed border-violet-100/50 max-w-4xl mx-auto">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-2xl">🏪</div>
+                <p className="text-base md:text-xl text-neutral-600 font-bold">No {activeTab} stores found nearby</p>
+                <p className="text-[10px] md:text-sm text-neutral-400 mt-2 uppercase tracking-wider font-medium">Try switching to another category above!</p>
               </div>
             )}
           </div>
