@@ -63,7 +63,7 @@ export default function Checkout() {
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [customTipAmount, setCustomTipAmount] = useState<number>(0);
   const [showCustomTipInput, setShowCustomTipInput] = useState(false);
-  const [savedAddress, setSavedAddress] = useState<OrderAddress | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<OrderAddress[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<OrderAddress | null>(
     null
   );
@@ -137,25 +137,26 @@ export default function Checkout() {
           Array.isArray(addressResponse.data) &&
           addressResponse.data.length > 0
         ) {
-          const defaultAddr =
-            addressResponse.data.find((a: any) => a.isDefault) ||
-            addressResponse.data[0];
-          const mappedAddress: OrderAddress = {
-            name: defaultAddr.fullName,
-            phone: defaultAddr.phone,
-            flat: "",
-            street: defaultAddr.address,
-            city: defaultAddr.city,
-            state: defaultAddr.state,
-            pincode: defaultAddr.pincode,
-            landmark: defaultAddr.landmark || "",
-            latitude: defaultAddr.latitude,
-            longitude: defaultAddr.longitude,
-            id: defaultAddr._id,
-            _id: defaultAddr._id,
-          };
-          setSavedAddress(mappedAddress);
-          setSelectedAddress(mappedAddress);
+          const mappedAddresses: OrderAddress[] = addressResponse.data.map((addr: any) => ({
+            name: addr.fullName,
+            phone: addr.phone,
+            flat: addr.address?.split(', ')[0] || '',
+            street: addr.address || '',
+            city: addr.city,
+            state: addr.state,
+            pincode: addr.pincode,
+            landmark: addr.landmark || "",
+            latitude: addr.latitude,
+            longitude: addr.longitude,
+            id: addr._id,
+            _id: addr._id,
+            type: addr.type
+          }));
+          setSavedAddresses(mappedAddresses);
+          
+          // Select default or first
+          const defaultAddr = mappedAddresses.find((a: any) => a.isDefault) || mappedAddresses[0];
+          setSelectedAddress(defaultAddr);
         }
 
         if (couponResponse.success) {
@@ -539,7 +540,7 @@ export default function Checkout() {
         landmark: mapLocation.address?.landmark || selectedAddress.landmark,
       };
       setSelectedAddress(updated);
-      setSavedAddress(updated); // Sync
+      setSavedAddresses(prev => prev.map(a => a.id === updated.id ? updated : a)); // Sync
       setShowMapPicker(false);
       setIsMapSelected(true); // Mark map as selected
       showGlobalToast("Location and address updated successfully!");
@@ -933,7 +934,7 @@ export default function Checkout() {
       onClick={() =>
         navigate("/checkout/address", {
           state: {
-            editAddress: savedAddress,
+            editAddress: selectedAddress || (savedAddresses.length > 0 ? savedAddresses[0] : null),
           },
         })
       }
@@ -945,87 +946,109 @@ export default function Checkout() {
 
 {/* Saved Address Section */ }
 {
-  savedAddress && (
+  savedAddresses.length > 0 && (
     <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 border-b border-neutral-200">
-      <div className="mb-2">
-        <h3 className="text-xs font-semibold text-neutral-900 mb-0.5">
-          Delivery Address
-        </h3>
-        <p className="text-[10px] text-neutral-600">
-          Select or edit your saved address
-        </p>
+      <div className="mb-3 flex justify-between items-center">
+        <div>
+          <h3 className="text-xs font-semibold text-neutral-900 mb-0.5">
+            Delivery Address
+          </h3>
+          <p className="text-[10px] text-neutral-600">
+            Select one of your saved addresses
+          </p>
+        </div>
+        <button
+          onClick={() => navigate("/checkout/address", { state: { isNew: true } })}
+          className="text-[#ff3269] font-black text-[10px] uppercase tracking-wider"
+        >
+          Add New
+        </button>
       </div>
 
-      <div
-        className={`border rounded-lg p-2.5 cursor-pointer transition-all ${selectedAddress && !isMapSelected
-          ? "border-purple-200 bg-purple-50"
-          : "border-neutral-200 bg-white"
-          }`}
-        onClick={() => {
-          setSelectedAddress(savedAddress);
-          setIsMapSelected(false);
-        }}>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5 mb-1">
-              <div
-                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedAddress && !isMapSelected
-                  ? "border-[#ff3269] bg-[#ff3269]"
-                  : "border-neutral-400"
-                  }`}>
-                {selectedAddress && !isMapSelected && (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M20 6L9 17l-5-5"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
-              <span className="text-xs font-bold text-neutral-900">
-                {savedAddress.name}
-              </span>
-            </div>
-            <p className="text-[10px] text-neutral-600 mb-0.5">
-              {savedAddress.phone}
-            </p>
-            <p className="text-[10px] text-neutral-600">
-              {savedAddress.flat ? `${savedAddress.flat}, ` : ""}
-              {savedAddress.street}
-              {savedAddress.landmark ? (
-                <>
-                  ,{" "}
-                  <span className="font-bold text-[#b57edc]">
-                    Near {savedAddress.landmark}
+      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+        {savedAddresses.map((addr) => (
+          <div
+            key={addr.id}
+            className={`border rounded-xl p-3 cursor-pointer transition-all relative ${selectedAddress?.id === addr.id && !isMapSelected
+              ? "border-[#ff3269] bg-pink-50/30 ring-1 ring-[#ff3269]/10"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}
+            onClick={() => {
+              setSelectedAddress(addr);
+              setIsMapSelected(false);
+            }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedAddress?.id === addr.id && !isMapSelected
+                      ? "border-[#ff3269] bg-[#ff3269]"
+                      : "border-neutral-300"
+                      }`}>
+                    {selectedAddress?.id === addr.id && !isMapSelected && (
+                      <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                          d="M20 6L9 17l-5-5"
+                          stroke="white"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-neutral-900 truncate">
+                    {addr.name}
                   </span>
-                </>
-              ) : (
-                ""
-              )}
-              , {savedAddress.city} - {savedAddress.pincode}
-            </p>
+                  <span className="text-[8px] font-black bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                    {(addr as any).type || 'Home'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-neutral-500 font-medium mb-1">
+                  📞 {addr.phone}
+                </p>
+                <p className="text-[10px] text-neutral-600 line-clamp-2 leading-relaxed">
+                  {addr.flat ? `${addr.flat}, ` : ""}
+                  {addr.street}
+                  {addr.landmark ? `, Near ${addr.landmark}` : ""}
+                  , {addr.city} - {addr.pincode}
+                </p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/checkout/address", {
+                    state: {
+                      editAddress: addr,
+                    },
+                  });
+                }}
+                className="p-2 -mr-1 hover:bg-neutral-50 rounded-lg transition-colors group"
+                title="Edit Address"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-neutral-400 group-hover:text-[#ff3269]"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate("/checkout/address", {
-                state: {
-                  editAddress: savedAddress,
-                },
-              });
-            }}
-            className="text-[#ff3269] font-bold text-sm mt-2 flex items-center gap-1 transition-all">
-            Edit
-          </button>
-        </div>
+        ))}
       </div>
       {/* Set Location on Map Button */}
       <div className="mt-2.5">
@@ -2135,7 +2158,7 @@ export default function Checkout() {
         onClick={() =>
           navigate("/checkout/address", {
             state: {
-              editAddress: savedAddress,
+              editAddress: selectedAddress,
             },
           })
         }

@@ -106,7 +106,7 @@ export default function AddressBook() {
 
   const defaultBadge = useMemo(
     () => (
-      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-black text-white bg-[#ff3269] rounded-full shadow-sm shadow-pink-100">
+      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[10px] font-semibold text-white bg-[#ff3269] rounded-full shadow-sm shadow-pink-100">
         Default
       </span>
     ),
@@ -134,15 +134,15 @@ export default function AddressBook() {
           </svg>
         </button>
         <div>
-          <p className="text-[10px] uppercase tracking-wider font-black text-black/40">Your saved addresses</p>
-          <h1 className="text-xl md:text-2xl font-black text-black tracking-tight">
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-black/40">Your saved addresses</p>
+          <h1 className="text-xl md:text-2xl font-bold text-black tracking-tight">
             Address book
           </h1>
         </div>
         <div className="ml-auto">
           <button
-            onClick={() => navigate("/checkout/address")}
-            className="px-5 py-2 text-sm font-black text-neutral-900 bg-transparent border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all active:scale-95"
+            onClick={() => navigate("/checkout/address", { state: { isNew: true } })}
+            className="px-5 py-2 text-sm font-bold text-neutral-900 bg-transparent border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all active:scale-95"
           >
             Add new
           </button>
@@ -190,13 +190,49 @@ export default function AddressBook() {
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center flex-wrap gap-1">
-                        <span className="text-base font-black text-neutral-900">
-                          {addr.type || "Home"}
-                        </span>
-                        {addr.isDefault && defaultBadge}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center flex-wrap gap-1">
+                          <span className="text-base font-bold text-neutral-900">
+                            {addr.type || "Home"}
+                          </span>
+                          {addr.isDefault && defaultBadge}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const mapped: any = {
+                              id: addr._id,
+                              _id: addr._id,
+                              name: addr.fullName,
+                              phone: addr.phone,
+                              flat: addr.address.split(', ')[0] || '',
+                              street: addr.address.split(', ')[1] || '',
+                              city: addr.city,
+                              state: addr.state,
+                              pincode: addr.pincode,
+                              landmark: addr.landmark,
+                              type: addr.type
+                            };
+                            navigate("/checkout/address", { state: { editAddress: mapped } });
+                          }}
+                          className="flex items-center gap-1 text-xs font-bold text-neutral-500 hover:text-neutral-900 transition-colors p-1"
+                          disabled={isBusy}
+                          title="Edit Address"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                          </svg>
+                          <span className="sr-only">Edit</span>
+                        </button>
                       </div>
-                      <p className="text-[10px] uppercase font-black tracking-wider text-neutral-900 mt-0.5">
+                      <p className="text-[10px] uppercase font-semibold tracking-wider text-neutral-900 mt-0.5">
                         Saved address
                       </p>
                       <p className="text-sm text-neutral-800 leading-relaxed mt-2">
@@ -230,7 +266,7 @@ export default function AddressBook() {
                         </button>
                         <button
                           onClick={() => handleMakeDefault(addr._id)}
-                          className="flex items-center gap-1 text-sm font-black hover:text-[#ff1f5a] disabled:text-neutral-300 transition-colors"
+                          className="flex items-center gap-1 text-sm font-bold hover:text-[#ff1f5a] disabled:text-neutral-300 transition-colors"
                           disabled={isBusy || addr.isDefault}
                         >
                           <svg
@@ -249,7 +285,7 @@ export default function AddressBook() {
                         </button>
                         <button
                           onClick={() => handleDelete(addr._id)}
-                          className="flex items-center gap-1 text-sm font-black text-red-500 hover:text-red-700 disabled:text-neutral-300 transition-colors"
+                          className="flex items-center gap-1 text-sm font-bold text-red-500 hover:text-red-700 disabled:text-neutral-300 transition-colors"
                           disabled={isBusy}
                         >
                           <svg

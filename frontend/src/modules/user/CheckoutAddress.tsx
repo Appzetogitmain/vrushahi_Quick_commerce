@@ -19,6 +19,7 @@ export default function CheckoutAddress() {
 
   // Get address from navigation state if editing
   const editAddress = (location.state as any)?.editAddress as OrderAddress | undefined;
+  const isNew = (location.state as any)?.isNew as boolean | undefined;
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [address, setAddress] = useState<OrderAddress>({
@@ -58,8 +59,8 @@ export default function CheckoutAddress() {
           if (response.success && Array.isArray(response.data)) {
             setSavedAddresses(response.data);
 
-            // If not editing, try to load the default 'home' address if it exists
-            if (!editAddress) {
+            // If not editing and not explicitly a 'new' address request, try to load default
+            if (!editAddress && !isNew) {
               const homeAddr = response.data.find(a => a.type === 'Home');
               if (homeAddr) {
                 const parts = homeAddr.address.split(', ');
@@ -87,7 +88,7 @@ export default function CheckoutAddress() {
 
   // Update address when addressType changes
   useEffect(() => {
-    if (!editAddress && savedAddresses.length > 0) {
+    if (!editAddress && !isNew && savedAddresses.length > 0) {
       const typeLabel = addressType.charAt(0).toUpperCase() + addressType.slice(1) as any;
       const existingAddr = savedAddresses.find(a => a.type === typeLabel);
 
@@ -245,9 +246,9 @@ export default function CheckoutAddress() {
       };
 
       // If editing an existing address, use updateAddress instead
-      if (editAddress && (editAddress.id || editAddress._id)) {
-        const addressId = editAddress.id || editAddress._id;
-        await updateAddress(addressId!, payload);
+      const addressId = editAddress?.id || editAddress?._id || address.id || (address as any)._id;
+      if (addressId && !isNew) {
+        await updateAddress(addressId, payload);
       } else {
         await addAddress(payload);
       }
