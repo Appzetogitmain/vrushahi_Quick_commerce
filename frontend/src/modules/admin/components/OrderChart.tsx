@@ -60,7 +60,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
         enabled: false,
       },
     },
-    yaxis: {
+      yaxis: {
       labels: {
         style: {
           colors: '#6b7280',
@@ -68,7 +68,8 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
         },
         formatter: (value) => value.toFixed(0),
       },
-      max: maxValue, // Maintain consistent scale with prop
+      // Dynamically calculate max to prevent clipping if data exceeds maxValue
+      max: Math.max(maxValue, ...seriesData, 1),
     },
     grid: {
       show: true,

@@ -86,6 +86,8 @@ export interface GetOrdersParams {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface UpdateOrderStatusData {

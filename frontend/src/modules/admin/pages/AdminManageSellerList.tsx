@@ -713,7 +713,7 @@ export default function AdminManageSellerList() {
 
             {/* Categories Modal */}
             {isModalOpen && selectedSeller && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseModal}>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseModal}>
                     <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
@@ -772,7 +772,7 @@ export default function AdminManageSellerList() {
 
             {/* Edit Seller Modal */}
             {isEditModalOpen && editingSeller && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseEditModal}>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseEditModal}>
                     <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
@@ -793,12 +793,7 @@ export default function AdminManageSellerList() {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 overflow-y-auto flex-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                            <style>{`
-                                .edit-seller-modal::-webkit-scrollbar {
-                                    display: none;
-                                }
-                            `}</style>
+                        <div className="p-6 overflow-y-auto flex-1 thin-scrollbar">
 
                             <div className="space-y-6">
                                 {/* Status Badge */}
@@ -1177,7 +1172,7 @@ export default function AdminManageSellerList() {
 
             {/* Image Preview Modal */}
             {isPreviewModalOpen && previewImage && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 transition-opacity duration-300" onClick={handleClosePreviewModal}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-90 transition-opacity duration-300" onClick={handleClosePreviewModal}>
                     <div className="relative max-w-5xl w-full mx-4 flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
                         <button
                             onClick={handleClosePreviewModal}

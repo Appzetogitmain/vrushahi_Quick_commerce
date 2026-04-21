@@ -4,6 +4,7 @@ import {
   getAllOrders,
   type Order,
 } from "../../../services/api/admin/adminOrderService";
+import { getAllSellers, Seller as SellerType } from "../../../services/api/sellerService";
 import { useAuth } from "../../../context/AuthContext";
 
 type SortField =
@@ -30,6 +31,7 @@ export default function AdminAllOrders() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [allSellers, setAllSellers] = useState<SellerType[]>([]);
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -54,6 +56,15 @@ export default function AdminAllOrders() {
 
         if (searchQuery) {
           params.search = searchQuery;
+        }
+
+        if (seller !== "All Sellers") {
+          params.seller = seller;
+        }
+
+        if (sortField) {
+          params.sortBy = sortField === "orderId" ? "orderNumber" : sortField;
+          params.sortOrder = sortDirection;
         }
 
         // Parse date range if provided
@@ -95,9 +106,27 @@ export default function AdminAllOrders() {
     currentPage,
     entriesPerPage,
     status,
+    seller, // Added seller dependency
     searchQuery,
     dateRange,
+    sortField,     // Added sortField dependency
+    sortDirection, // Added sortDirection dependency
   ]);
+
+  // Fetch sellers for dropdown
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        const response = await getAllSellers({ status: "Approved" });
+        if (response.success) {
+          setAllSellers(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching sellers:", err);
+      }
+    };
+    fetchSellers();
+  }, []);
 
   const handleClearDate = () => {
     setDateRange("");
@@ -155,64 +184,10 @@ export default function AdminAllOrders() {
   };
 
   const filteredAndSortedOrders = useMemo(() => {
-    let filtered = [...orders];
-
-    // Sort
-    if (sortField) {
-      filtered.sort((a, b) => {
-        let aValue: any;
-        let bValue: any;
-
-        switch (sortField) {
-          case "orderId":
-            aValue = a.orderNumber || "";
-            bValue = b.orderNumber || "";
-            break;
-          case "customerDetails":
-            aValue = a.customerName || "";
-            bValue = b.customerName || "";
-            break;
-          case "address":
-            aValue = a.deliveryAddress?.address || "";
-            bValue = b.deliveryAddress?.address || "";
-            break;
-          case "deliveryDate":
-            aValue = a.estimatedDeliveryDate || "";
-            bValue = b.estimatedDeliveryDate || "";
-            break;
-          case "orderDate":
-            aValue = a.orderDate || "";
-            bValue = b.orderDate || "";
-            break;
-          case "status":
-            aValue = a.status || "";
-            bValue = b.status || "";
-            break;
-          case "deliveryBoyStatus":
-            aValue = a.deliveryBoyStatus || "";
-            bValue = b.deliveryBoyStatus || "";
-            break;
-          case "amount":
-            aValue = a.total || 0;
-            bValue = b.total || 0;
-            break;
-          default:
-            return 0;
-        }
-
-        if (typeof aValue === "string") {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toLowerCase();
-        }
-
-        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [orders, sortField, sortDirection]);
+    // With server-side sorting and filtering, we mostly just return the orders from state.
+    // We only keep useMemo if we wanted to do additional client-side processing.
+    return [...orders];
+  }, [orders]);
 
   const totalPages = Math.ceil(
     filteredAndSortedOrders.length / parseInt(entriesPerPage)
@@ -351,10 +326,12 @@ export default function AdminAllOrders() {
                     setCurrentPage(1);
                   }}
                   className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500">
-                  <option>All Sellers</option>
-                  <option>Seller 1</option>
-                  <option>Seller 2</option>
-                  <option>Seller 3</option>
+                  <option value="All Sellers">All Sellers</option>
+                  {allSellers.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.sellerName} ({s.storeName})
+                    </option>
+                  ))}
                 </select>
               </div>
 

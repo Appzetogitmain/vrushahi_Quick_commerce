@@ -22,6 +22,8 @@ export const getAllOrders = asyncHandler(
       dateFrom,
       dateTo,
       search,
+      sortBy = "orderDate",
+      sortOrder = "desc",
     } = req.query;
 
     const query: any = {};
@@ -50,12 +52,17 @@ export const getAllOrders = asyncHandler(
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
+    const sort: any = {};
+    if (sortBy) {
+      sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+    }
+
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("customer", "name email phone")
         .populate("deliveryBoy", "name mobile")
         .populate("items")
-        .sort({ orderDate: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(parseInt(limit as string)),
       Order.countDocuments(query),

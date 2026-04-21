@@ -36,12 +36,31 @@
 }
 
 @layer utilities {
-  .scrollbar-hide, .hide-scrollbar, .overflow-x-auto, .overflow-x-scroll {
+  .scrollbar-hide, .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar, .overflow-x-auto::-webkit-scrollbar, .overflow-x-scroll::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+  }
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db;
+  }
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #e5e7eb transparent;
   }
 }
 
