@@ -56,8 +56,8 @@ export default function Stores() {
   return (
     <div className="bg-[#f2f4f7] min-h-screen pb-safe-bottom">
       {/* Header */}
-      <div className="bg-white px-4 pt-6 pb-6 sticky top-0 z-30 shadow-sm md:static md:shadow-none transition-all duration-300">
-        <div className="max-w-7xl mx-auto md:pt-12">
+      <div className="bg-white px-4 pt-4 pb-4 sticky top-0 z-30 shadow-sm md:static md:shadow-none transition-all duration-300">
+        <div className="max-w-7xl mx-auto md:pt-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-12">
             <div className="flex items-center gap-4">
                <button
@@ -68,9 +68,9 @@ export default function Stores() {
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-              <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tighter whitespace-nowrap">
+              <h2 className="text-lg md:text-2xl font-bold text-neutral-800 tracking-tight whitespace-nowrap">
                 Nearby Stores
-              </h1>
+              </h2>
             </div>
             
             {/* Search Bar - Much longer for professional look */}

@@ -51,7 +51,7 @@ export default function Cart() {
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-neutral-900 tracking-tight">Your Basket</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-neutral-800 tracking-tight">Your Basket</h1>
               <p className="text-xs md:text-sm font-medium text-neutral-500 mt-1 flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -103,7 +103,7 @@ export default function Cart() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-neutral-900 text-base md:text-xl line-clamp-1 group-hover:text-[#ff3269] transition-colors">
+                          <h3 className="font-bold text-neutral-800 text-sm md:text-lg line-clamp-1 group-hover:text-[#ff3269] transition-colors">
                             {item.product.name}
                           </h3>
                           <button
@@ -120,7 +120,7 @@ export default function Cart() {
                             </svg>
                           </button>
                         </div>
-                        <p className="text-xs md:text-sm font-bold text-neutral-400 uppercase tracking-widest mb-3">
+                        <p className="text-xs md:text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">
                           {item.variant ? (
                             typeof item.variant === 'object' ? 
                               ((item.variant as any).title || (item.variant as any).name || (item.variant as any).value) : 
@@ -132,11 +132,11 @@ export default function Cart() {
                       <div className="flex flex-wrap items-end justify-between gap-4">
                         <div className="flex flex-col">
                            <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg md:text-2xl font-black text-neutral-900 text-[#ff3269]">
+                            <span className="text-base md:text-xl font-bold text-neutral-800">
                               ₹{displayPrice.toLocaleString('en-IN')}
                             </span>
                             {hasDiscount && (
-                              <span className="text-sm md:text-base text-neutral-400 line-through font-medium">
+                              <span className="text-xs md:text-sm text-neutral-400 line-through font-medium">
                                 ₹{mrp.toLocaleString('en-IN')}
                               </span>
                             )}
@@ -156,7 +156,7 @@ export default function Cart() {
                           >
                             −
                           </button>
-                          <span className="text-sm md:text-base font-black text-neutral-900 min-w-[2.5rem] md:min-w-[3rem] text-center">
+                          <span className="text-sm md:text-base font-bold text-neutral-800 min-w-[2.5rem] md:min-w-[3rem] text-center">
                             {item.quantity}
                           </span>
                           <button
@@ -180,12 +180,12 @@ export default function Cart() {
               {/* Decorative Gradient Background */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50" />
               
-              <h2 className="text-xl md:text-2xl font-black text-neutral-900 mb-8 relative">Bill Summary</h2>
+              <h2 className="text-lg md:text-xl font-bold text-neutral-800 mb-6 relative">Bill Summary</h2>
               
               <div className="space-y-4 mb-8 relative">
                 <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
                   <span className="font-medium">Item Total</span>
-                  <span className="font-bold text-neutral-900">₹{cart.total.toLocaleString('en-IN')}</span>
+                  <span className="font-semibold text-neutral-800">₹{cart.total.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
                   <div className="flex items-center gap-1.5">
@@ -195,11 +195,11 @@ export default function Cart() {
                        <path d="M12 16v-4M12 8h.01" strokeLinecap="round" />
                     </svg>
                   </div>
-                  <span className="font-bold text-neutral-900">₹{platformFee.toLocaleString('en-IN')}</span>
+                  <span className="font-semibold text-neutral-800">₹{platformFee.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
                   <span className="font-medium">Delivery Partner Fee</span>
-                  <span className={`font-bold ${deliveryFee === 0 ? 'text-green-600' : 'text-neutral-900'}`}>
+                  <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600' : 'text-neutral-800'}`}>
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toLocaleString('en-IN')}`}
                   </span>
                 </div>
@@ -225,12 +225,12 @@ export default function Cart() {
 
               <div className="border-t-2 border-dashed border-neutral-100 pt-6 mb-8">
                 <div className="flex justify-between items-center group">
-                  <span className="text-lg md:text-xl font-black text-neutral-900">Total to pay</span>
+                  <span className="text-base md:text-lg font-bold text-neutral-800">Total to pay</span>
                   <div className="text-right">
-                    <span className="text-xl md:text-2xl font-black text-neutral-900 group-hover:text-[#ff3269] transition-colors">
+                    <span className="text-lg md:text-2xl font-bold text-neutral-800 group-hover:text-[#ff3269] transition-colors">
                       ₹{totalAmount.toLocaleString('en-IN')}
                     </span>
-                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-widest mt-1">Inclusive of all taxes</p>
+                    <p className="text-[10px] font-medium text-green-600 uppercase tracking-widest mt-1">Inclusive of all taxes</p>
                   </div>
                 </div>
               </div>

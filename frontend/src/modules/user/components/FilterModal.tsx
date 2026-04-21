@@ -60,11 +60,14 @@ export default function FilterModal({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 250 }}
-            className="fixed bottom-0 left-0 right-0 bg-white z-[70] rounded-t-[28px] overflow-hidden flex flex-col max-h-[60vh] shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
+            className="fixed bottom-0 left-0 right-0 bg-white z-[70] rounded-t-[32px] overflow-hidden flex flex-col max-h-[85vh] shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
           >
+            {/* Grab Handle */}
+            <div className="w-12 h-1.5 bg-gray-100 rounded-full mx-auto mt-3" />
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-              <h2 className="text-base font-black text-gray-900 uppercase tracking-tight">Filters</h2>
+            <div className="flex items-center justify-between px-6 pt-2 pb-4 border-b border-gray-50">
+              <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Filters</h2>
               <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M18 6L6 18M6 6l12 12" />
@@ -154,7 +157,7 @@ export default function FilterModal({
             </div>
  
             {/* Footer Actions */}
-            <div className="p-4 pb-20 border-t border-gray-50 flex gap-3 bg-white/90 backdrop-blur-xl">
+            <div className="p-4 pb-32 border-t border-gray-50 flex gap-3 bg-white/90 backdrop-blur-xl">
               <button
                 onClick={handleClear}
                 className="flex-1 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors border border-gray-100 rounded-xl bg-gray-50/50"
@@ -163,7 +166,7 @@ export default function FilterModal({
               </button>
               <button
                 onClick={handleApply}
-                className="flex-[2] py-3 bg-[#ff3269] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-100/40 active:scale-[0.98] transition-all hover:bg-[#e62e5f]"
+                className="flex-[2] py-3 bg-white text-[#ff3269] border-2 border-[#ff3269] rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-100/40 active:scale-[0.98] transition-all hover:bg-pink-50"
               >
                 Apply Filters
               </button>

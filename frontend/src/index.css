@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,6 +8,7 @@
 @layer base {
   body {
     @apply bg-white md:bg-white text-neutral-900;
+    font-family: 'Outfit', sans-serif;
     margin: 0;
     padding: 0;
     padding-top: env(safe-area-inset-top);
@@ -33,11 +36,11 @@
 }
 
 @layer utilities {
-  .scrollbar-hide {
+  .scrollbar-hide, .hide-scrollbar, .overflow-x-auto, .overflow-x-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar, .overflow-x-auto::-webkit-scrollbar, .overflow-x-scroll::-webkit-scrollbar {
     display: none;
   }
 }

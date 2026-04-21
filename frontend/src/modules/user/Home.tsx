@@ -194,7 +194,7 @@ export default function Home() {
         {(homeData.nearbyStores && homeData.nearbyStores.length > 0) || activeTab !== "all" ? (
           <div className="mt-4 mb-2 md:mt-12 md:mb-6 px-4 md:px-10 lg:px-16">
             <div className="flex items-center justify-between mb-4 md:mb-8">
-              <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight capitalize">
+              <h2 className="text-lg md:text-2xl font-bold text-neutral-800 tracking-tight capitalize">
                 {activeTab === "all" ? "Stores Near You" : `${activeTab} Stores Near You`}
               </h2>
               {homeData.nearbyStores && homeData.nearbyStores.length > 0 && (
@@ -255,7 +255,7 @@ export default function Home() {
           {/* Filtered Products Section (from bestsellers) */}
           {activeTab !== "all" && filteredProducts.length > 0 && (
             <div data-products-section className="mt-6 mb-6 md:mt-12 md:mb-12 px-4 md:px-10 lg:px-16">
-              <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-neutral-900 mb-6 md:mb-10 tracking-tight capitalize">
+              <h2 className="text-lg md:text-2xl font-bold text-neutral-800 mb-4 md:mb-6 tracking-tight capitalize">
                 {activeTab === "grocery" ? "Grocery Items" : activeTab}
               </h2>
               <div>
@@ -330,7 +330,7 @@ export default function Home() {
                             <div className="flex justify-between items-center px-4 md:px-10 mb-6 md:mb-10">
                               {section.title && (
                                 <h2 
-                                  className={`text-xl md:text-4xl font-black tracking-tight ${hasBackground ? 'italic drop-shadow-lg' : 'capitalize'}`}
+                                  className={`text-lg md:text-2xl font-bold tracking-tight ${hasBackground ? 'italic drop-shadow-lg' : 'capitalize'}`}
                                   style={{ color: section.titleColor || (hasBackground ? '#ffffff' : '#171717') }}
                                 >
                                   {section.title}
