@@ -204,30 +204,30 @@ export default function SellerStore() {
             </div>
 
             {/* Compact Store Info Section - Improved for Desktop */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8 pt-12 md:pt-20 pb-8 transition-all">
-                <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-6 md:p-12 shadow-sm border border-gray-100">
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8 md:mb-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 md:pt-14 pb-4 transition-all">
+                <div className="bg-white rounded-3xl md:rounded-[2.5rem] p-5 md:p-10 shadow-sm border border-gray-100">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6 md:mb-8">
                         <div className="flex-1">
-                            <h1 className="text-2xl md:text-5xl font-black text-neutral-900 tracking-tight mb-3">
+                            <h1 className="text-xl md:text-4xl font-black text-neutral-900 tracking-tight mb-2">
                                 {seller.storeName}
                             </h1>
-                            <p className="text-sm md:text-lg text-neutral-500 font-medium italic border-l-4 border-pink-200 pl-4 max-w-2xl">
+                            <p className="text-xs md:text-base text-neutral-500 font-medium italic border-l-4 border-pink-200 pl-4 max-w-2xl">
                                 "{seller.storeDescription || 'Premium quality, delivered instantly.'}"
                             </p>
                         </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         {/* Location & Distance */}
-                        <div className="flex items-center gap-4 bg-neutral-50 px-5 py-4 md:px-8 md:py-6 rounded-2xl md:rounded-3xl border border-neutral-100 hover:border-pink-100 transition-colors group">
-                            <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white flex items-center justify-center text-neutral-400 shadow-sm group-hover:text-pink-500 transition-colors">
+                        <div className="flex items-center gap-4 bg-neutral-50 px-4 py-3.5 md:px-6 md:py-5 rounded-2xl md:rounded-3xl border border-neutral-100 hover:border-pink-100 transition-colors group">
+                            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white flex items-center justify-center text-neutral-400 shadow-sm group-hover:text-pink-500 transition-colors">
                                 <svg className="w-5 h-5 md:w-8 md:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />
                                 </svg>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm md:text-lg font-bold text-neutral-700 truncate mb-1">
+                                <p className="text-sm md:text-base font-bold text-neutral-700 truncate mb-1">
                                     {seller.address || 'Location Details'}
                                 </p>
                                 <div className="flex items-center gap-3">
@@ -239,8 +239,8 @@ export default function SellerStore() {
                         </div>
 
                         {/* Operating Hours */}
-                        <div className="flex items-center gap-4 bg-pink-50/50 px-5 py-4 md:px-8 md:py-6 rounded-2xl md:rounded-3xl border border-pink-100/50 hover:bg-pink-50 transition-colors group">
-                            <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white flex items-center justify-center text-[#ff3269] shadow-sm">
+                        <div className="flex items-center gap-4 bg-pink-50/50 px-4 py-3.5 md:px-6 md:py-5 rounded-2xl md:rounded-3xl border border-pink-100/50 hover:bg-pink-50 transition-colors group">
+                            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white flex items-center justify-center text-[#ff3269] shadow-sm">
                                 <svg className="w-5 h-5 md:w-8 md:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <circle cx="12" cy="12" r="10" />
                                     <path d="M12 6v6l4 2" />
@@ -248,7 +248,7 @@ export default function SellerStore() {
                             </div>
                             <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
-                                    <span className="text-sm md:text-xl font-black text-neutral-800">
+                                    <span className="text-sm md:text-lg font-black text-neutral-800">
                                         {seller.workingHours?.open || '09:00 AM'} — {seller.workingHours?.close || '09:00 PM'}
                                     </span>
                                     <span className={`text-[10px] md:text-xs font-black px-2 py-1 rounded-lg uppercase tracking-wider ${
@@ -259,7 +259,13 @@ export default function SellerStore() {
                                 </div>
                                 <p className="text-[10px] md:text-xs text-pink-400 font-bold uppercase tracking-widest truncate">
                                     {seller.workingHours?.workingDays?.length > 0 
-                                        ? seller.workingHours.workingDays.join(', ') 
+                                        ? [...seller.workingHours.workingDays]
+                                            .sort((a, b) => {
+                                                const order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                                                return order.indexOf(a) - order.indexOf(b);
+                                            })
+                                            .map((day: string) => day.slice(0, 3))
+                                            .join(', ') 
                                         : 'Operational all week'}
                                 </p>
                             </div>
