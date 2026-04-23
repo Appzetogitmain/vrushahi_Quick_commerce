@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import Customer from "../../../models/Customer";
+import Policy from "../../../models/Policy";
 import { asyncHandler } from "../../../utils/asyncHandler";
+
 
 /**
  * Get customer profile
@@ -224,5 +226,22 @@ export const getLocation = asyncHandler(async (req: Request, res: Response) => {
       pincode: customer.pincode,
       locationUpdatedAt: customer.locationUpdatedAt,
     },
+  });
+});
+
+/**
+ * Get public policies (Privacy Policy, Terms, etc.)
+ */
+export const getPublicPolicies = asyncHandler(async (req: Request, res: Response) => {
+  const { type } = req.query;
+  const query: any = { isActive: true };
+  if (type) query.type = type;
+
+  const policies = await Policy.find(query).sort({ updatedAt: -1 });
+
+  return res.status(200).json({
+    success: true,
+    message: "Policies retrieved successfully",
+    data: policies,
   });
 });

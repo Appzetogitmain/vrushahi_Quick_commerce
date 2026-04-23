@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getPolicies, updatePolicy, createPolicy, Policy } from '../../../services/api/admin/adminContentService';
+import { useToast } from '../../../context/ToastContext';
+
 
 export default function AdminCustomerAppPolicy() {
   const [policyContent, setPolicyContent] = useState(`Welcome to vrushahi e-Commerce!
@@ -46,11 +49,56 @@ For any questions or concerns, please contact our customer support team.
 
 Last updated: December 2025`);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission
-    alert('Customer App Policy updated successfully!');
+  const [policyId, setPolicyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    fetchPolicy();
+  }, []);
+
+  const fetchPolicy = async () => {
+    try {
+      const response = await getPolicies({ type: 'customer' });
+      if (response.success && response.data && response.data.length > 0) {
+        const policy = response.data[0];
+        setPolicyContent(policy.content);
+        setPolicyId(policy._id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch policy:', err);
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      if (policyId) {
+        await updatePolicy(policyId, {
+          content: policyContent,
+          title: 'Customer App Policy',
+        });
+      } else {
+        const response = await createPolicy({
+          type: 'customer',
+          title: 'Customer App Policy',
+          content: policyContent,
+          version: '1.0.0',
+          isActive: true
+        });
+        if (response.success && response.data) {
+          setPolicyId(response.data._id);
+        }
+      }
+      showToast('Customer App Policy updated successfully!', 'success');
+    } catch (err) {
+      showToast('Failed to update policy', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-full">
@@ -121,10 +169,12 @@ Last updated: December 2025`);
               </button>
               <button
                 type="submit"
-                className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2.5 rounded-lg text-base font-medium transition-colors"
+                disabled={loading}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-2.5 rounded-lg text-base font-medium transition-colors disabled:opacity-50"
               >
-                Update Policy
+                {loading ? 'Updating...' : 'Update Policy'}
               </button>
+
             </div>
           </form>
         </div>

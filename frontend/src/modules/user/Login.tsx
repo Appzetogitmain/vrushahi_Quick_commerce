@@ -180,6 +180,24 @@ export default function Login() {
           )}
 
 
+          {!showOTP && (
+            <p className="mt-8 text-center text-[11px] text-neutral-400 px-6 leading-normal">
+              By continuing, you agree to our{' '}
+              <button 
+                onClick={() => navigate('/policy?type=customer')}
+                className="text-[#ba9af7] font-semibold hover:underline"
+              >
+                Terms of Service
+              </button>{' '}
+              &{' '}
+              <button 
+                onClick={() => navigate('/policy?type=customer')}
+                className="text-[#ba9af7] font-semibold hover:underline"
+              >
+                Privacy Policy
+              </button>
+            </p>
+          )}
         </div>
       </div>
 

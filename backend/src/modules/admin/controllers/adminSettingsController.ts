@@ -148,3 +148,19 @@ export const updateSMSGatewaySettings = asyncHandler(
     });
   }
 );
+/**
+ * Get public app settings (for customer side)
+ */
+export const getPublicAppSettings = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const settings = await AppSettings.findOne().select(
+      "appName supportEmail supportPhone"
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Public app settings fetched successfully",
+      data: settings,
+    });
+  }
+);

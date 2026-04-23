@@ -105,3 +105,26 @@ export const getFAQs = async (): Promise<{ success: boolean; data: FAQ[] }> => {
   const response = await api.get<{ success: boolean; data: FAQ[] }>("/customer/home/faqs");
   return response.data;
 };
+
+/**
+ * Get public app settings (support contact info)
+ */
+export const getPublicAppSettings = async (): Promise<{
+  success: boolean;
+  data: {
+    appName: string;
+    supportEmail?: string;
+    supportPhone?: string;
+  };
+}> => {
+  const response = await api.get<{
+    success: boolean;
+    data: {
+      appName: string;
+      supportEmail?: string;
+      supportPhone?: string;
+    };
+  }>("/customer/home/settings");
+  return response.data;
+};
+

@@ -1,12 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getFAQs, type FAQ as FAQItem } from "../../services/api/customerHomeService";
+import { getFAQs, getPublicAppSettings, type FAQ as FAQItem } from "../../services/api/customerHomeService";
+
 
 export default function FAQ() {
   const navigate = useNavigate();
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+  const [appSettings, setAppSettings] = useState<{ supportEmail?: string; supportPhone?: string }>({
+    supportEmail: "help@vrushahi.com",
+    supportPhone: "+91-XXXXX-XXXXX"
+  });
+
 
   useEffect(() => {
     const fetchFaqs = async () => {
@@ -19,12 +25,22 @@ export default function FAQ() {
             .sort((a, b) => (a.order || 0) - (b.order || 0));
           setFaqs(activeFaqs);
         }
+
+        // Fetch public settings
+        const settingsResponse = await getPublicAppSettings();
+        if (settingsResponse.success && settingsResponse.data) {
+          setAppSettings({
+            supportEmail: settingsResponse.data.supportEmail,
+            supportPhone: settingsResponse.data.supportPhone
+          });
+        }
       } catch (error) {
         console.error("Error fetching FAQs:", error);
       } finally {
         setLoading(false);
       }
     };
+
 
     fetchFaqs();
   }, []);
@@ -172,8 +188,9 @@ export default function FAQ() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
-                  href="mailto:help@vrushahi.com"
+                  href={`mailto:${appSettings.supportEmail}`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-lg font-semibold hover:bg-violet-700 transition-colors text-sm">
+
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path
                       d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
@@ -193,8 +210,9 @@ export default function FAQ() {
                   Email Us
                 </a>
                 <a
-                  href="tel:+91-XXXXX-XXXXX"
+                  href={`tel:${appSettings.supportPhone}`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-violet-600 border-2 border-violet-600 rounded-lg font-semibold hover:bg-violet-50 transition-colors text-sm">
+
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path
                       d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"

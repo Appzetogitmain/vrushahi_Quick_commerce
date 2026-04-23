@@ -1227,7 +1227,6 @@ export default function OrderDetail() {
                 onClick={() => setShowRatingOverlay(true)} 
                 isRated={existingReviews.length > 0}
               />
-              <GetHelpSection />
             </>
           )}
 

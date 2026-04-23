@@ -7,6 +7,10 @@ import {
 } from "../../../services/api/admin/adminDeliveryService";
 import { getDeliveryBoys } from "../../../services/api/admin/adminDeliveryService";
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
+import LoadingSpinner from "../../../components/LoadingSpinner";
+import { getAllOrders } from "../../../services/api/admin/adminOrderService";
+import { deleteCashCollection as apiDeleteCashCollection } from "../../../services/api/admin/adminDeliveryService";
 
 export default function AdminCashCollection() {
   const { isAuthenticated, token } = useAuth();
@@ -24,6 +28,19 @@ export default function AdminCashCollection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { showToast } = useToast();
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState<CreateCashCollectionData>({
+    deliveryBoyId: "",
+    orderId: "",
+    amount: 0,
+    remark: "",
+  });
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
 
   // Fetch delivery boys and cash collections on component mount
   useEffect(() => {
@@ -163,16 +180,97 @@ export default function AdminCashCollection() {
     setToDate("");
   };
 
+  const fetchPendingOrders = async (deliveryBoyId: string) => {
+    if (!deliveryBoyId) return;
+    try {
+      setLoadingOrders(true);
+      const response = await getAllOrders({
+        status: "Delivered",
+        paymentStatus: "Pending",
+        limit: 100
+      });
+
+      if (response.success) {
+        // Filter orders assigned to this delivery boy (if they aren't already filtered by API)
+        // Also check if paymentMethod is COD if needed, but usually 'Pending' on 'Delivered' means COD
+        setPendingOrders(response.data.filter((order: any) =>
+          (typeof order.deliveryBoy === 'string' ? order.deliveryBoy === deliveryBoyId : order.deliveryBoy?._id === deliveryBoyId)
+        ));
+      }
+    } catch (err) {
+      console.error("Error fetching pending orders:", err);
+      showToast("Failed to fetch pending orders", "error");
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this cash collection? This will restore the balance to the delivery boy.")) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await apiDeleteCashCollection(id);
+      if (response.success) {
+        showToast("Cash collection deleted successfully", "success");
+        setCashCollections(prev => prev.filter(c => c._id !== id));
+      } else {
+        showToast(response.message || "Failed to delete", "error");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Error deleting collection", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalData.deliveryBoyId || !modalData.orderId || !modalData.amount) {
+      showToast("Please fill all required fields", "error");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await createCashCollection(modalData);
+      if (response.success) {
+        showToast("Cash collection recorded successfully", "success");
+        setIsModalOpen(false);
+        setModalData({ deliveryBoyId: "", orderId: "", amount: 0, remark: "" });
+        // Refresh list
+        window.location.reload(); // Simple way to refresh for now
+      } else {
+        showToast(response.message || "Failed to save", "error");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Error saving collection", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
   const methods = ["All", "Cash", "Card", "Online"];
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
+      {loading && <div className="flex justify-center py-10"><LoadingSpinner /></div>}
+      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">{error}</div>}
+      
+      {!loading && !error && (
+        <>
+          {/* Header */}
+
       <div className="bg-teal-600 px-4 sm:px-6 py-4 rounded-t-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-white text-xl sm:text-2xl font-semibold">
           Delivery Boy Cash Collection List
         </h1>
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
           <svg
             width="16"
             height="16"
@@ -187,6 +285,7 @@ export default function AdminCashCollection() {
           </svg>
           Add Cash Collection
         </button>
+
       </div>
 
       {/* Main Content Card */}
@@ -225,12 +324,12 @@ export default function AdminCashCollection() {
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     <input
-                      type="text"
+                      type="date"
                       value={fromDate}
                       onChange={(e) => setFromDate(e.target.value)}
-                      placeholder="MM/DD/YYYY"
                       className="pl-10 pr-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[140px]"
                     />
+
                   </div>
                   <span className="text-neutral-500">-</span>
                   <div className="relative">
@@ -256,12 +355,12 @@ export default function AdminCashCollection() {
                       <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     <input
-                      type="text"
+                      type="date"
                       value={toDate}
                       onChange={(e) => setToDate(e.target.value)}
-                      placeholder="MM/DD/YYYY"
                       className="pl-10 pr-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[140px]"
                     />
+
                   </div>
                   <button
                     onClick={handleClearDate}
@@ -535,7 +634,11 @@ export default function AdminCashCollection() {
                     </svg>
                   </div>
                 </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
+
             </thead>
             <tbody className="bg-white divide-y divide-neutral-200">
               {displayedCollections.length === 0 ? (
@@ -556,7 +659,7 @@ export default function AdminCashCollection() {
                       {collection.deliveryBoyName}
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                      {collection.orderId}
+                      {collection.orderNumber}
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
                       ₹{collection.total.toFixed(2)}
@@ -570,7 +673,21 @@ export default function AdminCashCollection() {
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                       {new Date(collection.collectedAt).toLocaleString()}
                     </td>
+                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
+                      <button
+                        onClick={() => handleDelete(collection._id)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Delete">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
+
                 ))
               )}
             </tbody>
@@ -637,13 +754,116 @@ export default function AdminCashCollection() {
         </div>
       </div>
 
+        </>
+      )}
+
       {/* Footer */}
-      <div className="bg-neutral-800 text-white text-center text-sm py-4">
+      <div className="bg-neutral-800 text-white text-center text-sm py-4 rounded-b-lg">
         Copyright © 2025. Developed By{" "}
         <a href="#" className="text-blue-400 hover:text-blue-300">
           vrushahi e-Commerce
         </a>
       </div>
+
+      {/* Add Cash Collection Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+            <div className="bg-teal-600 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-white text-lg font-semibold">Add Cash Collection</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-white hover:text-neutral-200">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Delivery Boy *</label>
+                <select 
+                  required
+                  value={modalData.deliveryBoyId}
+                  onChange={(e) => {
+                    setModalData({...modalData, deliveryBoyId: e.target.value, orderId: ""});
+                    fetchPendingOrders(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="">Select Delivery Boy</option>
+                  {deliveryBoys.map(boy => (
+                    <option key={boy._id} value={boy._id}>{boy.name} ({boy.mobile})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Order *</label>
+                <select 
+                  required
+                  disabled={!modalData.deliveryBoyId || loadingOrders}
+                  value={modalData.orderId}
+                  onChange={(e) => {
+                    const order = pendingOrders.find(o => o._id === e.target.value);
+                    setModalData({...modalData, orderId: e.target.value, amount: order?.total || 0});
+                  }}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-50"
+                >
+                  <option value="">{loadingOrders ? "Loading..." : "Select Order"}</option>
+                  {pendingOrders.map(order => (
+                    <option key={order._id} value={order._id}>
+                      {order.orderNumber} - ₹{order.total.toFixed(2)}
+                    </option>
+                  ))}
+                  {!loadingOrders && modalData.deliveryBoyId && pendingOrders.length === 0 && (
+                    <option disabled>No pending cash orders found</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Amount Collected *</label>
+                <input 
+                  type="number"
+                  required
+                  value={modalData.amount}
+                  onChange={(e) => setModalData({...modalData, amount: Number(e.target.value)})}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Remark</label>
+                <textarea 
+                  value={modalData.remark}
+                  onChange={(e) => setModalData({...modalData, remark: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-2 border border-neutral-300 rounded text-neutral-700 hover:bg-neutral-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-50"
+                >
+                  {submitting ? "Saving..." : "Record Collection"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }

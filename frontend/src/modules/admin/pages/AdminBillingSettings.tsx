@@ -21,6 +21,9 @@ export default function AdminBillingSettings() {
     const [kmRate, setKmRate] = useState<number>(0);
     const [deliveryBoyKmRate, setDeliveryBoyKmRate] = useState<number>(0);
     const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
+    const [supportEmail, setSupportEmail] = useState<string>('');
+    const [supportPhone, setSupportPhone] = useState<string>('');
+
 
     useEffect(() => {
         fetchSettings();
@@ -50,6 +53,9 @@ export default function AdminBillingSettings() {
                     // If no config exists, try to pre-fill from env
                     setGoogleMapsKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
                 }
+
+                setSupportEmail(data.supportEmail || '');
+                setSupportPhone(data.supportPhone || '');
             }
         } catch (error: any) {
             console.error(error);
@@ -74,7 +80,10 @@ export default function AdminBillingSettings() {
                     kmRate,
                     deliveryBoyKmRate,
                     googleMapsKey
-                }
+                },
+                supportEmail,
+                supportPhone
+
             };
 
             const response = await updateAppSettings(updatePayload);
@@ -313,7 +322,42 @@ export default function AdminBillingSettings() {
                         </motion.div>
                     )}
                 </div>
+
+                {/* Support Contact Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Support Contact Settings</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Support Email
+                            </label>
+                            <input
+                                type="email"
+                                value={supportEmail}
+                                onChange={(e) => setSupportEmail(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g. support@vrushahi.com"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">This email will be shown on the FAQ page.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Support Phone
+                            </label>
+                            <input
+                                type="text"
+                                value={supportPhone}
+                                onChange={(e) => setSupportPhone(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g. +91 9876543210"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">This phone number will be shown on the FAQ page.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </motion.div>
     );
 }

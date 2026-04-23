@@ -43,6 +43,8 @@ const Addresses = lazy(() => import("./modules/user/Addresses"));
 const AddressBook = lazy(() => import("./modules/user/AddressBook"));
 const SellerStore = lazy(() => import("./modules/user/SellerStore"));
 const Stores = lazy(() => import("./modules/user/Stores"));
+const PolicyPage = lazy(() => import("./modules/user/PolicyPage"));
+
 // Lazy load delivery routes
 const DeliveryLayout = lazy(
   () => import("./modules/delivery/components/DeliveryLayout"),
@@ -711,6 +713,8 @@ function AppContent() {
                               <Suspense fallback={<IconLoader forceShow />}>
                                 <Routes>
                                   <Route path="/" element={<Home />} />
+                                  <Route path="/stores" element={<Stores />} />
+                                  <Route path="/policy" element={<PolicyPage />} />
                                   <Route
                                     path="/user/home"
                                     element={<Home />}

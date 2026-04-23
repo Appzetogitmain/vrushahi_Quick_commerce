@@ -59,7 +59,9 @@ export const getCashCollections = asyncHandler(
             deliveryBoyId: collection.deliveryBoy?._id,
             deliveryBoyName: collection.deliveryBoy?.name || "Unknown",
             orderId: collection.order?._id,
+            orderNumber: collection.order?.orderNumber || "Unknown",
             total: collection.order?.total || 0,
+
             amount: collection.amount,
             remark: collection.remark,
             collectedAt: collection.collectedAt,
