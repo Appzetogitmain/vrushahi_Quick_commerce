@@ -44,6 +44,12 @@ export const createCoupon = asyncHandler(
       });
     }
 
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
     const coupon = await Coupon.create({
       code: code.toUpperCase(),
       description,
@@ -51,14 +57,14 @@ export const createCoupon = asyncHandler(
       discountValue,
       minimumPurchase,
       maximumDiscount,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       usageLimit,
       usageLimitPerUser,
       applicableTo: applicableTo || "All",
       applicableIds,
       createdBy: req.user?.userId,
-      isActive: true,
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     });
 
     return res.status(201).json({
@@ -161,10 +167,14 @@ export const updateCoupon = asyncHandler(
 
     // Convert dates if provided
     if (updateData.startDate) {
-      updateData.startDate = new Date(updateData.startDate);
+      const start = new Date(updateData.startDate);
+      start.setHours(0, 0, 0, 0);
+      updateData.startDate = start;
     }
     if (updateData.endDate) {
-      updateData.endDate = new Date(updateData.endDate);
+      const end = new Date(updateData.endDate);
+      end.setHours(23, 59, 59, 999);
+      updateData.endDate = end;
     }
 
     const coupon = await Coupon.findByIdAndUpdate(id, updateData, {

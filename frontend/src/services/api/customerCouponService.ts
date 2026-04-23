@@ -5,7 +5,7 @@ export interface Coupon {
     code: string;
     title: string;
     description: string;
-    discountType: 'percentage' | 'fixed';
+    discountType: 'Percentage' | 'Fixed';
     discountValue: number;
     minOrderValue?: number;
     maxDiscountAmount?: number;

@@ -156,6 +156,7 @@ export default function AdminCoupon() {
           formData.userType === "All Users"
             ? ("All" as const)
             : ("All" as const),
+        isActive: formData.couponStatus === "Published",
       };
 
       const response = await createCoupon(couponData);
