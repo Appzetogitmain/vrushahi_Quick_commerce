@@ -11,6 +11,23 @@ export interface WalletStats {
   deliveryPendingPayouts: number;
   pendingFromDeliveryBoy: number;
   pendingWithdrawalsCount?: number;
+
+  // New Breakdown Fields
+  liquidity?: {
+    cash: number;
+    online: number;
+    total: number;
+  };
+  profitBreakdown?: {
+    productCommission: number;
+    deliveryCommission: number;
+    platformFees: number;
+  };
+  performance?: {
+    date: string;
+    amount: number;
+    orders: number;
+  }[];
 }
 
 export interface WithdrawalStats {

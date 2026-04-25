@@ -3,6 +3,9 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import CashCollection from "../../../models/CashCollection";
 import Delivery from "../../../models/Delivery";
 import Order from "../../../models/Order";
+import PlatformWallet from "../../../models/PlatformWallet";
+import { processPendingCODPayouts } from "../../../services/commissionService";
+import mongoose from "mongoose";
 
 /**
  * Get all cash collections
@@ -248,3 +251,172 @@ export const deleteCashCollection = asyncHandler(
         });
     }
 );
+
+/**
+ * Get Cash Collection Dashboard Stats
+ */
+export const getCashCollectionStats = asyncHandler(async (_req: Request, res: Response) => {
+  // 1. Total COD Collected by riders (from delivered COD orders)
+  // We use Order aggregate for historical 'Total Collected'
+  const codResult = await Order.aggregate([
+    { $match: { paymentMethod: 'COD', status: 'Delivered' } },
+    { $group: { _id: null, total: { $sum: '$total' } } }
+  ]);
+  const totalCodHistorical = codResult[0]?.total || 0;
+
+  // 2. Total Submitted to Admin (Historical)
+  const submittedResult = await CashCollection.aggregate([
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const totalSubmittedHistorical = submittedResult[0]?.total || 0;
+
+  // 3. Current Pending Amount (Live - Sum of all riders' cashCollected)
+  // This is the most accurate 'Live' data
+  const pendingResult = await Delivery.aggregate([
+    { $match: { status: 'Active' } },
+    { $group: { _id: null, total: { $sum: '$cashCollected' } } }
+  ]);
+  const pendingAmount = pendingResult[0]?.total || 0;
+
+  // 4. Agents with Pending
+  const agentsWithPending = await Delivery.countDocuments({ cashCollected: { $gt: 0 } });
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      totalCodCollected: totalCodHistorical,
+      totalSubmitted: totalSubmittedHistorical,
+      pendingAmount,
+      agentsWithPending
+    }
+  });
+});
+
+/**
+ * Get Delivery Agents Cash Summary
+ */
+export const getAgentsCashSummary = asyncHandler(async (req: Request, res: Response) => {
+  const { search = "" } = req.query;
+
+  const query: any = { status: 'Active' };
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { mobile: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  const agents = await Delivery.find(query).select('name mobile cashCollected updatedAt');
+
+  // For each agent, find their last submission date
+  const agentIds = agents.map(a => a._id);
+  const lastSubmissions = await CashCollection.aggregate([
+    { $match: { deliveryBoy: { $in: agentIds } } },
+    { $sort: { collectedAt: -1 } },
+    { $group: { _id: '$deliveryBoy', lastDate: { $first: '$collectedAt' } } }
+  ]);
+
+  const submissionMap = new Map(lastSubmissions.map(s => [s._id.toString(), s.lastDate]));
+
+  const summary = agents.map(agent => {
+    const pending = agent.cashCollected || 0;
+    let status = 'Settled';
+    if (pending > 0) status = 'Pending';
+
+    return {
+      _id: agent._id,
+      name: agent.name,
+      mobile: agent.mobile,
+      cashCollected: pending,
+      pending: pending,
+      lastSubmissionDate: submissionMap.get(agent._id.toString()) || null,
+      status: status
+    };
+  });
+
+  return res.status(200).json({
+    success: true,
+    data: summary
+  });
+});
+
+/**
+ * Process Agent-level Cash Collection (Reconcile)
+ */
+export const processAgentCollection = asyncHandler(async (req: Request, res: Response) => {
+  const { deliveryBoyId, amount, paymentMode, referenceId, remark } = req.body;
+
+  if (!deliveryBoyId || !amount || amount < 1) {
+    return res.status(400).json({
+      success: false,
+      message: "Delivery boy ID and amount (min ₹1) are required"
+    });
+  }
+
+  const agent = await Delivery.findById(deliveryBoyId);
+  if (!agent) {
+    return res.status(404).json({
+      success: false,
+      message: "Delivery agent not found"
+    });
+  }
+
+  if (amount > agent.cashCollected) {
+    return res.status(400).json({
+      success: false,
+      message: `Amount exceeds agent's pending cash (₹${agent.cashCollected})`
+    });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Create general cash collection record
+    const collection = await CashCollection.create([{
+      deliveryBoy: deliveryBoyId,
+      amount,
+      paymentMode,
+      referenceId,
+      remark,
+      collectedBy: req.user?.userId,
+      collectedAt: new Date(),
+    }], { session });
+
+    // Calculate the 'Owed' portion (Net) to update Platform Wallet
+    const ratio = agent.pendingAdminPayout / (agent.cashCollected || 1);
+    const netAmount = Math.round(amount * ratio * 100) / 100;
+
+    // Decrease rider's balances
+    agent.cashCollected = Math.max(0, agent.cashCollected - amount);
+    agent.pendingAdminPayout = Math.max(0, agent.pendingAdminPayout - netAmount);
+    await agent.save({ session });
+
+    // Update Platform Wallet Stats (Live Sync)
+    const wallet = await PlatformWallet.getWallet();
+    wallet.pendingFromDeliveryBoy = Math.max(0, wallet.pendingFromDeliveryBoy - netAmount);
+    wallet.currentPlatformBalance += amount; // Admin now has this cash available
+    await wallet.save({ session });
+
+    // CRITICAL: Trigger commission distribution to Sellers and recognization of Admin Earning
+    // This credits the sellers' wallets for the portion of this cash that belongs to them.
+    await processPendingCODPayouts(deliveryBoyId, amount, session);
+
+    await session.commitTransaction();
+
+    return res.status(201).json({
+      success: true,
+      message: "Cash collected successfully and balances reconciled",
+      data: collection[0]
+    });
+  } catch (error: any) {
+    await session.abortTransaction();
+    console.error("Error in processAgentCollection:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error during reconciliation"
+    });
+  } finally {
+    session.endSession();
+  }
+});

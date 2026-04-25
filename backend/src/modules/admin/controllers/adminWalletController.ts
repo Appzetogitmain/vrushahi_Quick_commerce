@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Order from '../../../models/Order';
 import OrderItem from '../../../models/OrderItem';
 import Seller from '../../../models/Seller';
+import Delivery from '../../../models/Delivery';
 import CashCollection from '../../../models/CashCollection';
 import Commission from '../../../models/Commission';
 import WalletTransaction from '../../../models/WalletTransaction';
@@ -17,8 +18,56 @@ import { approveWithdrawal, rejectWithdrawal, completeWithdrawal } from './admin
 export const getFinancialDashboard = asyncHandler(async (_req: Request, res: Response) => {
   const wallet = await PlatformWallet.getWallet();
 
-  // We still calculate some things on the fly or just use wallet
-  // It's better to use wallet for consistency with our new sync logic
+  // Calculate live balances for consistency
+  const [
+    sellerBalances, 
+    deliveryBalances, 
+    codInField, 
+    pendingWithdrawals,
+    totalProfitResult,
+    onlineLiquidityResult,
+    performanceTrend
+  ] = await Promise.all([
+    Seller.aggregate([{ $group: { _id: null, total: { $sum: '$balance' } } }]),
+    Delivery.aggregate([{ $group: { _id: null, total: { $sum: '$balance' } } }]),
+    Delivery.aggregate([{ $group: { _id: null, total: { $sum: '$cashCollected' } } }]),
+    WithdrawRequest.countDocuments({ status: 'Pending' }),
+    // Breakdown of commissions
+    Commission.aggregate([
+      { $match: { status: 'Paid' } },
+      { $group: { 
+          _id: '$type', 
+          total: { $sum: '$commissionAmount' } 
+      }}
+    ]),
+    // Online liquidity (Payments already received by platform)
+    Order.aggregate([
+      { $match: { paymentStatus: 'Paid', paymentMethod: { $ne: 'COD' } } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]),
+    // 7-Day Performance Trend
+    Order.aggregate([
+      { $match: { 
+          status: 'Delivered', 
+          deliveredAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } 
+      }},
+      { $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
+          total: { $sum: "$total" },
+          count: { $sum: 1 }
+      }},
+      { $sort: { _id: 1 } }
+    ])
+  ]);
+
+  const totalSellerOwed = sellerBalances[0]?.total || 0;
+  const totalDeliveryOwed = deliveryBalances[0]?.total || 0;
+  const totalCodInField = codInField[0]?.total || 0;
+  const onlineLiquidity = onlineLiquidityResult[0]?.total || 0;
+
+  // Map profit breakdown
+  const profits: any = { SELLER: 0, DELIVERY_BOY: 0 };
+  totalProfitResult.forEach(p => profits[p._id] = p.total);
 
   return res.status(200).json({
     success: true,
@@ -26,10 +75,27 @@ export const getFinancialDashboard = asyncHandler(async (_req: Request, res: Res
       totalGMV: wallet.totalPlatformEarning,
       currentAccountBalance: wallet.currentPlatformBalance,
       totalAdminEarnings: wallet.totalAdminEarning,
-      sellerPendingPayouts: wallet.sellerPendingPayouts,
-      deliveryPendingPayouts: wallet.deliveryBoyPendingPayouts,
-      pendingFromDeliveryBoy: wallet.pendingFromDeliveryBoy,
-      pendingWithdrawalsCount: await WithdrawRequest.countDocuments({ status: 'Pending' })
+      sellerPendingPayouts: totalSellerOwed,
+      deliveryPendingPayouts: totalDeliveryOwed,
+      pendingFromDeliveryBoy: totalCodInField, 
+      pendingWithdrawalsCount: pendingWithdrawals,
+      
+      // New Enhanced Fields
+      liquidity: {
+        cash: totalCodInField,
+        online: onlineLiquidity,
+        total: totalCodInField + onlineLiquidity
+      },
+      profitBreakdown: {
+        productCommission: profits.SELLER || 0,
+        deliveryCommission: profits.DELIVERY_BOY || 0,
+        platformFees: wallet.totalAdminEarning - (profits.SELLER + profits.DELIVERY_BOY) // Remainder
+      },
+      performance: performanceTrend.map(day => ({
+        date: day._id,
+        amount: day.total,
+        orders: day.count
+      }))
     }
   });
 });

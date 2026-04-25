@@ -258,6 +258,11 @@ router.get(
   cashCollectionController.getCashCollectionById,
 );
 router.post("/cash-collections", cashCollectionController.createCashCollection);
+// Cash Collection Dashboard Routes
+router.get("/cash-collections/dashboard/stats", cashCollectionController.getCashCollectionStats);
+router.get("/cash-collections/dashboard/agents-summary", cashCollectionController.getAgentsCashSummary);
+router.post("/cash-collections/dashboard/collect", cashCollectionController.processAgentCollection);
+
 router.put(
   "/cash-collections/:id",
   cashCollectionController.updateCashCollection,

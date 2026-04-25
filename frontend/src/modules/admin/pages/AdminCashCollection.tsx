@@ -1,869 +1,256 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  getCashCollections,
-  createCashCollection,
-  type CashCollection,
-  type CreateCashCollectionData,
-} from "../../../services/api/admin/adminDeliveryService";
-import { getDeliveryBoys } from "../../../services/api/admin/adminDeliveryService";
+  getCashCollectionStats,
+  getAgentsCashSummary,
+  getRecentCollections,
+  type CashCollectionStats,
+  type AgentCashSummary,
+} from "../../../services/api/admin/adminCashService";
 import { useAuth } from "../../../context/AuthContext";
-import { useToast } from "../../../context/ToastContext";
+import CashSummaryCards from "../components/CashSummaryCards";
+import AgentCollectModal from "../components/AgentCollectModal";
 import LoadingSpinner from "../../../components/LoadingSpinner";
-import { getAllOrders } from "../../../services/api/admin/adminOrderService";
-import { deleteCashCollection as apiDeleteCashCollection } from "../../../services/api/admin/adminDeliveryService";
 
 export default function AdminCashCollection() {
   const { isAuthenticated, token } = useAuth();
-  const [cashCollections, setCashCollections] = useState<CashCollection[]>([]);
-  const [deliveryBoys, setDeliveryBoys] = useState<any[]>([]);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState("all");
-  const [selectedMethod, setSelectedMethod] = useState("all");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const { showToast } = useToast();
-
+  
+  // Stats & Data
+  const [stats, setStats] = useState<CashCollectionStats>({
+    totalCodCollected: 0,
+    totalSubmitted: 0,
+    pendingAmount: 0,
+    agentsWithPending: 0,
+  });
+  const [agents, setAgents] = useState<AgentCashSummary[]>([]);
+  const [recentCollections, setRecentCollections] = useState<any[]>([]);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateRange, setDateRange] = useState({ from: "", to: "" });
+  
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalData, setModalData] = useState<CreateCashCollectionData>({
-    deliveryBoyId: "",
-    orderId: "",
-    amount: 0,
-    remark: "",
-  });
-  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentCashSummary | null>(null);
 
+  const fetchData = useCallback(async () => {
+    if (!isAuthenticated || !token) return;
 
-  // Fetch delivery boys and cash collections on component mount
-  useEffect(() => {
-    if (!isAuthenticated || !token) {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [statsRes, agentsRes, recentRes] = await Promise.all([
+        getCashCollectionStats(),
+        getAgentsCashSummary(searchTerm),
+        getRecentCollections({ limit: 10 })
+      ]);
+
+      if (statsRes.success) setStats(statsRes.data);
+      if (agentsRes.success) setAgents(agentsRes.data);
+      if (recentRes.success) setRecentCollections(recentRes.data);
+
+    } catch (err: any) {
+      console.error("Error fetching cash collection data:", err);
+      setError(err.response?.data?.message || "Failed to load collection data");
+    } finally {
       setLoading(false);
-      return;
     }
+  }, [isAuthenticated, token, searchTerm]);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch delivery boys for the dropdown
-        const deliveryBoysResponse = await getDeliveryBoys({
-          status: "Active",
-          limit: 100,
-        });
-        if (deliveryBoysResponse.success) {
-          setDeliveryBoys(deliveryBoysResponse.data);
-        }
-
-        // Fetch cash collections
-        const params: any = {
-          page: currentPage,
-          limit: entriesPerPage,
-        };
-
-        if (selectedDeliveryBoy !== "all") {
-          params.deliveryBoyId = selectedDeliveryBoy;
-        }
-
-        if (fromDate) {
-          params.fromDate = fromDate;
-        }
-
-        if (toDate) {
-          params.toDate = toDate;
-        }
-
-        if (searchTerm) {
-          params.search = searchTerm;
-        }
-
-        const cashResponse = await getCashCollections(params);
-
-        if (cashResponse.success) {
-          setCashCollections(cashResponse.data);
-        } else {
-          setError("Failed to load cash collections");
-        }
-      } catch (err: any) {
-        console.error("Error fetching data:", err);
-        setError(
-          err.response?.data?.message ||
-          "Failed to load data. Please try again."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchData();
-  }, [
-    isAuthenticated,
-    token,
-    currentPage,
-    entriesPerPage,
-    selectedDeliveryBoy,
-    fromDate,
-    toDate,
-    searchTerm,
-  ]);
+  }, [fetchData]);
 
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
+  const handleCollectClick = (agent: AgentCashSummary) => {
+    setSelectedAgent(agent);
+    setIsModalOpen(true);
   };
 
-  // Note: Filtering is done server-side, so we just use the cashCollections as is
-  const displayedCollections = cashCollections;
-
-  // For pagination display (simplified - in real app, this would come from API)
-  const totalPages = Math.ceil(displayedCollections.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-
-  const handleAddCollection = async () => {
-    // For now, just show an alert. In a real app, this would open a modal to add a cash collection
-    alert("Add cash collection functionality would be implemented here");
+  const handleCollectionSuccess = () => {
+    fetchData();
   };
-
-  const handleExport = () => {
-    const headers = [
-      "ID",
-      "Delivery Boy",
-      "Order ID",
-      "Total",
-      "Amount Collected",
-      "Remark",
-      "Date",
-    ];
-    const csvContent = [
-      headers.join(","),
-      ...cashCollections.map((collection) =>
-        [
-          collection._id.slice(-6),
-          `"${collection.deliveryBoyName}"`,
-          collection.orderId,
-          collection.total.toFixed(2),
-          collection.amount.toFixed(2),
-          `"${collection.remark || ""}"`,
-          new Date(collection.collectedAt).toLocaleDateString(),
-        ].join(",")
-      ),
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `cash_collections_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleClearDate = () => {
-    setFromDate("");
-    setToDate("");
-  };
-
-  const fetchPendingOrders = async (deliveryBoyId: string) => {
-    if (!deliveryBoyId) return;
-    try {
-      setLoadingOrders(true);
-      const response = await getAllOrders({
-        status: "Delivered",
-        paymentStatus: "Pending",
-        limit: 100
-      });
-
-      if (response.success) {
-        // Filter orders assigned to this delivery boy (if they aren't already filtered by API)
-        // Also check if paymentMethod is COD if needed, but usually 'Pending' on 'Delivered' means COD
-        setPendingOrders(response.data.filter((order: any) =>
-          (typeof order.deliveryBoy === 'string' ? order.deliveryBoy === deliveryBoyId : order.deliveryBoy?._id === deliveryBoyId)
-        ));
-      }
-    } catch (err) {
-      console.error("Error fetching pending orders:", err);
-      showToast("Failed to fetch pending orders", "error");
-    } finally {
-      setLoadingOrders(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this cash collection? This will restore the balance to the delivery boy.")) {
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await apiDeleteCashCollection(id);
-      if (response.success) {
-        showToast("Cash collection deleted successfully", "success");
-        setCashCollections(prev => prev.filter(c => c._id !== id));
-      } else {
-        showToast(response.message || "Failed to delete", "error");
-      }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || "Error deleting collection", "error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!modalData.deliveryBoyId || !modalData.orderId || !modalData.amount) {
-      showToast("Please fill all required fields", "error");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await createCashCollection(modalData);
-      if (response.success) {
-        showToast("Cash collection recorded successfully", "success");
-        setIsModalOpen(false);
-        setModalData({ deliveryBoyId: "", orderId: "", amount: 0, remark: "" });
-        // Refresh list
-        window.location.reload(); // Simple way to refresh for now
-      } else {
-        showToast(response.message || "Failed to save", "error");
-      }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || "Error saving collection", "error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-
-  const methods = ["All", "Cash", "Card", "Online"];
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {loading && <div className="flex justify-center py-10"><LoadingSpinner /></div>}
-      {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">{error}</div>}
-      
-      {!loading && !error && (
-        <>
-          {/* Header */}
-
-      <div className="bg-teal-600 px-4 sm:px-6 py-4 rounded-t-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <h1 className="text-white text-xl sm:text-2xl font-semibold">
-          Delivery Boy Cash Collection List
-        </h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Cash Collection
-        </button>
-
-      </div>
-
-      {/* Main Content Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        {/* Filters */}
-        <div className="p-4 sm:p-6 border-b border-neutral-200">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            {/* Left Side Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-1 flex-wrap">
-              {/* From - To Date */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-700 whitespace-nowrap">
-                  From - To Date:
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input
-                      type="date"
-                      value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className="pl-10 pr-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[140px]"
-                    />
-
-                  </div>
-                  <span className="text-neutral-500">-</span>
-                  <div className="relative">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <input
-                      type="date"
-                      value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className="pl-10 pr-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[140px]"
-                    />
-
-                  </div>
-                  <button
-                    onClick={handleClearDate}
-                    className="px-3 py-2 bg-neutral-700 hover:bg-neutral-800 text-white rounded text-sm transition-colors">
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter by Delivery Boy */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-700 whitespace-nowrap">
-                  Filter by Delivery Boy:
-                </label>
-                <select
-                  value={selectedDeliveryBoy}
-                  onChange={(e) => {
-                    setSelectedDeliveryBoy(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[150px]">
-                  <option value="all">All Delivery Boys</option>
-                  {deliveryBoys.map((boy) => (
-                    <option key={boy._id} value={boy._id}>
-                      {boy.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filter by Method */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-700 whitespace-nowrap">
-                  Filter by Method:
-                </label>
-                <select
-                  value={selectedMethod}
-                  onChange={(e) => {
-                    setSelectedMethod(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[100px]">
-                  {methods.map((method) => (
-                    <option
-                      key={method}
-                      value={method === "All" ? "all" : method}>
-                      {method}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Right Side Controls */}
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              {/* Per Page */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-neutral-700">Per Page:</span>
-                <select
-                  value={entriesPerPage}
-                  onChange={(e) => {
-                    setEntriesPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500">
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-
-              {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Export
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-
-              {/* Search */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-neutral-700">Search:</label>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search:"
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[150px]"
-                />
-              </div>
-            </div>
+    <div className="min-h-screen bg-neutral-50/50 p-4 sm:p-6 lg:p-8 space-y-8">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Cash Collection</h1>
+          <p className="text-neutral-500 mt-1">Track and reconcile COD payments from delivery riders.</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="Search rider name/mobile..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900 outline-none w-64 transition-all shadow-sm group-hover:border-neutral-300"
+            />
+            <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-xl px-4 py-2.5 shadow-sm">
+            <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="text-sm outline-none bg-transparent" />
+            <span className="text-neutral-300">|</span>
+            <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="text-sm outline-none bg-transparent" />
           </div>
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px]">
-            <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("id")}>
-                  <div className="flex items-center gap-2">
-                    Id
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("name")}>
-                  <div className="flex items-center gap-2">
-                    Name
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("orderId")}>
-                  <div className="flex items-center gap-2">
-                    O. Id
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("total")}>
-                  <div className="flex items-center gap-2">
-                    Total
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("amount")}>
-                  <div className="flex items-center gap-2">
-                    Amount
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("remark")}>
-                  <div className="flex items-center gap-2">
-                    Remark
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th
-                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  onClick={() => handleSort("dateTime")}>
-                  <div className="flex items-center gap-2">
-                    Date Time
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-400">
-                      <path
-                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                </th>
-                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
+      {/* Admin Guide Section */}
+      <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 sm:p-5 relative overflow-hidden group transition-all hover:bg-amber-50">
+        <div className="flex items-start gap-4">
+          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="space-y-1 pr-8">
+            <h3 className="text-sm font-bold text-amber-900">Admin Reconcilation Guide</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs text-amber-700/80 leading-relaxed">
+              <p><span className="font-bold text-amber-800">Step 1:</span> Physically collect the cash amount from the delivery rider.</p>
+              <p><span className="font-bold text-amber-800">Step 2:</span> Verify the amount against the "Pending Cash" shown in the table.</p>
+              <p><span className="font-bold text-amber-800">Step 3:</span> Click "Collect" and enter the exact amount received.</p>
+              <p><span className="font-bold text-amber-800">Step 4:</span> Once confirmed, the rider's balance will be reduced automatically.</p>
+            </div>
+            <p className="text-[10px] text-amber-600 pt-1 font-bold uppercase tracking-wider">
+              ⚠️ WARNING: Only update after physical cash is in your hands.
+            </p>
+          </div>
+        </div>
+        <div className="absolute top-4 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+          <svg className="w-12 h-12 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+        </div>
+      </div>
 
-            </thead>
-            <tbody className="bg-white divide-y divide-neutral-200">
-              {displayedCollections.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
-                    No data available in table
-                  </td>
+      {/* Summary Cards */}
+      <CashSummaryCards stats={stats} loading={loading && agents.length === 0} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Table Section */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+          <div className="p-4 border-b border-neutral-100 bg-neutral-50/30">
+            <h2 className="text-lg font-bold text-neutral-900">Delivery Agent COD Summary</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-neutral-50/50 text-neutral-500 text-[11px] uppercase tracking-wider font-bold border-b border-neutral-100">
+                  <th className="px-6 py-4">Agent Name</th>
+                  <th className="px-6 py-4 text-right">Collected</th>
+                  <th className="px-6 py-4 text-right text-red-600">Pending</th>
+                  <th className="px-6 py-4">Last Submission</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              ) : (
-                displayedCollections.map((collection) => (
-                  <tr key={collection._id} className="hover:bg-neutral-50">
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                      {collection._id.slice(-6)}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
-                      {collection.deliveryBoyName}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                      {collection.orderNumber}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                      ₹{collection.total.toFixed(2)}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
-                      ₹{collection.amount.toFixed(2)}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                      {collection.remark || '-'}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                      {new Date(collection.collectedAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                      <button
-                        onClick={() => handleDelete(collection._id)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
-                        title="Delete">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          <line x1="10" y1="11" x2="10" y2="17"></line>
-                          <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-neutral-50">
+                {loading && agents.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <LoadingSpinner />
                     </td>
                   </tr>
-
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : agents.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center text-neutral-400">
+                      No active delivery agents found.
+                    </td>
+                  </tr>
+                ) : (
+                  agents.map((agent) => (
+                    <tr key={agent._id} className={`hover:bg-neutral-50/50 transition-colors ${agent.pending > 0 ? 'bg-red-50/10' : ''}`}>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-neutral-900">{agent.name}</span>
+                          <span className="text-xs text-neutral-500">{agent.mobile}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-neutral-600">
+                        ₹{agent.cashCollected.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold text-red-600">
+                        ₹{agent.pending.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-neutral-500 italic">
+                          {agent.lastSubmissionDate ? new Date(agent.lastSubmissionDate).toLocaleDateString() : 'Never'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-tight ${
+                          agent.status === 'Settled' ? 'text-green-700 bg-green-50' : 
+                          agent.pending > 0 ? 'text-red-700 bg-red-50' : 'text-yellow-700 bg-yellow-50'
+                        }`}>
+                          {agent.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => handleCollectClick(agent)}
+                          disabled={agent.pending <= 0}
+                          className="px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors disabled:opacity-30"
+                        >
+                          Collect
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Pagination Footer */}
-        <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-          <div className="text-xs sm:text-sm text-neutral-700">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, cashCollections.length)} of{" "}
-            {cashCollections.length} entries
+        {/* Recent Collections Side-list */}
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 flex flex-col h-fit">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6 flex items-center gap-2">
+            <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Recent Collections
+          </h3>
+          
+          <div className="space-y-4">
+            {recentCollections.length === 0 ? (
+              <p className="text-sm text-neutral-400 text-center py-10">No recent collections.</p>
+            ) : (
+              recentCollections.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-neutral-50 bg-neutral-50/50">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-neutral-800">{item.deliveryBoyName}</span>
+                    <span className="text-[10px] text-neutral-400">
+                      {new Date(item.collectedAt).toLocaleDateString()} • {item.paymentMode || 'Cash'}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">+ ₹{item.amount.toLocaleString()}</span>
+                </div>
+              ))
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || totalPages === 0}
-              className={`p-2 border border-neutral-300 rounded ${currentPage === 1 || totalPages === 0
-                ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                : "text-neutral-700 hover:bg-neutral-50"
-                }`}
-              aria-label="Previous page">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-              }
-              disabled={currentPage === totalPages || totalPages === 0}
-              className={`p-2 border border-neutral-300 rounded ${currentPage === totalPages || totalPages === 0
-                ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                : "text-neutral-700 hover:bg-neutral-50"
-                }`}
-              aria-label="Next page">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M9 18L15 12L9 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
+          
+          <button className="mt-6 w-full py-2.5 text-xs font-bold text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 rounded-lg transition-all border border-dashed border-neutral-200">
+            View All Collections
+          </button>
         </div>
       </div>
 
-        </>
-      )}
-
-      {/* Footer */}
-      <div className="bg-neutral-800 text-white text-center text-sm py-4 rounded-b-lg">
-        Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-blue-400 hover:text-blue-300">
-          vrushahi e-Commerce
-        </a>
-      </div>
-
-      {/* Add Cash Collection Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
-            <div className="bg-teal-600 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-white text-lg font-semibold">Add Cash Collection</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-white hover:text-neutral-200">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Delivery Boy *</label>
-                <select 
-                  required
-                  value={modalData.deliveryBoyId}
-                  onChange={(e) => {
-                    setModalData({...modalData, deliveryBoyId: e.target.value, orderId: ""});
-                    fetchPendingOrders(e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
-                >
-                  <option value="">Select Delivery Boy</option>
-                  {deliveryBoys.map(boy => (
-                    <option key={boy._id} value={boy._id}>{boy.name} ({boy.mobile})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Order *</label>
-                <select 
-                  required
-                  disabled={!modalData.deliveryBoyId || loadingOrders}
-                  value={modalData.orderId}
-                  onChange={(e) => {
-                    const order = pendingOrders.find(o => o._id === e.target.value);
-                    setModalData({...modalData, orderId: e.target.value, amount: order?.total || 0});
-                  }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-50"
-                >
-                  <option value="">{loadingOrders ? "Loading..." : "Select Order"}</option>
-                  {pendingOrders.map(order => (
-                    <option key={order._id} value={order._id}>
-                      {order.orderNumber} - ₹{order.total.toFixed(2)}
-                    </option>
-                  ))}
-                  {!loadingOrders && modalData.deliveryBoyId && pendingOrders.length === 0 && (
-                    <option disabled>No pending cash orders found</option>
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Amount Collected *</label>
-                <input 
-                  type="number"
-                  required
-                  value={modalData.amount}
-                  onChange={(e) => setModalData({...modalData, amount: Number(e.target.value)})}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Remark</label>
-                <textarea 
-                  value={modalData.remark}
-                  onChange={(e) => setModalData({...modalData, remark: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-teal-500 focus:border-teal-500"
-                  rows={2}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-neutral-300 rounded text-neutral-700 hover:bg-neutral-50"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-50"
-                >
-                  {submitting ? "Saving..." : "Record Collection"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal */}
+      <AgentCollectModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={handleCollectionSuccess}
+        agent={selectedAgent}
+      />
     </div>
-
   );
 }
