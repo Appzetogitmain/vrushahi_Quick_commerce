@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import Order from '../../../models/Order';
+import OrderItem from '../../../models/OrderItem';
+import Seller from '../../../models/Seller';
+import CashCollection from '../../../models/CashCollection';
 import Commission from '../../../models/Commission';
 import WalletTransaction from '../../../models/WalletTransaction';
 import WithdrawRequest from '../../../models/WithdrawRequest';
@@ -213,4 +217,212 @@ export const processWithdrawalWrapper = asyncHandler(async (req: Request, res: R
       message: 'Invalid action. Must be "Approve", "Reject", or "Complete"'
     });
   }
+});
+
+/**
+ * Get Seller Settlement Stats
+ */
+export const getSellerSettlementStats = asyncHandler(async (req: Request, res: Response) => {
+  const { sellerId } = req.query;
+
+  const query: any = { userType: 'SELLER', status: 'Completed' };
+  if (sellerId && sellerId !== 'all') {
+    query.userId = new mongoose.Types.ObjectId(sellerId as string);
+  }
+
+  // 1. Total Seller Earnings (Credits)
+  const earningsResult = await WalletTransaction.aggregate([
+    { $match: { ...query, type: 'Credit' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const totalSellerEarnings = earningsResult[0]?.total || 0;
+
+  // 2. Total Already Paid (Debits)
+  const paidResult = await WalletTransaction.aggregate([
+    { $match: { ...query, type: 'Debit' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const alreadyPaid = paidResult[0]?.total || 0;
+
+  // 3. COD Received (Admin Wallet)
+  // We sum CashCollection amount. If sellerId is provided, we only take the portion belonging to this seller.
+  let codReceived = 0;
+  if (sellerId && sellerId !== 'all') {
+    // Sum from OrderItems where order is COD and cash is collected
+    const cashCollectedOrderIds = await CashCollection.find().distinct('order');
+    const codResult = await OrderItem.aggregate([
+      { 
+        $match: { 
+          seller: new mongoose.Types.ObjectId(sellerId as string),
+          order: { $in: cashCollectedOrderIds }
+        } 
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    codReceived = codResult[0]?.total || 0;
+  } else {
+    const cashResult = await CashCollection.aggregate([
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    codReceived = cashResult[0]?.total || 0;
+  }
+
+  // 4. Online Received (Delivered orders, not COD, Paid)
+  let onlineReceived = 0;
+  if (sellerId && sellerId !== 'all') {
+    const onlineResult = await OrderItem.aggregate([
+      {
+        $lookup: {
+          from: 'orders',
+          localField: 'order',
+          foreignField: '_id',
+          as: 'orderData'
+        }
+      },
+      { $unwind: '$orderData' },
+      {
+        $match: {
+          seller: new mongoose.Types.ObjectId(sellerId as string),
+          'orderData.paymentMethod': { $ne: 'COD' },
+          'orderData.paymentStatus': 'Paid',
+          'orderData.status': 'Delivered'
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    onlineReceived = onlineResult[0]?.total || 0;
+  } else {
+    const onlineResult = await Order.aggregate([
+      { $match: { paymentMethod: { $ne: 'COD' }, paymentStatus: 'Paid', status: 'Delivered' } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    onlineReceived = onlineResult[0]?.total || 0;
+  }
+
+  const totalReceived = codReceived + onlineReceived;
+
+  // 5. Pending COD (Money still with delivery boys)
+  let pendingCod = 0;
+  if (sellerId && sellerId !== 'all') {
+    const pendingCodResult = await OrderItem.aggregate([
+      {
+        $lookup: {
+          from: 'orders',
+          localField: 'order',
+          foreignField: '_id',
+          as: 'orderData'
+        }
+      },
+      { $unwind: '$orderData' },
+      {
+        $match: {
+          seller: new mongoose.Types.ObjectId(sellerId as string),
+          'orderData.status': 'Delivered',
+          'orderData.paymentMethod': 'COD',
+          'orderData.paymentStatus': 'Pending'
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    pendingCod = pendingCodResult[0]?.total || 0;
+  } else {
+    const pendingCodResult = await Order.aggregate([
+      { $match: { status: 'Delivered', paymentMethod: 'COD', paymentStatus: 'Pending' } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    pendingCod = pendingCodResult[0]?.total || 0;
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      totalSellerEarnings,
+      codReceived: totalReceived, // Renamed to include online as per requirement "COD Received (Admin Wallet) or online recieved"
+      alreadyPaid,
+      availableToSettle: Math.max(0, totalReceived - alreadyPaid),
+      pendingCod
+    }
+  });
+});
+
+/**
+ * Process Seller Settlement (Payout)
+ */
+export const processSellerSettlement = asyncHandler(async (req: Request, res: Response) => {
+  const { sellerId, amount, paymentMethod, referenceId, notes } = req.body;
+
+  if (!sellerId || !amount || amount < 1) {
+    return res.status(400).json({
+      success: false,
+      message: 'Seller ID and amount (min ₹1) are required'
+    });
+  }
+
+  const seller = await Seller.findById(sellerId);
+  if (!seller) {
+    return res.status(404).json({
+      success: false,
+      message: 'Seller not found'
+    });
+  }
+
+  // Calculate available settlement amount (Global or per seller? Requirement says "strictly controlled by admin wallet balance")
+  // Let's check global available cash first
+  const cashResult = await CashCollection.aggregate([
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const onlineResult = await Order.aggregate([
+    { $match: { paymentMethod: { $ne: 'COD' }, paymentStatus: 'Paid', status: 'Delivered' } },
+    { $group: { _id: null, total: { $sum: '$total' } } }
+  ]);
+  const paidResult = await WalletTransaction.aggregate([
+    { $match: { userType: 'SELLER', type: 'Debit', status: 'Completed' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+
+  const totalReceived = (cashResult[0]?.total || 0) + (onlineResult[0]?.total || 0);
+  const totalAlreadyPaid = paidResult[0]?.total || 0;
+  const availableGlobal = totalReceived - totalAlreadyPaid;
+
+  if (amount > availableGlobal) {
+    return res.status(400).json({
+      success: false,
+      message: `Insufficient admin wallet balance. Max available: ₹${availableGlobal.toFixed(2)}`
+    });
+  }
+
+  // Also check seller's actual balance
+  if (amount > seller.balance) {
+    return res.status(400).json({
+      success: false,
+      message: `Amount exceeds seller's wallet balance (₹${seller.balance.toFixed(2)})`
+    });
+  }
+
+  // Create Payout Transaction
+  const transaction = await WalletTransaction.create({
+    userId: seller._id,
+    userType: 'SELLER',
+    amount: amount,
+    type: 'Debit',
+    description: notes || `Settlement via ${paymentMethod}`,
+    status: 'Completed',
+    reference: referenceId || `SETL-${Date.now()}`,
+  });
+
+  // Update Seller Balance
+  seller.balance -= amount;
+  await seller.save();
+
+  // Update Platform Wallet (optional but good for global tracking)
+  const platformWallet = await PlatformWallet.getWallet();
+  platformWallet.currentPlatformBalance -= amount;
+  platformWallet.sellerPendingPayouts -= amount;
+  await platformWallet.save();
+
+  return res.status(200).json({
+    success: true,
+    message: 'Settlement processed successfully',
+    data: transaction
+  });
 });

@@ -234,6 +234,9 @@ router.get("/wallet/earnings", walletController.getAdminEarnings);
 router.get("/wallet/transactions", walletController.getWalletTransactions);
 router.get("/wallet/withdrawals", withdrawalController.getAllWithdrawals);
 router.post("/wallet/withdrawal/process", walletController.processWithdrawalWrapper);
+// Seller Settlement Routes
+router.get("/wallet/seller-settlement/stats", walletController.getSellerSettlementStats);
+router.post("/wallet/seller-settlement/payout", walletController.processSellerSettlement);
 
 // Direct withdrawal routes (if used elsewhere)
 router.put("/withdrawals/:id/approve", withdrawalController.approveWithdrawal);

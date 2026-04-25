@@ -24,9 +24,11 @@ export interface WalletTransaction {
   _id: string;
   type: string;
   userType: string;
+  userName?: string;
   amount: number;
   description: string;
   status: string;
+  reference: string;
   createdAt: string;
   relatedOrder?: { orderNumber: string };
 }
@@ -54,6 +56,24 @@ export interface AdminEarning {
   source: string;
   amount: number;
   date: string;
+  status: string;
+  description: string;
+}
+
+export interface SellerSettlementStats {
+  totalSellerEarnings: number;
+  codReceived: number;
+  alreadyPaid: number;
+  availableToSettle: number;
+  pendingCod: number;
+}
+
+export interface SellerTransaction {
+  id: string;
+  amount: number;
+  transactionType: string;
+  date: string;
+  type: string;
   status: string;
   description: string;
 }
@@ -159,5 +179,27 @@ export const getSellerTransactions = async (
     `/admin/wallet/seller/${sellerId}`,
     { params }
   );
+  return response.data;
+};
+
+/**
+ * Get Seller Settlement Stats
+ */
+export const getSellerSettlementStats = async (sellerId?: string): Promise<ApiResponse<SellerSettlementStats>> => {
+  const response = await api.get<ApiResponse<SellerSettlementStats>>("/admin/wallet/seller-settlement/stats", { params: { sellerId } });
+  return response.data;
+};
+
+/**
+ * Process Seller Settlement (Payout)
+ */
+export const processSellerSettlement = async (data: {
+  sellerId: string;
+  amount: number;
+  paymentMethod: string;
+  referenceId?: string;
+  notes?: string;
+}): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>("/admin/wallet/seller-settlement/payout", data);
   return response.data;
 };
