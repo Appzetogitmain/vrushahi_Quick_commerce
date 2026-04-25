@@ -8,6 +8,7 @@ router.use(authenticate);
 router.use(requireUserType('Admin'));
 
 router.get('/withdrawals', withdrawalController.getAllWithdrawals);
+router.get('/withdrawals/stats', withdrawalController.getWithdrawalStats);
 router.patch('/withdrawals/:id/approve', withdrawalController.approveWithdrawal);
 router.patch('/withdrawals/:id/reject', withdrawalController.rejectWithdrawal);
 router.patch('/withdrawals/:id/complete', withdrawalController.completeWithdrawal);
