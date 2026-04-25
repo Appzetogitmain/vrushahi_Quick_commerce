@@ -38,6 +38,7 @@ const SellerAccountSettings = () => {
     branch: '',
     accountNumber: '',
     ifsc: '',
+    upiId: '',
     profile: '',
     logo: '',
     storeBanner: '',
@@ -642,6 +643,9 @@ const SellerAccountSettings = () => {
                             <InputGroup label="Bank Name" name="bankName" value={sellerData.bankName} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="Account Number" name="accountNumber" value={sellerData.accountNumber} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="IFSC Code" name="ifsc" value={sellerData.ifsc} onChange={handleInputChange} disabled={!isEditing} />
+                            <div className="md:col-span-2">
+                              <InputGroup label="UPI ID" name="upiId" value={sellerData.upiId} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g. yourname@okaxis" />
+                            </div>
                           </div>
                         </section>
 

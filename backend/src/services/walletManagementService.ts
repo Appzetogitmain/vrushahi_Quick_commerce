@@ -238,7 +238,8 @@ export const getWalletTransactions = async (
 export const validateWithdrawal = async (
     userId: string,
     userType: 'SELLER' | 'DELIVERY_BOY',
-    amount: number
+    amount: number,
+    paymentMethod: 'Bank Transfer' | 'UPI'
 ) => {
     try {
         // Check minimum withdrawal amount
@@ -265,7 +266,7 @@ export const validateWithdrawal = async (
         const pendingRequests = await WithdrawRequest.countDocuments({
             userId,
             userType,
-            status: { $in: ['Pending', 'Approved'] },
+            status: 'Pending',
         });
 
         if (pendingRequests > 0) {
@@ -287,11 +288,20 @@ export const validateWithdrawal = async (
         }
 
         const ifsc = (user as any).ifsc || (user as any).ifscCode;
-        if (!user.accountNumber || !ifsc || !user.bankName) {
-            return {
-                success: false,
-                message: 'Please complete your bank account details before requesting withdrawal',
-            };
+        if (paymentMethod === 'Bank Transfer') {
+            if (!user.accountNumber || !ifsc || !user.accountName || !user.bankName) {
+                return {
+                    success: false,
+                    message: 'Please complete your bank account details before requesting withdrawal',
+                };
+            }
+        } else if (paymentMethod === 'UPI') {
+            if (!(user as any).upiId) {
+                return {
+                    success: false,
+                    message: 'Please add your UPI ID before requesting withdrawal via UPI',
+                };
+            }
         }
 
         return {
@@ -317,13 +327,7 @@ export const createWithdrawalRequest = async (
     paymentMethod: 'Bank Transfer' | 'UPI'
 ) => {
     try {
-        // Validate withdrawal
-        const validation = await validateWithdrawal(userId, userType, amount);
-        if (!validation.success) {
-            return validation;
-        }
-
-        // Get user details
+        // Get user details first for validation context
         const Model: any = userType === 'SELLER' ? Seller : Delivery;
         const user = await Model.findById(userId);
 
@@ -331,8 +335,21 @@ export const createWithdrawalRequest = async (
             throw new Error('User not found');
         }
 
+        // Validate withdrawal
+        const validation = await validateWithdrawal(userId, userType, amount, paymentMethod);
+        if (!validation.success) {
+            return validation;
+        }
+
         // Create account details string
-        const accountDetails = `${user.bankName} - ${user.accountNumber} (${user.ifscCode})`;
+        let accountDetails = '';
+        if (paymentMethod === 'Bank Transfer') {
+            const ifsc = (user as any).ifsc || (user as any).ifscCode;
+            const accountName = (user as any).accountName || '';
+            accountDetails = `Name: ${accountName}, Bank: ${user.bankName}, Acc: ${user.accountNumber}, IFSC: ${ifsc}`;
+        } else {
+            accountDetails = `UPI ID: ${(user as any).upiId}`;
+        }
 
         // Create withdrawal request
         const withdrawRequest = new WithdrawRequest({

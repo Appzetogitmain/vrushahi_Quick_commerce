@@ -470,7 +470,13 @@ export default function AdminWithdrawals() {
                                 <DetailItem label="Requested Amount" value={`₹${selectedWithdrawal.amount?.toLocaleString('en-IN')}`} isBold />
                                 <DetailItem label="Available Balance" value={`₹${selectedWithdrawal.availableBalance?.toLocaleString('en-IN') || 0}`} isAlert={selectedWithdrawal.availableBalance! < selectedWithdrawal.amount} />
                                 <DetailItem label="Payment Method" value={selectedWithdrawal.paymentMethod} />
-                                <DetailItem label="Bank/UPI Details" value={selectedWithdrawal.accountDetails} isFull />
+                                <DetailItem 
+                                    label={selectedWithdrawal.paymentMethod === 'UPI' ? 'UPI ID' : 'Bank Details'} 
+                                    value={selectedWithdrawal.accountDetails} 
+                                    isFull 
+                                    isBold
+                                    color={selectedWithdrawal.paymentMethod === 'UPI' ? 'blue' : 'gray'}
+                                />
                             </div>
 
                             <hr className="border-gray-100" />
@@ -583,7 +589,10 @@ export default function AdminWithdrawals() {
                                 <DetailItem label="User Name" value={selectedWithdrawal.userId?.sellerName || selectedWithdrawal.userId?.name || 'N/A'} />
                                 <DetailItem label="User Type" value={selectedWithdrawal.userType === 'SELLER' ? 'Seller' : 'Rider'} />
                                 <DetailItem label="Payment Method" value={selectedWithdrawal.paymentMethod} />
-                                <DetailItem label="Bank/UPI Details" value={selectedWithdrawal.accountDetails} />
+                                <DetailItem 
+                                    label={selectedWithdrawal.paymentMethod === 'UPI' ? 'UPI ID' : 'Bank Details'} 
+                                    value={selectedWithdrawal.accountDetails} 
+                                />
                                 
                                 {selectedWithdrawal.transactionReference && (
                                     <DetailItem label="Transaction ID" value={selectedWithdrawal.transactionReference} isFull color="blue" />

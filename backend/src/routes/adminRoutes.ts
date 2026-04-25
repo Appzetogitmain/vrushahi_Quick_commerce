@@ -239,9 +239,9 @@ router.get("/wallet/seller-settlement/stats", walletController.getSellerSettleme
 router.post("/wallet/seller-settlement/payout", walletController.processSellerSettlement);
 
 // Direct withdrawal routes (if used elsewhere)
-router.put("/withdrawals/:id/approve", withdrawalController.approveWithdrawal);
-router.put("/withdrawals/:id/reject", withdrawalController.rejectWithdrawal);
-router.put("/withdrawals/:id/complete", withdrawalController.completeWithdrawal);
+router.patch("/withdrawals/:id/approve", withdrawalController.approveWithdrawal);
+router.patch("/withdrawals/:id/reject", withdrawalController.rejectWithdrawal);
+router.patch("/withdrawals/:id/complete", withdrawalController.completeWithdrawal);
 
 // ==================== Tax Routes ====================
 router.get("/taxes", taxController.getTaxes);

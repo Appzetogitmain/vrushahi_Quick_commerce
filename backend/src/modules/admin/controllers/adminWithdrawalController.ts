@@ -242,10 +242,10 @@ export const approveWithdrawal = async (req: Request, res: Response) => {
         }
 
         // Update request status
-        request.status = 'Approved';
+        request.status = 'Completed';
         request.transactionReference = transactionReference;
         request.remarks = remarks || request.remarks;
-        request.processedBy = new mongoose.Types.ObjectId(adminId);
+        request.processedBy = adminId as any;
         request.processedAt = new Date();
         await request.save({ session });
 
@@ -300,7 +300,7 @@ export const rejectWithdrawal = async (req: Request, res: Response) => {
         }
 
         request.status = 'Rejected';
-        request.processedBy = new mongoose.Types.ObjectId(adminId);
+        request.processedBy = adminId as any;
         request.processedAt = new Date();
         request.remarks = remarks;
         await request.save();

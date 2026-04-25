@@ -20,6 +20,11 @@ export default function DeliveryProfile() {
     joinDate: '',
     totalDeliveries: 0,
     rating: 0,
+    accountName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    upiId: '',
   });
 
   // Fetch profile data on mount
@@ -37,6 +42,11 @@ export default function DeliveryProfile() {
           joinDate: new Date(data.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
           totalDeliveries: data.totalDeliveredCount || 0, // Assuming backend sends this or we need to fetch dashboard stats
           rating: 4.8, // Mock for now
+          accountName: data.accountName || '',
+          bankName: data.bankName || '',
+          accountNumber: data.accountNumber || '',
+          ifscCode: data.ifscCode || '',
+          upiId: data.upiId || '',
         });
         setUserName(data.name);
       } catch (error) {
@@ -62,7 +72,12 @@ export default function DeliveryProfile() {
         email: profileData.email,
         address: profileData.address,
         vehicleNumber: profileData.vehicleNumber,
-        vehicleType: profileData.vehicleType
+        vehicleType: profileData.vehicleType,
+        accountName: profileData.accountName,
+        bankName: profileData.bankName,
+        accountNumber: profileData.accountNumber,
+        ifscCode: profileData.ifscCode,
+        upiId: profileData.upiId
       });
       setUserName(profileData.name);
       setIsEditing(false);
@@ -203,6 +218,86 @@ export default function DeliveryProfile() {
                 </select>
               ) : (
                 <p className="text-neutral-900 text-sm">{profileData.vehicleType}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Payout Information */}
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden mt-4">
+          <div className="p-4 border-b border-neutral-200 bg-neutral-50/50">
+            <h3 className="text-neutral-900 font-semibold flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              Payout Details
+            </h3>
+          </div>
+          <div className="divide-y divide-neutral-200">
+            <div className="p-4">
+              <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Account Holder Name</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profileData.accountName}
+                  onChange={(e) => handleInputChange('accountName', e.target.value)}
+                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              ) : (
+                <p className="text-neutral-900 text-sm font-medium">{profileData.accountName || 'Not added'}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-neutral-200">
+              <div className="p-4">
+                <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Bank Name</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={profileData.bankName}
+                    onChange={(e) => handleInputChange('bankName', e.target.value)}
+                    className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                ) : (
+                  <p className="text-neutral-900 text-sm font-medium">{profileData.bankName || 'N/A'}</p>
+                )}
+              </div>
+              <div className="p-4">
+                <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">IFSC Code</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={profileData.ifscCode}
+                    onChange={(e) => handleInputChange('ifscCode', e.target.value)}
+                    className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                ) : (
+                  <p className="text-neutral-900 text-sm font-medium">{profileData.ifscCode || 'N/A'}</p>
+                )}
+              </div>
+            </div>
+            <div className="p-4">
+              <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Account Number</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profileData.accountNumber}
+                  onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              ) : (
+                <p className="text-neutral-900 text-sm font-medium">{profileData.accountNumber || 'N/A'}</p>
+              )}
+            </div>
+            <div className="p-4 bg-orange-50/30">
+              <p className="text-orange-600 text-[10px] font-bold uppercase mb-1">UPI ID</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profileData.upiId}
+                  onChange={(e) => handleInputChange('upiId', e.target.value)}
+                  placeholder="e.g. name@okaxis"
+                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              ) : (
+                <p className="text-neutral-900 text-sm font-bold">{profileData.upiId || 'Not added'}</p>
               )}
             </div>
           </div>
