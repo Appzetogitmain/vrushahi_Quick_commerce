@@ -20,6 +20,7 @@ export default function AdminBillingSettings() {
     const [baseDistance, setBaseDistance] = useState<number>(0);
     const [kmRate, setKmRate] = useState<number>(0);
     const [deliveryBoyKmRate, setDeliveryBoyKmRate] = useState<number>(0);
+    const [deliveryBoyBasePay, setDeliveryBoyBasePay] = useState<number>(0);
     const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
     const [supportEmail, setSupportEmail] = useState<string>('');
     const [supportPhone, setSupportPhone] = useState<string>('');
@@ -48,6 +49,7 @@ export default function AdminBillingSettings() {
                     setBaseDistance(data.deliveryConfig.baseDistance || 0);
                     setKmRate(data.deliveryConfig.kmRate || 0);
                     setDeliveryBoyKmRate(data.deliveryConfig.deliveryBoyKmRate || 0);
+                    setDeliveryBoyBasePay(data.deliveryConfig.deliveryBoyBasePay || 0);
                     setGoogleMapsKey(data.deliveryConfig.googleMapsKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '');
                 } else {
                     // If no config exists, try to pre-fill from env
@@ -79,6 +81,7 @@ export default function AdminBillingSettings() {
                     baseDistance,
                     kmRate,
                     deliveryBoyKmRate,
+                    deliveryBoyBasePay,
                     googleMapsKey
                 },
                 supportEmail,
@@ -304,6 +307,23 @@ export default function AdminBillingSettings() {
                                     />
                                 </div>
                                 <p className="mt-1 text-xs text-gray-500">Amount paid to delivery partner per km.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Delivery Partner Base Pay (₹)
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={deliveryBoyBasePay}
+                                        onChange={(e) => setDeliveryBoyBasePay(Number(e.target.value))}
+                                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">Minimum guaranteed amount paid to rider for every order.</p>
                             </div>
 
                             <div className="col-span-full">

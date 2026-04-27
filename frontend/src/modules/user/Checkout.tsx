@@ -1415,7 +1415,7 @@ export default function Checkout() {
             fill="none"
           />
         </svg>
-        <span className="text-xs text-neutral-700">Handling charge</span>
+        <span className="text-xs text-neutral-700">Platform Fee</span>
       </div>
       <span className="text-xs font-medium text-neutral-900">
         ₹{handlingCharge}
@@ -1440,7 +1440,7 @@ export default function Checkout() {
           <circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" />
           <circle cx="18.5" cy="18.5" r="1.5" fill="currentColor" />
         </svg>
-        <span className="text-xs text-neutral-700">Delivery charge</span>
+        <span className="text-xs text-neutral-700">Delivery Fee</span>
       </div>
       <div className="flex flex-col items-end">
         <span

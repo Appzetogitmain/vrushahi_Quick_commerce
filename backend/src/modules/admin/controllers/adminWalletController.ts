@@ -35,9 +35,26 @@ export const getFinancialDashboard = asyncHandler(async (_req: Request, res: Res
     // Breakdown of commissions
     Commission.aggregate([
       { $match: { status: 'Paid' } },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: 'order',
+          foreignField: '_id',
+          as: 'orderData'
+        }
+      },
+      { $unwind: '$orderData' },
       { $group: { 
           _id: '$type', 
-          total: { $sum: '$commissionAmount' } 
+          total: { 
+            $sum: {
+              $cond: [
+                { $eq: ['$type', 'SELLER'] },
+                '$commissionAmount',
+                { $max: [0, { $subtract: [{ $add: ['$orderData.shipping', { $ifNull: ['$orderData.platformFee', 0] }] }, '$commissionAmount'] }] }
+              ]
+            }
+          } 
       }}
     ]),
     // Online liquidity (Payments already received by platform)
@@ -117,7 +134,7 @@ export const getAdminEarnings = asyncHandler(async (req: Request, res: Response)
   const skip = (Number(page) - 1) * Number(limit);
 
   const earnings = await Commission.find(query)
-    .populate('order', 'orderNumber')
+    .populate('order', 'orderNumber shipping total platformFee')
     .populate('seller', 'storeName sellerName')
     .populate('deliveryBoy', 'name mobile')
     .sort({ createdAt: -1 })
@@ -126,7 +143,7 @@ export const getAdminEarnings = asyncHandler(async (req: Request, res: Response)
 
   const total = await Commission.countDocuments(query);
 
-  // Format data for frontend
+  // Format data for frontend to show ACTUAL ADMIN PROFIT
   const formattedEarnings = earnings.map(e => {
     let sourceName = 'Unknown';
     if (e.type === 'SELLER' && e.seller) {
@@ -135,14 +152,29 @@ export const getAdminEarnings = asyncHandler(async (req: Request, res: Response)
       sourceName = (e.deliveryBoy as any).name;
     }
 
+    let adminAmount = e.commissionAmount;
+    let profitType = e.type === 'SELLER' ? 'Product Commission' : 'Delivery Share';
+    
+    // If it's a delivery commission, the admin profit is: (Delivery Charge + Platform Fee) - Rider Commission
+    if (e.type === 'DELIVERY_BOY') {
+      const deliveryCharge = (e.order as any)?.shipping || 0;
+      const platformFee = (e.order as any)?.platformFee || 0;
+      adminAmount = Math.max(0, (deliveryCharge + platformFee) - e.commissionAmount);
+    }
+
+    let description = `${profitType} - Order #${(e.order as any)?.orderNumber || 'Unknown'}`;
+    if (e.type === 'DELIVERY_BOY' && e.deliveryBasePay) {
+      description += ` (Base: ₹${e.deliveryBasePay}, Dist: ₹${e.deliveryKmCommission || 0})`;
+    }
+
     return {
       id: e._id,
       source: sourceName,
       sourceType: e.type,
-      amount: e.commissionAmount,
+      amount: adminAmount,
       date: e.createdAt,
       status: e.status,
-      description: `Order #${(e.order as any)?.orderNumber || 'Unknown'}`,
+      description: description,
       orderId: (e.order as any)?._id
     };
   });

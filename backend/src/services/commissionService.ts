@@ -430,34 +430,9 @@ export const distributeCommissions = async (orderId: string) => {
                     `Creating missing commission for Delivery Boy ${deliveryBoyId}`,
                 );
 
-                // Calculate Commission Logic
-                let commissionAmount = 0;
-                let commissionRate = 0;
-                let usedDistanceBased = false;
-
-                try {
-                    // @ts-ignore
-                    const settings = await AppSettings.getSettings();
-                    if (
-                        settings &&
-                        settings.deliveryConfig?.isDistanceBased === true &&
-                        settings.deliveryConfig?.deliveryBoyKmRate &&
-                        order.deliveryDistanceKm &&
-                        order.deliveryDistanceKm > 0
-                    ) {
-                        commissionRate = settings.deliveryConfig.deliveryBoyKmRate;
-                        commissionAmount = order.deliveryDistanceKm * commissionRate;
-                        usedDistanceBased = true;
-                    }
-                } catch (err) {
-                    console.error("Error checking settings for commission:", err);
-                }
-
-                if (!usedDistanceBased) {
-                    // Fallback to percentage based logic
-                    commissionRate = await getDeliveryBoyCommissionRate(deliveryBoyId);
-                    commissionAmount = (order.subtotal * commissionRate) / 100;
-                }
+                // Calculate Commission Logic using centralized breakdown
+                const breakdown = await calculateOrderBreakdown(orderId, session);
+                const commissionAmount = breakdown.deliveryBoyCommission;
 
                 // Create Commission Record
                 const newComm = await Commission.create(
@@ -466,11 +441,11 @@ export const distributeCommissions = async (orderId: string) => {
                             order: order._id,
                             deliveryBoy: order.deliveryBoy,
                             type: "DELIVERY_BOY",
-                            orderAmount: usedDistanceBased
-                                ? order.deliveryDistanceKm || 0
-                                : order.subtotal,
-                            commissionRate,
+                            orderAmount: order.subtotal || breakdown.totalOrderAmount,
+                            commissionRate: 0, // Not used for distance based
                             commissionAmount: Math.round(commissionAmount * 100) / 100,
+                            deliveryBasePay: breakdown.deliveryBasePay,
+                            deliveryKmCommission: breakdown.deliveryKmCommission,
                             status: "Paid",
                             paidAt: new Date(),
                         },
@@ -792,6 +767,8 @@ export interface ICODOrderBreakdown {
     // Delivery breakdown
     totalDeliveryCharge: number;
     deliveryBoyCommission: number; // Delivery boy's earning from delivery
+    deliveryBasePay: number; // Fixed base pay component
+    deliveryKmCommission: number; // Distance-based component
     adminDeliveryCommission: number; // Admin's portion of delivery charge
 
     // Totals
@@ -826,6 +803,8 @@ export const calculateOrderBreakdown = async (
             platformFee: order.platformFee || 0,
             totalDeliveryCharge: order.shipping || 0,
             deliveryBoyCommission: 0,
+            deliveryBasePay: 0,
+            deliveryKmCommission: 0,
             adminDeliveryCommission: 0,
             totalAdminEarning: 0,
             totalOrderAmount: order.total,
@@ -870,9 +849,13 @@ export const calculateOrderBreakdown = async (
                 order.deliveryDistanceKm &&
                 order.deliveryDistanceKm > 0
             ) {
-                // Distance-based calculation
-                const deliveryBoyKmRate = settings.deliveryConfig.deliveryBoyKmRate;
-                breakdown.deliveryBoyCommission = order.deliveryDistanceKm * deliveryBoyKmRate;
+                // Distance-based calculation: Base Pay + (Distance * KM Rate)
+                const deliveryBoyKmRate = settings.deliveryConfig.deliveryBoyKmRate || 0;
+                const deliveryBoyBasePay = settings.deliveryConfig.deliveryBoyBasePay || 0;
+                
+                breakdown.deliveryBasePay = deliveryBoyBasePay;
+                breakdown.deliveryKmCommission = order.deliveryDistanceKm * deliveryBoyKmRate;
+                breakdown.deliveryBoyCommission = breakdown.deliveryBasePay + breakdown.deliveryKmCommission;
 
                 // Admin gets the rest of the delivery charge
                 breakdown.adminDeliveryCommission = breakdown.totalDeliveryCharge - breakdown.deliveryBoyCommission;
@@ -1008,6 +991,8 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
             orderAmount: order.subtotal || breakdown.totalOrderAmount,
             commissionRate: deliveryCommissionRate,
             commissionAmount: breakdown.deliveryBoyCommission,
+            deliveryBasePay: breakdown.deliveryBasePay,
+            deliveryKmCommission: breakdown.deliveryKmCommission,
             status: "Paid",
             paidAt: new Date(),
         });

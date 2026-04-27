@@ -83,6 +83,7 @@ export interface AppSettings {
     baseDistance: number;
     kmRate: number;
     deliveryBoyKmRate?: number;
+    deliveryBoyBasePay?: number;
   };
   gstEnabled: boolean;
   gstRate?: number;

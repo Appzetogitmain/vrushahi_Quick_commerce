@@ -198,7 +198,7 @@ export default function Cart() {
                   <span className="font-semibold text-neutral-800">₹{platformFee.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
-                  <span className="font-medium">Delivery Partner Fee</span>
+                  <span className="font-medium">Delivery Fee</span>
                   <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600' : 'text-neutral-800'}`}>
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toLocaleString('en-IN')}`}
                   </span>
