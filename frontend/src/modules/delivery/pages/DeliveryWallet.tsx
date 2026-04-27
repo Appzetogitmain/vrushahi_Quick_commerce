@@ -122,7 +122,7 @@ export default function DeliveryWallet() {
                 key: razorpayKey,
                 amount: amount * 100,
                 currency: "INR",
-                name: "vrushahi Admin Payout",
+                name: "Vrushahi Payout",
                 description: "Settling collected COD cash",
                 order_id: razorpayOrderId,
                 prefill: {
@@ -274,7 +274,7 @@ export default function DeliveryWallet() {
                 <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-green-400/20 rounded-full blur-3xl"></div>
             </motion.div>
 
-            {/* COD & Admin Payout Section */}
+            {/* COD & Vrushahi Payout Section */}
             <div className="mx-4 mb-4 grid grid-cols-2 gap-4">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -307,7 +307,7 @@ export default function DeliveryWallet() {
                                 <line x1="12" y1="16" x2="12.01" y2="16" />
                             </svg>
                         </div>
-                        <p className="text-xs font-bold text-neutral-500 uppercase tracking-tight">Owed to Admin</p>
+                        <p className="text-xs font-bold text-neutral-500 uppercase tracking-tight">Owed to Vrushahi</p>
                         <h3 className="text-xl font-black text-orange-600 mt-1">₹{pendingAdminPayout.toLocaleString('en-IN')}</h3>
 
                         <button
@@ -320,7 +320,7 @@ export default function DeliveryWallet() {
                                     ? "bg-orange-600 text-white hover:bg-orange-700 active:scale-95 shadow-lg shadow-orange-200"
                                     : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                                 }`}>
-                            Pay to Admin
+                            Pay to Vrushahi
                         </button>
                     </div>
                 </motion.div>
@@ -568,7 +568,7 @@ export default function DeliveryWallet() {
                     </motion.div>
                 </div>
             )}
-            {/* Admin Payout Modal */}
+            {/* Vrushahi Payout Modal */}
             {showPayoutModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
                     <motion.div
@@ -576,7 +576,7 @@ export default function DeliveryWallet() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-black text-neutral-900">Admin Payout</h2>
+                            <h2 className="text-2xl font-black text-neutral-900">Vrushahi Payout</h2>
                             <button onClick={() => setShowPayoutModal(false)} className="text-neutral-400 hover:text-neutral-900">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M18 6L6 18M6 6l12 12" />
@@ -586,7 +586,7 @@ export default function DeliveryWallet() {
 
                         <div className="bg-orange-50 rounded-2xl p-4 mb-6 border border-orange-100">
                             <p className="text-sm text-orange-800 font-medium leading-relaxed">
-                                You are settling the COD cash collected from customers. This amount will be paid directly to the platform admin.
+                                You are settling the COD cash collected from customers. This amount will be paid directly to Vrushahi.
                             </p>
                         </div>
 

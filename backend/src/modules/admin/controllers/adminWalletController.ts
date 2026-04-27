@@ -492,3 +492,105 @@ export const processSellerSettlement = asyncHandler(async (req: Request, res: Re
     data: transaction
   });
 });
+
+/**
+ * Get Delivery Settlement Stats
+ */
+export const getDeliverySettlementStats = asyncHandler(async (req: Request, res: Response) => {
+  const { deliveryBoyId } = req.query;
+
+  const query: any = { userType: 'DELIVERY_BOY', status: 'Completed' };
+  if (deliveryBoyId && deliveryBoyId !== 'all') {
+    query.userId = new mongoose.Types.ObjectId(deliveryBoyId as string);
+  }
+
+  // 1. Paid to Partner (Debits)
+  const paidResult = await WalletTransaction.aggregate([
+    { $match: { ...query, type: 'Debit' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const paidToPartner = paidResult[0]?.total || 0;
+
+  // 2. Partner Wallet Balance
+  let partnerWalletBalance = 0;
+  if (deliveryBoyId && deliveryBoyId !== 'all') {
+    const deliveryBoy = await Delivery.findById(deliveryBoyId);
+    partnerWalletBalance = deliveryBoy?.balance || 0;
+  } else {
+    const balanceResult = await Delivery.aggregate([
+      { $group: { _id: null, total: { $sum: '$balance' } } }
+    ]);
+    partnerWalletBalance = balanceResult[0]?.total || 0;
+  }
+
+  // 3. Total Partner Earnings (Derived: Balance + Paid)
+  // We derive this to ensure consistency if some credit transactions are missing in history
+  const totalPartnerEarnings = partnerWalletBalance + paidToPartner;
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      totalPartnerEarnings,
+      paidToPartner,
+      partnerWalletBalance
+    }
+  });
+});
+
+/**
+ * Process Delivery Settlement (Payout)
+ */
+export const processDeliverySettlement = asyncHandler(async (req: Request, res: Response) => {
+  const { deliveryBoyId, amount, paymentMethod, referenceId, notes } = req.body;
+
+  if (!deliveryBoyId || !amount || amount < 1) {
+    return res.status(400).json({
+      success: false,
+      message: 'Delivery boy ID and amount (min ₹1) are required'
+    });
+  }
+
+  const deliveryBoy = await Delivery.findById(deliveryBoyId);
+  if (!deliveryBoy) {
+    return res.status(404).json({
+      success: false,
+      message: 'Delivery boy not found'
+    });
+  }
+
+  // Check delivery boy's balance
+  if (amount > deliveryBoy.balance) {
+    return res.status(400).json({
+      success: false,
+      message: `Amount exceeds delivery boy's wallet balance (₹${deliveryBoy.balance.toFixed(2)})`
+    });
+  }
+
+  // Create Payout Transaction
+  const transaction = await WalletTransaction.create({
+    userId: deliveryBoy._id,
+    userType: 'DELIVERY_BOY',
+    amount: amount,
+    type: 'Debit',
+    description: notes || `Payout via ${paymentMethod}`,
+    status: 'Completed',
+    reference: referenceId || `DPAY-${Date.now()}`,
+  });
+
+  // Update Delivery Boy Balance
+  deliveryBoy.balance -= amount;
+  await deliveryBoy.save();
+
+  // Update Platform Wallet
+  const platformWallet = await PlatformWallet.getWallet();
+  platformWallet.currentPlatformBalance -= amount;
+  platformWallet.deliveryBoyPendingPayouts -= amount;
+  await platformWallet.save();
+
+  return res.status(200).json({
+    success: true,
+    message: 'Payout processed successfully',
+    data: transaction
+  });
+});
+

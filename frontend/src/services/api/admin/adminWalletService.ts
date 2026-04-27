@@ -95,6 +95,13 @@ export interface SellerTransaction {
   description: string;
 }
 
+export interface DeliverySettlementStats {
+  totalPartnerEarnings: number;
+  paidToPartner: number;
+  partnerWalletBalance: number;
+}
+
+
 // API METHODS
 
 /**
@@ -220,3 +227,26 @@ export const processSellerSettlement = async (data: {
   const response = await api.post<ApiResponse<any>>("/admin/wallet/seller-settlement/payout", data);
   return response.data;
 };
+
+/**
+ * Get Delivery Settlement Stats
+ */
+export const getDeliverySettlementStats = async (deliveryBoyId?: string): Promise<ApiResponse<DeliverySettlementStats>> => {
+  const response = await api.get<ApiResponse<DeliverySettlementStats>>("/admin/wallet/delivery-settlement/stats", { params: { deliveryBoyId } });
+  return response.data;
+};
+
+/**
+ * Process Delivery Settlement (Payout)
+ */
+export const processDeliverySettlement = async (data: {
+  deliveryBoyId: string;
+  amount: number;
+  paymentMethod: string;
+  referenceId?: string;
+  notes?: string;
+}): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>("/admin/wallet/delivery-settlement/payout", data);
+  return response.data;
+};
+

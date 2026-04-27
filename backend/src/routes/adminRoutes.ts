@@ -238,6 +238,11 @@ router.post("/wallet/withdrawal/process", walletController.processWithdrawalWrap
 router.get("/wallet/seller-settlement/stats", walletController.getSellerSettlementStats);
 router.post("/wallet/seller-settlement/payout", walletController.processSellerSettlement);
 
+// Delivery Boy Settlement Routes
+router.get("/wallet/delivery-settlement/stats", walletController.getDeliverySettlementStats);
+router.post("/wallet/delivery-settlement/payout", walletController.processDeliverySettlement);
+
+
 // Direct withdrawal routes (if used elsewhere)
 router.patch("/withdrawals/:id/approve", withdrawalController.approveWithdrawal);
 router.patch("/withdrawals/:id/reject", withdrawalController.rejectWithdrawal);
