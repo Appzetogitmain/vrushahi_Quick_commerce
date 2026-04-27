@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Product from "../../../models/Product";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
@@ -170,8 +171,10 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Category filter
-  if (category) {
-    query.category = category;
+  if (category && category !== "All Category") {
+    if (mongoose.Types.ObjectId.isValid(category as string)) {
+      query.category = category;
+    }
   }
 
   // Status filter (publish, popular, dealOfDay)
@@ -189,10 +192,9 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 
   // Stock filter
   if (stock === "inStock") {
-    query["variations.stock"] = { $gt: 0 };
+    query.stock = { $gt: 0 };
   } else if (stock === "outOfStock") {
-    query["variations.stock"] = 0;
-    query["variations.status"] = "Sold out";
+    query.stock = 0;
   }
 
   // Pagination

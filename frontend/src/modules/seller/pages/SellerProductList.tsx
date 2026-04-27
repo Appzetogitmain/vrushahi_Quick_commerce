@@ -158,12 +158,15 @@ export default function SellerProductList() {
           "/assets/product-placeholder.jpg",
         brandName: (product.brand as any)?.name || "-",
         category: (product.category as any)?.name || "-",
+        categoryId: (product.category as any)?._id || product.category,
         subCategory: (product.subcategory as any)?.name || "-",
-        price: (product as any).price || 0,
-        discPrice: (product as any).discPrice || 0,
+        price: product.price || 0,
+        discPrice: product.discPrice || 0,
         variation: "Default",
         isPopular: product.popular,
         productId: product._id,
+        publish: product.publish,
+        stock: product.stock || 0,
       }];
     }
     // If product has variations, map them
@@ -177,6 +180,7 @@ export default function SellerProductList() {
         "/assets/product-placeholder.jpg",
       brandName: (product.brand as any)?.name || "-",
       category: (product.category as any)?.name || "-",
+      categoryId: (product.category as any)?._id || product.category,
       subCategory: (product.subcategory as any)?.name || "-",
       price: variation.price,
       discPrice: variation.discPrice,
@@ -184,6 +188,8 @@ export default function SellerProductList() {
         variation.title || variation.value || variation.name || "Default",
       isPopular: product.popular,
       productId: product._id,
+      publish: product.publish,
+      stock: variation.stock || 0,
     }));
   });
 
@@ -193,11 +199,26 @@ export default function SellerProductList() {
       variation.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variation.sellerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variation.brandName.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesCategory =
       categoryFilter === "All Category" ||
+      variation.categoryId === categoryFilter ||
       variation.category === categoryFilter;
-    const matchesStatus = statusFilter === "All Products";
-    const matchesStock = stockFilter === "All Products";
+
+    let matchesStatus = true;
+    if (statusFilter === "Published") {
+      matchesStatus = variation.publish === true;
+    } else if (statusFilter === "Unpublished") {
+      matchesStatus = variation.publish === false;
+    }
+
+    let matchesStock = true;
+    if (stockFilter === "In Stock") {
+      matchesStock = (variation.stock || 0) > 0;
+    } else if (stockFilter === "Out of Stock") {
+      matchesStock = (variation.stock || 0) <= 0;
+    }
+
     return matchesSearch && matchesCategory && matchesStatus && matchesStock;
   });
 
@@ -301,9 +322,9 @@ export default function SellerProductList() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
                 <option value="All Category">All Category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                {allCategories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
                   </option>
                 ))}
               </select>

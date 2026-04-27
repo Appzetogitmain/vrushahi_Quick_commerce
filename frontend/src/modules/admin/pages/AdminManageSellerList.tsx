@@ -854,8 +854,21 @@ export default function AdminManageSellerList() {
                                             <p className="text-sm font-medium text-neutral-900">{editingSeller.phone}</p>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Category</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.category || 'N/A'}</p>
+                                            <label className="text-xs text-neutral-500">Business Categories</label>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {editingSeller.categories && editingSeller.categories.length > 0 ? (
+                                                    editingSeller.categories.map((category, index) => (
+                                                        <span
+                                                            key={index}
+                                                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 uppercase tracking-tight"
+                                                        >
+                                                            {category}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <p className="text-sm font-medium text-neutral-900">N/A</p>
+                                                )}
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500">Commission</label>
@@ -875,10 +888,6 @@ export default function AdminManageSellerList() {
                                         <div>
                                             <label className="text-xs text-neutral-500">City</label>
                                             <p className="text-sm font-medium text-neutral-900">{editingSeller.city || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-neutral-500">Serviceable Area</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.serviceableArea || 'N/A'}</p>
                                         </div>
                                         {editingSeller.searchLocation && (
                                             <div className="md:col-span-2">

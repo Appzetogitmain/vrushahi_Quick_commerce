@@ -37,6 +37,9 @@ export interface Product {
   brand?: string | any; // Updated
   publish: boolean;
   popular: boolean;
+  stock: number;
+  price: number;
+  discPrice: number;
   dealOfDay: boolean;
   seoTitle?: string;
   seoKeywords?: string;
