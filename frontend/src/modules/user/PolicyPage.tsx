@@ -6,6 +6,7 @@ export default function PolicyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const type = searchParams.get("type") || "customer";
+  const titleParam = searchParams.get("title");
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +16,14 @@ export default function PolicyPage() {
         setLoading(true);
         const response = await getPublicPolicies(type);
         if (response.success && response.data && response.data.length > 0) {
-          setPolicy(response.data[0]);
+          if (titleParam) {
+            const foundPolicy = response.data.find(p => 
+              p.title.toLowerCase().includes(titleParam.toLowerCase())
+            );
+            setPolicy(foundPolicy || response.data[0]);
+          } else {
+            setPolicy(response.data[0]);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch policy:", err);
@@ -25,7 +33,7 @@ export default function PolicyPage() {
     };
 
     fetchPolicy();
-  }, [type]);
+  }, [type, titleParam]);
 
   return (
     <div className="min-h-screen bg-white font-sans pb-20">

@@ -94,6 +94,33 @@ export async function uploadDocument(
 }
 
 /**
+ * Public endpoint for uploading documents (e.g., during signup)
+ */
+export async function uploadDocumentPublic(
+  file: File,
+  folder?: string
+): Promise<UploadResult> {
+  const formData = new FormData();
+  if (folder) {
+    formData.append("folder", folder);
+  }
+  formData.append("document", file);
+
+  const response = await api.post<UploadResponse>(
+    "/upload/document-public",
+    formData
+  );
+
+  if (response.data.success && response.data.data) {
+    return Array.isArray(response.data.data)
+      ? response.data.data[0]
+      : response.data.data;
+  }
+
+  throw new Error(response.data.message || "Failed to upload document");
+}
+
+/**
  * Upload multiple documents to Cloudinary via backend
  */
 export async function uploadDocuments(

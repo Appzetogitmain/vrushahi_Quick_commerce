@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Customer from "../../../models/Customer";
 import Policy from "../../../models/Policy";
+import AppSettings from "../../../models/AppSettings";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 
@@ -243,5 +244,29 @@ export const getPublicPolicies = asyncHandler(async (req: Request, res: Response
     success: true,
     message: "Policies retrieved successfully",
     data: policies,
+  });
+});
+
+/**
+ * Get application configuration (delivery fees, thresholds, etc.)
+ */
+export const getAppConfig = asyncHandler(async (_req: Request, res: Response) => {
+  const settings = await AppSettings.getSettings();
+  
+  return res.status(200).json({
+    success: true,
+    data: {
+      deliveryFee: settings.deliveryCharges,
+      freeDeliveryThreshold: settings.freeDeliveryThreshold,
+      platformFee: settings.platformFee,
+      estimatedDeliveryTime: settings.estimatedDeliveryTime || '24 minutes',
+      taxes: {
+        gst: settings.gstRate || 0
+      },
+      appName: settings.appName,
+      contactEmail: settings.contactEmail,
+      contactPhone: settings.contactPhone,
+      deliveryConfig: settings.deliveryConfig
+    }
   });
 });

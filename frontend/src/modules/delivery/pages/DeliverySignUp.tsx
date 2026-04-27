@@ -5,7 +5,8 @@ import {
   sendOTP,
   verifyOTP,
 } from "../../../services/api/auth/deliveryAuthService";
-import { uploadDocument } from "../../../services/api/uploadService";
+import { getPolicies } from "../../../services/api/delivery/deliveryService";
+import { uploadDocumentPublic } from "../../../services/api/uploadService";
 import { validateDocumentFile } from "../../../utils/imageUpload";
 import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
@@ -19,7 +20,6 @@ export default function DeliverySignUp() {
     mobile: "",
     email: "",
     dateOfBirth: "",
-    password: "",
     address: "",
     city: "",
     pincode: "",
@@ -30,7 +30,13 @@ export default function DeliverySignUp() {
     accountNumber: "",
     ifscCode: "",
     bonusType: "",
+    vehicleNumber: "",
+    vehicleType: "",
   });
+
+  const [selectedPolicy, setSelectedPolicy] = useState<{ title: string; content: string } | null>(null);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyLoading, setPolicyLoading] = useState(false);
 
   // File state for UI
   const [drivingLicenseFile, setDrivingLicenseFile] = useState<File | null>(
@@ -47,7 +53,6 @@ export default function DeliverySignUp() {
 
   const bonusTypes = [
     "Select Bonus Type",
-    "Fixed or Salaried",
     "Fixed",
     "Salaried",
     "Commission Based",
@@ -139,6 +144,25 @@ export default function DeliverySignUp() {
     setError("");
   };
 
+  const handleShowPolicy = async (title: string) => {
+    setPolicyLoading(true);
+    try {
+      const policies = await getPolicies('delivery');
+      const policy = policies.find((p: any) => p.title.toLowerCase().includes(title.toLowerCase()));
+      if (policy) {
+        setSelectedPolicy({ title: policy.title, content: policy.content });
+        setShowPolicyModal(true);
+      } else {
+        alert(`${title} not found.`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch policy", error);
+      alert("Failed to load policy content.");
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -147,11 +171,15 @@ export default function DeliverySignUp() {
       !formData.name ||
       !formData.mobile ||
       !formData.email ||
-      !formData.password ||
       !formData.address ||
       !formData.city
     ) {
       setError("Please fill all required fields");
+      return;
+    }
+
+    if (!drivingLicenseFile || !nationalIdentityCardFile) {
+      setError("Please upload all required documents (Driving License and ID Card)");
       return;
     }
 
@@ -160,10 +188,6 @@ export default function DeliverySignUp() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
 
     setLoading(true);
     setError("");
@@ -177,7 +201,7 @@ export default function DeliverySignUp() {
         setUploadingDocs(true);
 
         if (drivingLicenseFile) {
-          const drivingLicenseResult = await uploadDocument(
+          const drivingLicenseResult = await uploadDocumentPublic(
             drivingLicenseFile,
             "vrushahi/delivery/documents"
           );
@@ -185,7 +209,7 @@ export default function DeliverySignUp() {
         }
 
         if (nationalIdentityCardFile) {
-          const nationalIdResult = await uploadDocument(
+          const nationalIdResult = await uploadDocumentPublic(
             nationalIdentityCardFile,
             "vrushahi/delivery/documents"
           );
@@ -200,7 +224,6 @@ export default function DeliverySignUp() {
         mobile: formData.mobile,
         email: formData.email,
         dateOfBirth: formData.dateOfBirth || undefined,
-        password: formData.password,
         address: formData.address,
         city: formData.city,
         pincode: formData.pincode || undefined,
@@ -211,6 +234,8 @@ export default function DeliverySignUp() {
         accountNumber: formData.accountNumber || undefined,
         ifscCode: formData.ifscCode || undefined,
         bonusType: formData.bonusType || undefined,
+        vehicleNumber: formData.vehicleNumber || undefined,
+        vehicleType: formData.vehicleType || undefined,
       });
 
       if (response.success) {
@@ -288,8 +313,6 @@ export default function DeliverySignUp() {
         <div
           className="px-8 pb-8 space-y-6 delivery-signup-form"
           style={{
-            maxHeight: "60vh",
-            overflowY: "auto",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}>
@@ -378,22 +401,6 @@ export default function DeliverySignUp() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Min 6 characters"
-                    required
-                    minLength={4}
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}
-                  />
-                </div>
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
@@ -466,6 +473,47 @@ export default function DeliverySignUp() {
                 </div>
 
               </div>
+              
+              {/* Vehicle Information */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-xs font-bold text-green-600 uppercase tracking-widest border-b border-green-100 pb-3 mb-2">
+                  Vehicle Information
+                </h3>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Vehicle Type
+                  </label>
+                  <select
+                    name="vehicleType"
+                    value={formData.vehicleType}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
+                    disabled={loading}>
+                    <option value="">Select Vehicle Type</option>
+                    <option value="Bicycle">Bicycle</option>
+                    <option value="Bike">Bike (Motorcycle)</option>
+                    <option value="Scooter">Scooter</option>
+                    <option value="Car">Car</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Vehicle Number
+                  </label>
+                  <input
+                    type="text"
+                    name="vehicleNumber"
+                    value={formData.vehicleNumber}
+                    onChange={handleInputChange}
+                    placeholder="Enter vehicle number (e.g. MP04 AB 1234)"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
               {/* Bank Information */}
               <div className="space-y-4 pt-4 border-t">
@@ -476,7 +524,7 @@ export default function DeliverySignUp() {
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Account Name
+                    Account holder name
                   </label>
                   <input
                     type="text"
@@ -558,13 +606,13 @@ export default function DeliverySignUp() {
               {/* Documents Section */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-xs font-bold text-green-600 uppercase tracking-widest border-b border-green-100 pb-3 mb-2">
-                  Documents (Optional)
+                  Documents (Required)
                 </h3>
 
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Driving License
+                    Driving License <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-2">
                     <input
@@ -585,7 +633,7 @@ export default function DeliverySignUp() {
 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    National Identity Card
+                    National Identity Card <span className="text-red-500">*</span>
                   </label>
                   <div className="space-y-2">
                     <input
@@ -610,6 +658,28 @@ export default function DeliverySignUp() {
                   {error}
                 </div>
               )}
+
+              {/* Terms and Conditions Text */}
+              <div className="text-center px-4 py-2">
+                <p className="text-[11px] text-neutral-400 font-medium leading-relaxed">
+                  By clicking Sign Up, you agree to our{" "}
+                  <button 
+                    type="button" 
+                    onClick={() => handleShowPolicy('Terms & Conditions')}
+                    className="text-green-600 hover:underline font-bold"
+                  >
+                    Terms & Conditions
+                  </button>{" "}
+                  and{" "}
+                  <button 
+                    type="button" 
+                    onClick={() => handleShowPolicy('Privacy Policy')}
+                    className="text-green-600 hover:underline font-bold"
+                  >
+                    Privacy Policy
+                  </button>
+                </p>
+              </div>
 
               <button
                 type="submit"
@@ -649,7 +719,7 @@ export default function DeliverySignUp() {
             <div className="space-y-6 animate-in slide-in-from-right duration-500">
               <div className="text-center">
                 <p className="text-sm text-neutral-500 mb-2">
-                  Enter the 4-digit OTP sent via voice call to
+                  Enter the 4-digit OTP sent via SMS to
                 </p>
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -694,7 +764,7 @@ export default function DeliverySignUp() {
                   }}
                   disabled={loading}
                   className="flex-1 max-w-[10rem] py-6 rounded-[1.25rem] font-bold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]">
-                  {loading ? "Calling..." : "Resend"}
+                  {loading ? "Resending..." : "Resend"}
                 </button>
               </div>
             </div>
@@ -704,6 +774,43 @@ export default function DeliverySignUp() {
       </div>
 
 
+      {/* Policy Modal */}
+      {showPolicyModal && selectedPolicy && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-in slide-in-from-bottom-10 duration-500">
+            {/* Modal Header */}
+            <div className="px-6 py-5 bg-green-600 text-white flex items-center justify-between">
+              <h3 className="font-bold text-lg">{selectedPolicy.title}</h3>
+              <button 
+                onClick={() => setShowPolicyModal(false)}
+                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto text-neutral-600">
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed text-sm">
+                {selectedPolicy.content}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-neutral-100 flex justify-end bg-neutral-50">
+              <button
+                onClick={() => setShowPolicyModal(false)}
+                className="px-8 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

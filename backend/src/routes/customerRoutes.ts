@@ -6,6 +6,7 @@ const router = Router();
 
 // Public routes
 router.get("/policies", customerController.getPublicPolicies);
+router.get("/config", customerController.getAppConfig);
 
 // Get customer profile (protected route)
 router.get("/profile", authenticate, customerController.getProfile);

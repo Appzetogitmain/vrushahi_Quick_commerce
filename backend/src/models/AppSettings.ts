@@ -5,6 +5,7 @@ export interface IAppSettings extends Document {
   appName: string;
   appLogo?: string;
   appFavicon?: string;
+  estimatedDeliveryTime?: string;
 
   // Contact Info
   contactEmail: string;
@@ -136,6 +137,11 @@ const AppSettingsSchema = new Schema<IAppSettings>(
     },
     appFavicon: {
       type: String,
+      trim: true,
+    },
+    estimatedDeliveryTime: {
+      type: String,
+      default: "24 minutes",
       trim: true,
     },
 
@@ -405,6 +411,7 @@ AppSettingsSchema.statics.getSettings = async function (this: mongoose.Model<IAp
       appName: "vrushahi",
       contactEmail: "contact@vrushahi.com",
       contactPhone: "1234567890",
+      estimatedDeliveryTime: "24 minutes",
     });
   }
   return settings;

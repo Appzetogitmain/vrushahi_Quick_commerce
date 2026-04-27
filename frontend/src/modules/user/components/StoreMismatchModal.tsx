@@ -34,34 +34,46 @@ export default function StoreMismatchModal({
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: '100%', opacity: 0 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden p-8"
+                        className="relative bg-white w-full max-w-sm rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] overflow-hidden p-8 border border-neutral-100"
                     >
-                        <div className="w-12 h-1.5 bg-neutral-100 rounded-full mx-auto mb-8 sm:hidden" />
+                        {/* Pull handle for mobile */}
+                        <div className="w-12 h-1 bg-neutral-200 rounded-full mx-auto mb-10 sm:hidden opacity-50" />
                         
-                        <div className="w-20 h-20 bg-violet-100 rounded-3xl flex items-center justify-center mb-8 mx-auto shadow-sm shadow-violet-100">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.5">
-                                <path d="M11 17l4-4-4-4m-7 4h11m1 4a9 9 0 110-18 9 9 0 010 18z" />
-                            </svg>
+                        {/* Icon Container */}
+                        <div className="relative mb-8 flex justify-center">
+                            <div className="w-24 h-24 bg-pink-50 rounded-[32px] flex items-center justify-center rotate-3 relative z-10">
+                                <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center shadow-sm -rotate-3">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                        <path d="M3 3v5h5" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                </div>
+                            </div>
+                            {/* Decorative element */}
+                            <div className="absolute top-0 right-1/4 w-4 h-4 bg-pink-200 rounded-full blur-sm animate-pulse" />
                         </div>
 
-                        <h3 className="text-2xl font-black text-neutral-900 text-center mb-3">Replace cart items?</h3>
-                        <p className="text-neutral-500 text-center text-[15px] leading-relaxed mb-10 px-2">
-                            Your cart contains items from <span className="font-bold text-neutral-800">{existingStoreName}</span>. 
-                            Clear cart to add items from <span className="font-bold text-[#8b5cf6]">{newStoreName}</span>?
+                        <h3 className="text-2xl font-bold text-neutral-900 text-center mb-3 tracking-tight">Replace cart items?</h3>
+                        <p className="text-neutral-500 text-center text-sm leading-relaxed mb-10 px-4">
+                            Your cart already has items from <span className="font-semibold text-neutral-800">{existingStoreName}</span>. 
+                            Would you like to clear it and add items from <span className="font-semibold text-[#ff4d6d]">{newStoreName}</span>?
                         </p>
 
-                        <div className="flex flex-col gap-4">
-                            <button
+                        <div className="flex flex-col gap-3">
+                            <motion.button
+                                whileHover={{ scale: 1.02, backgroundColor: '#fff5f7' }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={onConfirm}
-                                className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-black py-4.5 rounded-2xl transition-all shadow-xl shadow-violet-200 active:scale-[0.98] text-lg"
+                                className="w-full bg-white border-2 border-[#ff4d6d] text-[#ff4d6d] font-bold py-4 rounded-[20px] transition-all shadow-md active:shadow-sm text-base"
                             >
-                                YES, CLEAR AND ADD
-                            </button>
+                                Clear and add items
+                            </motion.button>
                             <button
                                 onClick={onClose}
-                                className="w-full bg-neutral-50 hover:bg-neutral-100 text-neutral-500 font-bold py-4 rounded-2xl transition-all active:scale-[0.98]"
+                                className="w-full bg-transparent hover:bg-neutral-50 text-neutral-400 font-medium py-3 rounded-[20px] transition-all text-sm"
                             >
-                                NO, KEEP EXISTING
+                                No, keep existing
                             </button>
                         </div>
                     </motion.div>

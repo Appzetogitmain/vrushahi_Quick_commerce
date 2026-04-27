@@ -24,6 +24,8 @@ export default function AdminManageDeliveryBoy() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalDeliveryBoys, setTotalDeliveryBoys] = useState(0);
     const [successMessage, setSuccessMessage] = useState('');
+    const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState<DeliveryBoy | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
     // Debounce search term and fetch delivery boys
     useEffect(() => {
@@ -446,17 +448,6 @@ export default function AdminManageDeliveryBoy() {
                                         </div>
                                     </th>
                                     <th className="p-4">
-                                        Address
-                                    </th>
-                                    <th
-                                        className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors"
-                                        onClick={() => handleSort('city')}
-                                    >
-                                        <div className="flex items-center">
-                                            City <SortIcon column="city" />
-                                        </div>
-                                    </th>
-                                    <th className="p-4">
                                         Commission
                                     </th>
                                     <th
@@ -499,7 +490,7 @@ export default function AdminManageDeliveryBoy() {
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={11} className="p-8 text-center">
+                                        <td colSpan={9} className="p-8 text-center">
                                             <div className="flex items-center justify-center">
                                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 mr-2"></div>
                                                 Loading delivery boys...
@@ -508,13 +499,13 @@ export default function AdminManageDeliveryBoy() {
                                     </tr>
                                 ) : error ? (
                                     <tr>
-                                        <td colSpan={11} className="p-8 text-center text-red-600">
+                                        <td colSpan={9} className="p-8 text-center text-red-600">
                                             {error}
                                         </td>
                                     </tr>
                                 ) : displayedDeliveryBoys.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="p-8 text-center text-neutral-400">
+                                        <td colSpan={9} className="p-8 text-center text-neutral-400">
                                             No delivery boys found.
                                         </td>
                                     </tr>
@@ -524,8 +515,6 @@ export default function AdminManageDeliveryBoy() {
                                             <td className="p-4 align-middle">{deliveryBoy._id.slice(-6)}</td>
                                             <td className="p-4 align-middle">{deliveryBoy.name}</td>
                                             <td className="p-4 align-middle">{deliveryBoy.mobile}</td>
-                                            <td className="p-4 align-middle">{deliveryBoy.address}</td>
-                                            <td className="p-4 align-middle">{deliveryBoy.city}</td>
                                             <td className="p-4 align-middle">
                                                 {deliveryBoy.commissionType === 'Percentage' ? (
                                                     <div className="text-xs">
@@ -604,6 +593,19 @@ export default function AdminManageDeliveryBoy() {
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="3 6 5 6 21 6"></polyline>
                                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedDeliveryBoy(deliveryBoy);
+                                                            setShowDetailModal(true);
+                                                        }}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        title="View Details"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                            <circle cx="12" cy="12" r="3"></circle>
                                                         </svg>
                                                     </button>
                                                 </div>
@@ -706,8 +708,170 @@ export default function AdminManageDeliveryBoy() {
             {/* Footer */}
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
                 Copyright © 2025. Developed By{' '}
-                <a href="#" className="text-blue-600 hover:underline">vrushahi e-Commerce</a>
+                <a href="#" className="text-blue-600 hover:underline">Vrushahi Market your own & reliable store</a>
             </footer>
+
+            {/* Detail Modal */}
+            {showDetailModal && selectedDeliveryBoy && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+                        {/* Modal Header */}
+                        <div className="bg-teal-600 text-white px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Delivery Boy Details</h3>
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="text-white/80 hover:text-white transition-colors"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Basic Info */}
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-teal-700 border-b pb-1">Basic Information</h4>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Full Name</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Mobile Number</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.mobile}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Email Address</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.email}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Date of Birth</p>
+                                        <p className="font-medium">
+                                            {selectedDeliveryBoy.dateOfBirth ? new Date(selectedDeliveryBoy.dateOfBirth).toLocaleDateString() : 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Address & Status */}
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-teal-700 border-b pb-1">Address & Status</h4>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">City</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.city}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Address</p>
+                                        <p className="font-medium text-sm">{selectedDeliveryBoy.address}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Status / Availability</p>
+                                        <div className="flex gap-2 mt-1">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs ${selectedDeliveryBoy.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {selectedDeliveryBoy.status}
+                                            </span>
+                                            <span className={`px-2 py-0.5 rounded-full text-xs ${selectedDeliveryBoy.available === 'Available' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                {selectedDeliveryBoy.available}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Vehicle Details */}
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-teal-700 border-b pb-1">Vehicle Details</h4>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Vehicle Type</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.vehicleType || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Vehicle Number</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.vehicleNumber || 'N/A'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Bank Details */}
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-teal-700 border-b pb-1">Bank Account</h4>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Account holder name</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.accountName || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Bank Name</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.bankName || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Account Number</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.bankAccountNumber || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">IFSC Code</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.ifscCode || 'N/A'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Documents */}
+                                <div className="space-y-4">
+                                    <h4 className="font-bold text-teal-700 border-b pb-1">Documents</h4>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase mb-1">Driving License</p>
+                                        {selectedDeliveryBoy.drivingLicense ? (
+                                            <a 
+                                                href={selectedDeliveryBoy.drivingLicense} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                                </svg>
+                                                View Document
+                                            </a>
+                                        ) : <p className="text-sm text-neutral-400 italic">Not Uploaded</p>}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase mb-1">National ID Card</p>
+                                        {selectedDeliveryBoy.nationalIdentityCard ? (
+                                            <a 
+                                                href={selectedDeliveryBoy.nationalIdentityCard} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                                </svg>
+                                                View Document
+                                            </a>
+                                        ) : <p className="text-sm text-neutral-400 italic">Not Uploaded</p>}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Bonus Type</p>
+                                        <p className="font-medium text-sm">{selectedDeliveryBoy.bonusType || 'Commission Based'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="border-t p-4 flex justify-end">
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="px-6 py-2 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors font-medium"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

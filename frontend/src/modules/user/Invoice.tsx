@@ -204,7 +204,10 @@ export default function Invoice() {
                 </p>
                 <p className="mt-1">{order.address?.phone || ""}</p>
                 <p className="mt-2">
-                  {order.address?.flat && `${order.address.flat}, `}
+                  {order.address?.flat && 
+                   (!order.address?.street?.startsWith(order.address.flat) && 
+                    !(order.address?.address?.startsWith(order.address.flat))) && 
+                   `${order.address.flat}, `}
                   {order.address?.street || order.address?.address || ""}
                 </p>
                 {order.address?.landmark && <p>{order.address.landmark}</p>}

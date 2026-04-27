@@ -27,7 +27,7 @@ import {
   validateCoupon,
   Coupon as ApiCoupon,
 } from "../../services/api/customerCouponService";
-import { appConfig } from "../../services/configService";
+import { appConfig as staticConfig, useAppConfig } from "../../services/configService";
 import {
   getAddresses,
   updateAddress,
@@ -43,6 +43,7 @@ import { calculateProductPrice } from "../../utils/priceUtils";
 // Similar products helper removed - using API
 
 export default function Checkout() {
+  const { config: appConfig } = useAppConfig();
   const {
     cart,
     updateQuantity,
@@ -134,8 +135,8 @@ export default function Checkout() {
           const mappedAddresses: OrderAddress[] = addressResponse.data.map((addr: any) => ({
             name: addr.fullName,
             phone: addr.phone,
-            flat: addr.address?.split(', ')[0] || '',
-            street: addr.address || '',
+            flat: addr.flat || addr.address?.split(', ')[0] || '',
+            street: addr.street || addr.address || '',
             city: addr.city,
             state: addr.state,
             pincode: addr.pincode,
@@ -1004,7 +1005,7 @@ export default function Checkout() {
                   📞 {addr.phone}
                 </p>
                 <p className="text-[10px] text-neutral-600 line-clamp-2 leading-relaxed">
-                  {addr.flat ? `${addr.flat}, ` : ""}
+                  {addr.flat && !addr.street.startsWith(addr.flat) ? `${addr.flat}, ` : ""}
                   {addr.street}
                   {addr.landmark ? `, Near ${addr.landmark}` : ""}
                   , {addr.city} - {addr.pincode}
@@ -1736,6 +1737,11 @@ export default function Checkout() {
     </SheetHeader>
 
     <div className="px-4 pb-4 overflow-y-auto max-h-[calc(85vh-80px)]">
+      {couponError && (
+        <div className="mt-2 p-2.5 bg-red-50 border border-red-100 rounded-lg">
+          <p className="text-xs text-red-600 font-medium text-center">{couponError}</p>
+        </div>
+      )}
       <div className="space-y-2.5 mt-2">
         {availableCoupons.length === 0 ? (
           <div className="text-center py-8 text-neutral-500">

@@ -127,15 +127,20 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     accountNumber,
     ifscCode,
     bonusType,
+    vehicleNumber,
+    vehicleType,
   } = req.body;
 
   // Validation
-  if (!name || !mobile || !email || !password) {
+  if (!name || !mobile || !email) {
     return res.status(400).json({
       success: false,
-      message: "Name, mobile, email, and password are required",
+      message: "Name, mobile, and email are required",
     });
   }
+
+  // Use mobile as password if not provided
+  const registrationPassword = password || mobile;
 
   if (!/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
@@ -162,7 +167,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     mobile,
     email,
     dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-    password,
+    password: registrationPassword,
+
     address,
     city,
     pincode,
@@ -173,6 +179,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     accountNumber,
     ifscCode,
     bonusType,
+    vehicleNumber,
+    vehicleType,
     status: "Inactive", // New delivery partners start as Inactive
     balance: 0,
     cashCollected: 0,

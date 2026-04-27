@@ -272,3 +272,12 @@ export const markNotificationRead = async (id: string) => {
         throw handleApiError(error);
     }
 };
+
+export const getPolicies = async (type: 'delivery' | 'customer') => {
+    try {
+        const response = await api.get(`/policies?type=${type}&isActive=true`);
+        return response.data.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};

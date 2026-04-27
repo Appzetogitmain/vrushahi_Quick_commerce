@@ -44,7 +44,7 @@ export const validateCoupon = async (req: Request, res: Response) => {
         });
 
         if (!coupon) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Invalid coupon code",
             });
@@ -53,7 +53,7 @@ export const validateCoupon = async (req: Request, res: Response) => {
         // Check dates
         const currentDate = new Date();
         if (currentDate < coupon.startDate || currentDate > coupon.endDate) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Coupon has expired",
             });
@@ -61,7 +61,7 @@ export const validateCoupon = async (req: Request, res: Response) => {
 
         // Check usage limits
         if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
                 message: "Coupon usage limit reached",
             });
@@ -69,9 +69,9 @@ export const validateCoupon = async (req: Request, res: Response) => {
 
         // Check min order value
         if (coupon.minimumPurchase && orderTotal < coupon.minimumPurchase) {
-            return res.status(400).json({
+            return res.status(200).json({
                 success: false,
-                message: `Minimum order value of ₹${coupon.minimumPurchase} required`,
+                message: `Add ₹${(coupon.minimumPurchase - orderTotal).toFixed(0)} more items to apply this coupon`,
             });
         }
 

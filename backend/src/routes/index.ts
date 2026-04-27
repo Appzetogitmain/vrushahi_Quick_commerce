@@ -44,6 +44,8 @@ import {
   updateOrderNotes,
 } from "../modules/customer/controllers/customerOrderController";
 
+import policyRoutes from "./policyRoutes";
+
 const router = Router();
 
 // Health check route
@@ -144,6 +146,9 @@ router.use("/categories", categoryRoutes);
 
 // Header Category Routes
 router.use("/header-categories", headerCategoryRoutes);
+
+// Public policy routes
+router.use("/policies", policyRoutes);
 
 // Order routes (protected, seller only)
 router.use("/orders", orderRoutes);

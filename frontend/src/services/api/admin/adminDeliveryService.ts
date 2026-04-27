@@ -7,6 +7,7 @@ export interface DeliveryBoy {
   _id: string;
   name: string;
   mobile: string;
+  email: string;
   dateOfBirth?: string;
   address: string;
   city: string;
@@ -27,6 +28,8 @@ export interface DeliveryBoy {
   cashCollected: number;
   status: "Active" | "Inactive";
   available: "Available" | "Not Available";
+  vehicleNumber?: string;
+  vehicleType?: string;
   currentLocation?: {
     latitude: number;
     longitude: number;
@@ -55,6 +58,8 @@ export interface CreateDeliveryBoyData {
   commission?: number;
   minAmount?: number;
   maxAmount?: number;
+  vehicleNumber?: string;
+  vehicleType?: string;
 }
 
 export interface UpdateDeliveryBoyData {
@@ -78,6 +83,8 @@ export interface UpdateDeliveryBoyData {
   maxAmount?: number;
   status?: "Active" | "Inactive";
   available?: "Available" | "Not Available";
+  vehicleNumber?: string;
+  vehicleType?: string;
 }
 
 export interface CashCollection {

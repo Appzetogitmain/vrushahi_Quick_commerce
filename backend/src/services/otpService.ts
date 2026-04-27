@@ -220,7 +220,7 @@ function isMockMode(): boolean {
  * Check if developer bypass OTP
  */
 function isDeveloperBypass(otp: string): boolean {
-  return (process.env.NODE_ENV !== 'production' || process.env.USE_MOCK_OTP === 'true') && otp === '999999';
+  return (process.env.NODE_ENV !== 'production' || process.env.USE_MOCK_OTP === 'true') && otp === '9999';
 }
 
 // ==========================================
@@ -289,7 +289,7 @@ export async function verifySmsOtp(
   // Normalize OTP input (remove spaces, ensure it's a string)
   const normalizedOtp = String(otpInput).trim().replace(/\s/g, '');
 
-  if (!normalizedOtp || (normalizedOtp.length !== 4 && normalizedOtp !== '999999')) {
+  if (!normalizedOtp || (normalizedOtp.length !== 4 && normalizedOtp !== '9999')) {
     console.error('OTP verification failed - invalid OTP format:', {
       otpInput,
       normalizedOtp,
@@ -394,7 +394,7 @@ export async function verifyOTP(
   // Normalize OTP input (remove spaces, ensure it's a string)
   const normalizedOtp = String(otpInput).trim().replace(/\s/g, '');
 
-  if (!normalizedOtp || (normalizedOtp.length !== 4 && normalizedOtp !== '999999')) {
+  if (!normalizedOtp || (normalizedOtp.length !== 4 && normalizedOtp !== '9999')) {
     console.error('OTP verification failed - invalid OTP format:', {
       otpInput,
       normalizedOtp,

@@ -2,13 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
-import { updateSettings, getDeliveryProfile } from '../../../services/api/delivery/deliveryService';
+import { updateSettings, getDeliveryProfile, getPolicies } from '../../../services/api/delivery/deliveryService';
 
 export default function DeliverySettings() {
   const navigate = useNavigate();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [selectedPolicy, setSelectedPolicy] = useState<{ title: string; content: string } | null>(null);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyLoading, setPolicyLoading] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -36,7 +39,26 @@ export default function DeliverySettings() {
       await updateSettings({ [key]: value });
     } catch (error) {
       console.error("Failed to update settings", error);
-      // Revert if needed (optional)
+    }
+  };
+
+  const handleShowPolicy = async (title: string) => {
+    setPolicyLoading(true);
+    try {
+      const policies = await getPolicies('delivery');
+      // Find policy by title (case insensitive)
+      const policy = policies.find((p: any) => p.title.toLowerCase().includes(title.toLowerCase()));
+      if (policy) {
+        setSelectedPolicy({ title: policy.title, content: policy.content });
+        setShowPolicyModal(true);
+      } else {
+        alert(`${title} not found.`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch policy", error);
+      alert("Failed to load policy content.");
+    } finally {
+      setPolicyLoading(false);
     }
   };
 
@@ -135,7 +157,11 @@ export default function DeliverySettings() {
                 />
               </svg>
             </button>
-            <button className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
+            <button 
+              onClick={() => handleShowPolicy('Privacy Policy')}
+              disabled={policyLoading}
+              className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors disabled:opacity-50"
+            >
               <div className="flex-1 text-left">
                 <p className="text-neutral-900 text-sm font-medium">Privacy Policy</p>
               </div>
@@ -150,7 +176,11 @@ export default function DeliverySettings() {
                 />
               </svg>
             </button>
-            <button className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
+            <button 
+              onClick={() => handleShowPolicy('Terms & Conditions')}
+              disabled={policyLoading}
+              className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors disabled:opacity-50"
+            >
               <div className="flex-1 text-left">
                 <p className="text-neutral-900 text-sm font-medium">Terms & Conditions</p>
               </div>
@@ -174,6 +204,44 @@ export default function DeliverySettings() {
         </div>
       </div>
       <DeliveryBottomNav />
+
+      {/* Policy Modal */}
+      {showPolicyModal && selectedPolicy && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-in slide-in-from-bottom-10 duration-500">
+            {/* Modal Header */}
+            <div className="px-6 py-5 bg-orange-500 text-white flex items-center justify-between">
+              <h3 className="font-bold text-lg">{selectedPolicy.title}</h3>
+              <button 
+                onClick={() => setShowPolicyModal(false)}
+                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto text-neutral-600">
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed">
+                {selectedPolicy.content}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-neutral-100 flex justify-end bg-neutral-50">
+              <button
+                onClick={() => setShowPolicyModal(false)}
+                className="px-8 py-2.5 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

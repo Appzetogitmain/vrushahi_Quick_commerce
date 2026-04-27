@@ -6,11 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { OrderAddress } from '../../types/order';
 import { getAddresses, addAddress, updateAddress, Address } from '../../services/api/customerAddressService';
-import { appConfig } from '../../services/configService';
+import { appConfig as staticConfig, useAppConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 import GoogleMapsLocationPicker from '../../components/GoogleMapsLocationPicker';
 
 export default function CheckoutAddress() {
+  const { config: appConfig } = useAppConfig();
   const { cart } = useCart();
   const { isAuthenticated } = useAuth();
   const { showToast } = useToast();

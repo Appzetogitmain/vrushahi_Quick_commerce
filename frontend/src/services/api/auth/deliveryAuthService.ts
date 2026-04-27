@@ -33,7 +33,7 @@ export interface RegisterData {
   mobile: string;
   email: string;
   dateOfBirth?: string;
-  password: string;
+  password?: string;
   address: string;
   city: string;
   pincode?: string;
@@ -44,6 +44,8 @@ export interface RegisterData {
   accountNumber?: string;
   ifscCode?: string;
   bonusType?: string;
+  vehicleNumber?: string;
+  vehicleType?: string;
 }
 
 export interface RegisterResponse {

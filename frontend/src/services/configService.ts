@@ -8,6 +8,8 @@ export interface AppConfig {
     estimatedDeliveryTime: string;
 }
 
+import api from './api/config';
+
 // Default configuration (fallback)
 const defaultConfig: AppConfig = {
     deliveryFee: 40,
@@ -19,19 +21,48 @@ const defaultConfig: AppConfig = {
     estimatedDeliveryTime: '24 minutes'
 };
 
+import { useState, useEffect } from 'react';
+
 /**
- * Get application configuration
- * In the future, this should fetch from an API endpoint like /customer/config
+ * Get application configuration from backend
  */
 export const getAppConfig = async (): Promise<AppConfig> => {
-    // Simulate API delay
-    // return new Promise((resolve) => {
-    //   setTimeout(() => resolve(defaultConfig), 100);
-    // });
-
-    // For now, return sync/static config or fetch if endpoint existed
-    return defaultConfig;
+    try {
+        const response = await api.get<{ success: boolean, data: AppConfig }>('/customer/config');
+        if (response.data.success && response.data.data) {
+            // Update global fallback
+            appConfig = response.data.data;
+            return response.data.data;
+        }
+        return defaultConfig;
+    } catch (error) {
+        console.error("Failed to fetch app config, using defaults", error);
+        return defaultConfig;
+    }
 };
 
-// Synchronous helper for immediate UI needs (until async context is fully adopted)
-export const appConfig = defaultConfig;
+// Global config object that will be updated once fetched (legacy/fallback support)
+export let appConfig = defaultConfig;
+
+/**
+ * Hook to use dynamic app config in React components
+ */
+export const useAppConfig = () => {
+    const [config, setConfig] = useState<AppConfig>(appConfig);
+    const [loading, setLoading] = useState(appConfig === defaultConfig);
+
+    useEffect(() => {
+        let isMounted = true;
+        
+        getAppConfig().then(newConfig => {
+            if (isMounted) {
+                setConfig(newConfig);
+                setLoading(false);
+            }
+        });
+
+        return () => { isMounted = false; };
+    }, []);
+
+    return { config, loading };
+};
