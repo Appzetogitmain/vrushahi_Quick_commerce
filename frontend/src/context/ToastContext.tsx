@@ -2,21 +2,22 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 import Toast from '../components/Toast';
 
 interface ToastContextType {
-  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
   hideToast: () => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; isVisible: boolean }>({
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; isVisible: boolean; duration?: number }>({
     message: '',
     type: 'success',
     isVisible: false,
+    duration: 3000,
   });
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type, isVisible: true });
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success', duration: number = 3000) => {
+    setToast({ message, type, isVisible: true, duration });
   }, []);
 
   const hideToast = useCallback(() => {
@@ -31,6 +32,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         isVisible={toast.isVisible}
         onClose={hideToast}
         type={toast.type}
+        duration={toast.duration}
       />
     </ToastContext.Provider>
   );

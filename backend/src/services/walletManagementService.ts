@@ -16,7 +16,8 @@ export const creditWallet = async (
     description: string,
     relatedOrderId?: string,
     relatedCommissionId?: string,
-    session?: mongoose.ClientSession
+    session?: mongoose.ClientSession,
+    skipBalanceUpdate?: boolean
 ) => {
     try {
         // Generate unique reference
@@ -42,13 +43,15 @@ export const creditWallet = async (
         }
 
         // Update user balance
-        const Model: any = userType === 'SELLER' ? Seller : Delivery;
-        const updateQuery = { $inc: { balance: amount } };
+        if (!skipBalanceUpdate) {
+            const Model: any = userType === 'SELLER' ? Seller : Delivery;
+            const updateQuery = { $inc: { balance: amount } };
 
-        if (session) {
-            await Model.findByIdAndUpdate(userId, updateQuery, { session });
-        } else {
-            await Model.findByIdAndUpdate(userId, updateQuery);
+            if (session) {
+                await Model.findByIdAndUpdate(userId, updateQuery, { session });
+            } else {
+                await Model.findByIdAndUpdate(userId, updateQuery);
+            }
         }
 
         // Update Platform Wallet tracking
@@ -292,14 +295,14 @@ export const validateWithdrawal = async (
             if (!user.accountNumber || !ifsc || !user.accountName || !user.bankName) {
                 return {
                     success: false,
-                    message: 'Please complete your bank account details before requesting withdrawal',
+                    message: 'Please complete your bank account details in your Profile before requesting withdrawal.',
                 };
             }
         } else if (paymentMethod === 'UPI') {
             if (!(user as any).upiId) {
                 return {
                     success: false,
-                    message: 'Please add your UPI ID before requesting withdrawal via UPI',
+                    message: 'Please add your UPI ID in your Profile before requesting withdrawal via UPI.',
                 };
             }
         }

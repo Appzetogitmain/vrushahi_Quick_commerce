@@ -190,7 +190,8 @@ export const capturePayment = async (
     orderId: string,
     razorpayOrderId: string,
     razorpayPaymentId: string,
-    razorpaySignature: string
+    razorpaySignature: string,
+    io?: any
 ) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -257,6 +258,16 @@ export const capturePayment = async (
         // Usually, online payment orders start as 'Pending' and move to 'Received'
         if (order.status === 'Pending') {
             order.status = 'Received';
+            
+            // Notify sellers of new order after payment
+            if (io) {
+                try {
+                    const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                    await notifySellersOfOrderUpdate(io, order.toObject(), 'NEW_ORDER');
+                } catch (notifyError) {
+                    console.error("Error notifying sellers after payment:", notifyError);
+                }
+            }
         }
         await order.save({ session });
 
@@ -448,12 +459,31 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
             }
             order.paymentId = razorpayPaymentId;
 
-            // Auto-mark as Delivered for COD QR payment during delivery
             const previousStatus = order.status;
+            if (order.status === 'Pending') {
+                order.status = 'Received';
+            }
+
+            await order.save();
+
+            // Notify sellers if status changed to Received
+            if (previousStatus === 'Pending' && order.status === 'Received' && io) {
+                try {
+                    const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                    await notifySellersOfOrderUpdate(io, order.toObject(), 'NEW_ORDER');
+                } catch (notifyError) {
+                    console.error("Error notifying sellers in handlePaymentCaptured:", notifyError);
+                }
+            }
+
+            // Auto-mark as Delivered for COD QR payment during delivery
             if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
                 order.status = 'Delivered';
                 order.deliveryBoyStatus = 'Delivered';
                 order.deliveredAt = new Date();
+
+                // CRITICAL: Re-save for status update before transition
+                await order.save();
 
                 // Financial transition logic
                 try {
@@ -463,8 +493,6 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
                     console.error('Error processing auto-delivery transition in handlePaymentCaptured:', transitionError);
                 }
             }
-            
-            await order.save();
 
             // Emit socket if available
             if (io && order.deliveryBoy) {
@@ -504,11 +532,30 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
         order.paidVia = 'ONLINE_QR';
         order.paymentId = razorpayPaymentId;
 
+        if (order.status === 'Pending') {
+            order.status = 'Received';
+        }
+
+        await order.save();
+
+        // Notify sellers if status changed to Received
+        if (previousStatus === 'Pending' && order.status === 'Received' && io) {
+            try {
+                const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                await notifySellersOfOrderUpdate(io, order.toObject(), 'NEW_ORDER');
+            } catch (notifyError) {
+                console.error("Error notifying sellers in handlePaymentLinkPaid:", notifyError);
+            }
+        }
+
         // Auto-mark as Delivered for COD QR payment during delivery
         if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
             order.status = 'Delivered';
             order.deliveryBoyStatus = 'Delivered';
             order.deliveredAt = new Date();
+
+            // CRITICAL: Re-save for status update before transition
+            await order.save();
 
             // Financial transition logic
             try {
@@ -518,8 +565,6 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
                 console.error('Error processing auto-delivery transition in handlePaymentLinkPaid:', transitionError);
             }
         }
-
-        await order.save();
 
         if (io && order.deliveryBoy) {
             io.to(`delivery-${order.deliveryBoy}`).emit('qr-payment-success', { 

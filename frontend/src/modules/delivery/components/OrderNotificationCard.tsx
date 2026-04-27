@@ -281,9 +281,15 @@ export default function OrderNotificationCard({
                         <p className="text-xs sm:text-sm text-neutral-900 break-words leading-relaxed">{formatAddress()}</p>
                     </div>
 
-                    <div>
-                        <p className="text-xs sm:text-sm text-neutral-600">Order Amount</p>
-                        <p className="text-lg sm:text-xl font-bold text-teal-600">₹{notification.total.toFixed(2)}</p>
+                    <div className="flex justify-between items-center bg-teal-50 p-3 rounded-lg border border-teal-100">
+                        <div>
+                            <p className="text-xs text-teal-700 font-bold uppercase tracking-wider">Order Amount</p>
+                            <p className="text-lg font-bold text-neutral-900">₹{notification.total.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs text-teal-700 font-bold uppercase tracking-wider">Your Earning</p>
+                            <p className="text-2xl font-black text-teal-600">₹{notification.expectedEarning?.toFixed(2) || "---"}</p>
+                        </div>
                     </div>
                 </div>
 

@@ -15,6 +15,7 @@ export interface OrderNotificationData {
     total: number;
     subtotal: number;
     shipping: number;
+    expectedEarning?: number;
     createdAt: string;
 }
 

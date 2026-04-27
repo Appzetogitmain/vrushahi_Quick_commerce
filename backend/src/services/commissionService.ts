@@ -119,6 +119,56 @@ export const getDeliveryBoyCommissionRate = async (
 };
 
 /**
+ * Calculate earning for a specific delivery boy for an order
+ */
+export const calculateDeliveryBoyEarning = async (
+    order: any,
+    deliveryBoy: any
+): Promise<{ amount: number; rate: number; usedDistanceBased: boolean }> => {
+    try {
+        let commissionAmount = 0;
+        let commissionRate = 0;
+        let usedDistanceBased = false;
+
+        const settings = await AppSettings.getSettings();
+        if (
+            settings &&
+            settings.deliveryConfig?.isDistanceBased === true &&
+            settings.deliveryConfig?.deliveryBoyKmRate &&
+            order.deliveryDistanceKm &&
+            order.deliveryDistanceKm > 0
+        ) {
+            commissionRate = settings.deliveryConfig.deliveryBoyKmRate;
+            commissionAmount = order.deliveryDistanceKm * commissionRate;
+            usedDistanceBased = true;
+        }
+
+        if (!usedDistanceBased) {
+            // Fallback to percentage based logic
+            commissionRate = deliveryBoy?.commissionRate || 5;
+            
+            // If we don't have the delivery boy object yet, use global default
+            if (!deliveryBoy) {
+                const settings = await AppSettings.findOne();
+                // @ts-ignore
+                commissionRate = settings?.deliveryConfig?.defaultDeliveryBoyRate || 5;
+            }
+            
+            commissionAmount = (order.subtotal * commissionRate) / 100;
+        }
+
+        return {
+            amount: Math.round(commissionAmount * 100) / 100,
+            rate: commissionRate,
+            usedDistanceBased
+        };
+    } catch (error) {
+        console.error("Error calculating delivery boy earning:", error);
+        return { amount: 0, rate: 0, usedDistanceBased: false };
+    }
+};
+
+/**
  * Calculate commissions for an order
  */
 export const calculateOrderCommissions = async (orderId: string) => {
@@ -184,38 +234,8 @@ export const calculateOrderCommissions = async (orderId: string) => {
         // Calculate delivery boy commission (on order subtotal OR distance based)
         if (order.deliveryBoy) {
             const deliveryBoyId = order.deliveryBoy.toString();
-
-            // Check for distance based commission
-            let commissionAmount = 0;
-            let commissionRate = 0;
-            let usedDistanceBased = false;
-
-            try {
-                // @ts-ignore - getSettings is static on model
-                const settings = await AppSettings.getSettings();
-                if (
-                    settings &&
-                    settings.deliveryConfig?.isDistanceBased === true &&
-                    settings.deliveryConfig?.deliveryBoyKmRate &&
-                    order.deliveryDistanceKm &&
-                    order.deliveryDistanceKm > 0
-                ) {
-                    commissionRate = settings.deliveryConfig.deliveryBoyKmRate;
-                    commissionAmount = order.deliveryDistanceKm * commissionRate;
-                    usedDistanceBased = true;
-                    console.log(
-                        `DEBUG: Distance Commission: Dist=${order.deliveryDistanceKm}km, Rate=${commissionRate}/km, Amt=${commissionAmount}`,
-                    );
-                }
-            } catch (err) {
-                console.error("Error checking settings for commission:", err);
-            }
-
-            if (!usedDistanceBased) {
-                // Fallback to percentage based logic
-                commissionRate = await getDeliveryBoyCommissionRate(deliveryBoyId);
-                commissionAmount = (order.subtotal * commissionRate) / 100;
-            }
+            const deliveryBoy = await Delivery.findById(deliveryBoyId);
+            const { amount: commissionAmount, rate: commissionRate, usedDistanceBased } = await calculateDeliveryBoyEarning(order, deliveryBoy);
 
             commissions.deliveryBoy = {
                 deliveryBoyId,
@@ -330,11 +350,11 @@ export const distributeCommissions = async (orderId: string) => {
             );
         }
 
-        // For COD orders, delegate to the specialized COD processing logic
         if (order.paymentMethod && order.paymentMethod.toUpperCase() === "COD") {
             console.log(`[Commission] Delegating COD order ${order.orderNumber} to processCODOrderDelivery`);
-            // End the current session as processCODOrderDelivery might start its own
+            // Commit then end session before calling processCODOrderDelivery which manages its own session
             await session.commitTransaction();
+            session.endSession();
             await processCODOrderDelivery(orderId);
 
             // Fetch the commissions created by processCODOrderDelivery to return them
@@ -889,129 +909,131 @@ export const calculateOrderBreakdown = async (
 
 /**
  * Process COD Order Delivery
- * Called when a COD order is marked as delivered
+ * Called when a COD order is marked as delivered.
+ * NOTE: This function deliberately avoids MongoDB sessions/transactions because:
+ * 1. All critical writes use atomic $inc operations
+ * 2. Idempotency is guaranteed by the existingTx check
+ * 3. Sessions cause write conflicts with creditWallet's internal findByIdAndUpdate
  */
-export const processCODOrderDelivery = async (
-    orderId: string,
-    session?: mongoose.ClientSession
-): Promise<void> => {
-    const useExternalSession = !!session;
-    if (!session) {
-        session = await mongoose.startSession();
-        session.startTransaction();
-    }
-
+export const processCODOrderDelivery = async (orderId: string): Promise<void> => {
     try {
-        const order = await Order.findById(orderId).session(session);
+        const order = await Order.findById(orderId);
         if (!order) {
             throw new Error("Order not found");
         }
 
-        if (order.paymentMethod !== "COD") {
-            throw new Error("This function is only for COD orders");
+        if (!order.paymentMethod || order.paymentMethod.toUpperCase() !== "COD") {
+            console.log(`[COD Delivery] Skipping non-COD order ${order.orderNumber} (Method: ${order.paymentMethod})`);
+            return;
         }
 
         if (!order.deliveryBoy) {
             throw new Error("Order must have a delivery boy assigned");
         }
 
-        // Calculate complete breakdown
-        const breakdown = await calculateOrderBreakdown(orderId, session);
+        const deliveryBoyId = order.deliveryBoy.toString();
 
-        // Import PlatformWallet
-        const PlatformWallet = (await import("../models/PlatformWallet")).default;
-
-        // Check if already processed to avoid double-counting
+        // Idempotency check — skip if already processed
         const existingTx = await WalletTransaction.findOne({
-            userId: order.deliveryBoy.toString(),
+            userId: deliveryBoyId,
             relatedOrder: orderId,
             description: { $regex: /Delivery earning for COD order/i }
-        }).session(session);
+        });
 
         if (existingTx) {
-            console.log(`[COD Delivery] Order ${order.orderNumber} already processed. Skipping all financial updates.`);
-        } else {
-            // 1. Update Delivery Boy Wallet
-            const deliveryBoy = await Delivery.findById(order.deliveryBoy).session(session);
-            if (!deliveryBoy) {
-                throw new Error("Delivery boy not found");
-            }
+            console.log(`[COD Delivery] Order ${order.orderNumber} already processed. Skipping.`);
+            return;
+        }
 
-            deliveryBoy.pendingAdminPayout = (deliveryBoy.pendingAdminPayout || 0) + breakdown.amountDeliveryBoyOwesAdmin;
-            deliveryBoy.cashCollected = (deliveryBoy.cashCollected || 0) + breakdown.totalOrderAmount;
+        // Calculate complete breakdown (no session needed)
+        const breakdown = await calculateOrderBreakdown(orderId);
 
-            await deliveryBoy.save({ session });
+        console.log(`[COD Delivery] Processing ${order.orderNumber}: total=${breakdown.totalOrderAmount}, commission=${breakdown.deliveryBoyCommission}, owedToAdmin=${breakdown.amountDeliveryBoyOwesAdmin}`);
 
-            // Create wallet transaction for delivery boy commission
-            await creditWallet(
-                order.deliveryBoy.toString(),
-                "DELIVERY_BOY",
-                breakdown.deliveryBoyCommission,
-                `Delivery earning for COD order ${order.orderNumber}`,
-                orderId,
-                undefined,
-                session
-            );
-
-            // 2. Update Platform Wallet
-            const wallet = await (PlatformWallet as any).getWallet();
-            wallet.pendingFromDeliveryBoy += breakdown.amountDeliveryBoyOwesAdmin;
-            await wallet.save({ session });
-
-            // 3. Create Commission Records
-            const deliveryCommission = new Commission({
-                order: orderId,
-                deliveryBoy: order.deliveryBoy,
-                type: "DELIVERY_BOY",
-                orderAmount: breakdown.deliveryDistanceKm || breakdown.totalDeliveryCharge,
-                commissionRate: breakdown.deliveryDistanceKm
-                    ? breakdown.deliveryBoyCommission / breakdown.deliveryDistanceKm
-                    : (breakdown.deliveryBoyCommission / breakdown.totalDeliveryCharge) * 100,
-                commissionAmount: breakdown.deliveryBoyCommission,
-                status: "Paid",
-                paidAt: new Date(),
-            });
-            await deliveryCommission.save({ session });
-
-            const sellerEarningsArray = Array.from(breakdown.sellerEarnings.entries());
-            for (const [sellerId] of sellerEarningsArray) {
-                const orderItems = await OrderItem.find({
-                    order: orderId,
-                    seller: sellerId
-                }).session(session);
-
-                for (const item of orderItems) {
-                    const commRate = item.commissionRate || await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
-                    const itemCommission = (item.total * commRate) / 100;
-
-                    const sellerCommission = new Commission({
-                        order: orderId,
-                        orderItem: item._id,
-                        seller: sellerId,
-                        type: "SELLER",
-                        orderAmount: item.total,
-                        commissionRate: commRate,
-                        commissionAmount: itemCommission,
-                        status: "Pending",
-                        paidAt: null,
-                    });
-                    await sellerCommission.save({ session });
+        // 1. Update cashCollected and pendingAdminPayout atomically (atomic $inc, no session needed)
+        await Delivery.findByIdAndUpdate(
+            deliveryBoyId,
+            {
+                $inc: {
+                    cashCollected: breakdown.totalOrderAmount,
+                    pendingAdminPayout: breakdown.amountDeliveryBoyOwesAdmin,
                 }
             }
+        );
+        console.log(`[COD Delivery] ✅ Updated rider cashCollected and pendingAdminPayout`);
+
+        // 2. Credit delivery boy's wallet balance (commission earned)
+        // creditWallet uses atomic $inc internally — no session passed to avoid write conflicts
+        await creditWallet(
+            deliveryBoyId,
+            "DELIVERY_BOY",
+            breakdown.deliveryBoyCommission,
+            `Delivery earning for COD order ${order.orderNumber}`,
+            orderId,
+            undefined,
+            undefined,
+            true // skipBalanceUpdate: true for COD because rider already has the cash
+        );
+        console.log(`[COD Delivery] ✅ Credited ₹${breakdown.deliveryBoyCommission} to rider wallet`);
+
+        // 3. Update Platform Wallet
+        try {
+            const PlatformWallet = (await import("../models/PlatformWallet")).default;
+            await PlatformWallet.findOneAndUpdate(
+                {},
+                { $inc: { pendingFromDeliveryBoy: breakdown.amountDeliveryBoyOwesAdmin } }
+            );
+        } catch (pwErr) {
+            console.error('[COD Delivery] Failed to update platform wallet:', pwErr);
         }
 
-        if (!useExternalSession) {
-            await session.commitTransaction();
+        // 4. Create DELIVERY_BOY Commission Record
+        const deliveryCommissionRate = Math.min(
+            breakdown.deliveryDistanceKm && breakdown.deliveryDistanceKm > 0
+                ? (breakdown.deliveryBoyCommission / breakdown.deliveryDistanceKm)
+                : (breakdown.deliveryBoyCommission / (order.subtotal || breakdown.totalOrderAmount || 1)) * 100,
+            100 // Cap at 100%
+        );
+
+        await Commission.create({
+            order: orderId,
+            deliveryBoy: order.deliveryBoy,
+            type: "DELIVERY_BOY",
+            orderAmount: order.subtotal || breakdown.totalOrderAmount,
+            commissionRate: deliveryCommissionRate,
+            commissionAmount: breakdown.deliveryBoyCommission,
+            status: "Paid",
+            paidAt: new Date(),
+        });
+        console.log(`[COD Delivery] ✅ Created DELIVERY_BOY commission record`);
+
+        // 5. Create SELLER Commission Records (Pending — to be paid when admin collects from rider)
+        const sellerEarningsArray = Array.from(breakdown.sellerEarnings.entries());
+        for (const [sellerId] of sellerEarningsArray) {
+            const orderItems = await OrderItem.find({ order: orderId, seller: sellerId });
+            for (const item of orderItems) {
+                const commRate = item.commissionRate || await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
+                const itemCommission = (item.total * commRate) / 100;
+
+                await Commission.create({
+                    order: orderId,
+                    orderItem: item._id,
+                    seller: sellerId,
+                    type: "SELLER",
+                    orderAmount: item.total,
+                    commissionRate: commRate,
+                    commissionAmount: itemCommission,
+                    status: "Pending",
+                    paidAt: null,
+                });
+            }
         }
+        console.log(`[COD Delivery] ✅ Created SELLER commission records`);
+
     } catch (error: any) {
-        if (!useExternalSession && session.inTransaction()) {
-            await session.abortTransaction();
-        }
         console.error("Error processing COD order delivery:", error);
         throw error;
-    } finally {
-        if (!useExternalSession) {
-            session.endSession();
-        }
     }
 };
+
+

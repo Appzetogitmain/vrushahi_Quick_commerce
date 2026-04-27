@@ -194,6 +194,7 @@ export default function DeliveryWallet() {
             showToast(
                 error.response?.data?.message || "Failed to request withdrawal",
                 "error",
+                5000 // Show for 5 seconds
             );
         } finally {
             setIsSubmitting(false);

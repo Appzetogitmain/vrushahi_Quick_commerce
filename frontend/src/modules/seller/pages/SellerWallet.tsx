@@ -71,7 +71,7 @@ export default function SellerWallet() {
         fetchWalletData();
       }
     } catch (error: any) {
-      showToast(error.response?.data?.message || 'Failed to request withdrawal', 'error');
+      showToast(error.response?.data?.message || 'Failed to request withdrawal', 'error', 5000);
     } finally {
       setIsSubmitting(false);
     }

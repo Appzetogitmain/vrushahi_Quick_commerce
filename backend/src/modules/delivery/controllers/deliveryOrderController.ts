@@ -227,17 +227,21 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
         order.deliveryBoyStatus = 'Delivered';
         order.deliveredAt = new Date();
         order.paymentStatus = 'Paid'; // Assume paid on delivery (or already paid)
+    }
 
-        // Commissions and COD will be handled by processOrderStatusTransition below
+    // CRITICAL: Save order BEFORE transition processing
+    // Because processOrderStatusTransition re-fetches the order from the DB
+    await order.save();
+
+    if (status === 'Delivered') {
+        // Commissions and COD will be handled by processOrderStatusTransition
         try {
             await processOrderStatusTransition(id, 'Delivered', previousStatus);
         } catch (transitionError: any) {
             console.error('Error processing order status transition:', transitionError);
-            // Continue even if transition fails
         }
     }
 
-    await order.save();
 
     // Emit socket events for status changes
     const io = (req.app as any).get("io");

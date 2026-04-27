@@ -6,6 +6,7 @@ import DeliveryTracking from '../models/DeliveryTracking';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
 import { sendPushNotification } from './firebaseAdmin';
+import { calculateDeliveryBoyEarning } from './commissionService';
 
 // Track order notification state
 export interface OrderNotificationState {
@@ -343,11 +344,18 @@ export async function notifyDeliveryBoysOfNewOrder(
             const room = io.sockets.adapter.rooms.get(roomName);
             const deliveryBoy = deliveryBoyMap.get(idString);
 
+            // Calculate earning for this specific delivery boy
+            const earningInfo = await calculateDeliveryBoyEarning(order, deliveryBoy);
+            const personalizedOrderData = {
+                ...orderData,
+                expectedEarning: earningInfo.amount
+            };
+
             if (room && room.size > 0) {
                 // Connected: Send socket notification
                 notifiedIds.add(idString);
-                io.to(roomName).emit('new-order', orderData);
-                console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName}`);
+                io.to(roomName).emit('new-order', personalizedOrderData);
+                console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName} (Earning: ${earningInfo.amount})`);
             } else if (deliveryBoy) {
                 // Disconnected: Fallback to FCM Push Notification
                 const tokens = [
@@ -357,24 +365,21 @@ export async function notifyDeliveryBoysOfNewOrder(
 
                 if (tokens.length > 0) {
                     notifiedIds.add(idString);
-                    // Send FCM in background (don't await to avoid blocking other notifications)
+                    // Send FCM in background
                     sendPushNotification(tokens, {
                         title: 'New Order Available! 📦',
-                        body: `Order #${order.orderNumber} is available for delivery near you.`,
+                        body: `Order #${order.orderNumber} is available. You will earn ₹${earningInfo.amount}.`,
                         data: {
                             type: 'new_order',
                             orderId: orderId,
                             orderNumber: order.orderNumber,
+                            expectedEarning: earningInfo.amount.toString(),
                             click_action: 'FLUTTER_NOTIFICATION_CLICK'
                         }
                     }).catch(err => console.error(`Failed to send FCM to delivery boy ${idString}:`, err));
                     
-                    console.log(`📱 Sent FCM fallback to disconnected delivery boy: ${deliveryBoy.name} (${idString})`);
-                } else {
-                    console.log(`⏩ Skipping disconnected delivery boy (no tokens): ${idString}`);
+                    console.log(`📱 Sent FCM fallback to disconnected delivery boy: ${deliveryBoy.name} (${idString}) (Earning: ${earningInfo.amount})`);
                 }
-            } else {
-                console.log(`⏩ Skipping disconnected delivery boy (not found): ${idString}`);
             }
         }
 
