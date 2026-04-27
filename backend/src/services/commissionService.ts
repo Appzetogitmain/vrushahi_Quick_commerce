@@ -947,44 +947,50 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
 
         // Calculate complete breakdown (no session needed)
         const breakdown = await calculateOrderBreakdown(orderId);
+        const isOnlineQR = order.paidVia === "ONLINE_QR";
 
-        console.log(`[COD Delivery] Processing ${order.orderNumber}: total=${breakdown.totalOrderAmount}, commission=${breakdown.deliveryBoyCommission}, owedToAdmin=${breakdown.amountDeliveryBoyOwesAdmin}`);
+        console.log(`[COD Delivery] Processing ${order.orderNumber}: total=${breakdown.totalOrderAmount}, isOnlineQR=${isOnlineQR}, commission=${breakdown.deliveryBoyCommission}`);
 
-        // 1. Update cashCollected and pendingAdminPayout atomically (atomic $inc, no session needed)
-        await Delivery.findByIdAndUpdate(
-            deliveryBoyId,
-            {
-                $inc: {
-                    cashCollected: breakdown.totalOrderAmount,
-                    pendingAdminPayout: breakdown.amountDeliveryBoyOwesAdmin,
+        // 1. Update cashCollected and pendingAdminPayout atomically (ONLY if physical cash)
+        if (!isOnlineQR) {
+            await Delivery.findByIdAndUpdate(
+                deliveryBoyId,
+                {
+                    $inc: {
+                        cashCollected: breakdown.totalOrderAmount,
+                        pendingAdminPayout: breakdown.amountDeliveryBoyOwesAdmin,
+                    }
                 }
-            }
-        );
-        console.log(`[COD Delivery] ✅ Updated rider cashCollected and pendingAdminPayout`);
+            );
+            console.log(`[COD Delivery] ✅ Updated rider cashCollected and pendingAdminPayout`);
+        }
 
-        // 2. Credit delivery boy's wallet balance (commission earned)
-        // creditWallet uses atomic $inc internally — no session passed to avoid write conflicts
+        // 2. Credit delivery boy's wallet balance
+        // skipBalanceUpdate: true ONLY for physical COD because rider already has the cash
+        // For Online QR, skipBalanceUpdate: false because admin has the cash and rider needs his commission
         await creditWallet(
             deliveryBoyId,
             "DELIVERY_BOY",
             breakdown.deliveryBoyCommission,
-            `Delivery earning for COD order ${order.orderNumber}`,
+            `Delivery earning for COD order ${order.orderNumber}${isOnlineQR ? " (Paid via QR)" : ""}`,
             orderId,
             undefined,
             undefined,
-            true // skipBalanceUpdate: true for COD because rider already has the cash
+            !isOnlineQR // skipBalanceUpdate: true if physical cash, false if online QR
         );
-        console.log(`[COD Delivery] ✅ Credited ₹${breakdown.deliveryBoyCommission} to rider wallet`);
+        console.log(`[COD Delivery] ✅ Credited ₹${breakdown.deliveryBoyCommission} to rider wallet (Balance update: ${!isOnlineQR ? "SKIPPED" : "YES"})`);
 
-        // 3. Update Platform Wallet
-        try {
-            const PlatformWallet = (await import("../models/PlatformWallet")).default;
-            await PlatformWallet.findOneAndUpdate(
-                {},
-                { $inc: { pendingFromDeliveryBoy: breakdown.amountDeliveryBoyOwesAdmin } }
-            );
-        } catch (pwErr) {
-            console.error('[COD Delivery] Failed to update platform wallet:', pwErr);
+        // 3. Update Platform Wallet (ONLY if physical cash)
+        if (!isOnlineQR) {
+            try {
+                const PlatformWallet = (await import("../models/PlatformWallet")).default;
+                await PlatformWallet.findOneAndUpdate(
+                    {},
+                    { $inc: { pendingFromDeliveryBoy: breakdown.amountDeliveryBoyOwesAdmin } }
+                );
+            } catch (pwErr) {
+                console.error('[COD Delivery] Failed to update platform wallet:', pwErr);
+            }
         }
 
         // 4. Create DELIVERY_BOY Commission Record
@@ -1007,15 +1013,16 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
         });
         console.log(`[COD Delivery] ✅ Created DELIVERY_BOY commission record`);
 
-        // 5. Create SELLER Commission Records (Pending — to be paid when admin collects from rider)
+        // 5. Create SELLER Commission Records
         const sellerEarningsArray = Array.from(breakdown.sellerEarnings.entries());
         for (const [sellerId] of sellerEarningsArray) {
             const orderItems = await OrderItem.find({ order: orderId, seller: sellerId });
             for (const item of orderItems) {
                 const commRate = item.commissionRate || await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
                 const itemCommission = (item.total * commRate) / 100;
+                const netEarning = item.total - itemCommission;
 
-                await Commission.create({
+                const commission = await Commission.create({
                     order: orderId,
                     orderItem: item._id,
                     seller: sellerId,
@@ -1023,12 +1030,24 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
                     orderAmount: item.total,
                     commissionRate: commRate,
                     commissionAmount: itemCommission,
-                    status: "Pending",
-                    paidAt: null,
+                    status: isOnlineQR ? "Paid" : "Pending",
+                    paidAt: isOnlineQR ? new Date() : null,
                 });
+
+                // For Online QR, credit seller wallet immediately
+                if (isOnlineQR) {
+                    await creditWallet(
+                        sellerId.toString(),
+                        "SELLER",
+                        netEarning,
+                        `Sale proceeds from COD Order ${order.orderNumber} (Paid via QR)`,
+                        orderId,
+                        commission._id.toString()
+                    );
+                }
             }
         }
-        console.log(`[COD Delivery] ✅ Created SELLER commission records`);
+        console.log(`[COD Delivery] ✅ Created SELLER commission records (Status: ${isOnlineQR ? "Paid" : "Pending"})`);
 
     } catch (error: any) {
         console.error("Error processing COD order delivery:", error);
