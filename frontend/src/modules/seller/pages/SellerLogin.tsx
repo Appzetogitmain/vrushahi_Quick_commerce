@@ -149,7 +149,7 @@ export default function SellerLogin() {
               <button
                 onClick={handleMobileLogin}
                 disabled={mobileNumber.length !== 10 || loading}
-                className={`w-fit min-w-[12rem] mx-auto block py-3 px-6 rounded-[1rem] font-semibold text-lg transition-all duration-300 relative overflow-hidden group ${mobileNumber.length === 10 && !loading
+                className={`w-fit min-w-[12rem] mx-auto block py-3 px-6 rounded-[1rem] font-semibold text-lg transition-all duration-300 relative overflow-hidden group outline-none focus:ring-4 focus:ring-green-500/20 ${mobileNumber.length === 10 && !loading
                   ? "bg-green-600 text-white hover:bg-green-700 shadow-[0_10px_20px_rgba(22,163,74,0.3)] translate-y-0 active:translate-y-0.5"
                   : "bg-green-50/50 text-green-300 border border-green-100 cursor-not-allowed"
                   }`}>
@@ -193,7 +193,7 @@ export default function SellerLogin() {
                     setError("");
                   }}
                   disabled={loading}
-                  className="flex-1 max-w-[8rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-50 text-green-600 hover:bg-green-100 transition-all border border-green-100">
+                  className="flex-1 max-w-[8rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-50 text-green-600 hover:bg-green-100 hover:border-green-600 focus:border-green-600 focus:ring-2 focus:ring-green-100 transition-all border border-green-100 outline-none">
                   Change
                 </button>
                 <button
@@ -214,7 +214,7 @@ export default function SellerLogin() {
                     }
                   }}
                   disabled={loading}
-                  className="flex-1 max-w-[10rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]">
+                  className="flex-1 max-w-[10rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)] outline-none focus:ring-4 focus:ring-green-500/20">
                   {loading ? "Sending..." : "Resend"}
                 </button>
               </div>

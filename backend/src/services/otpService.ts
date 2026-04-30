@@ -58,7 +58,17 @@ export function generateOTP(length: number = 4): string {
 function normalizeMobileNumber(mobile: string): string {
   let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
 
-  if (!cleanMobile.startsWith('91')) {
+  // If it's a 10-digit number, prepend 91 (regardless of what it starts with)
+  if (cleanMobile.length === 10) {
+    cleanMobile = '91' + cleanMobile;
+  } 
+  // If it's 11 digits and starts with 0, replace 0 with 91
+  else if (cleanMobile.length === 11 && cleanMobile.startsWith('0')) {
+    cleanMobile = '91' + cleanMobile.substring(1);
+  }
+  // If it's already 12 digits and starts with 91, keep it.
+  // Otherwise, if it doesn't start with 91, prepend it.
+  else if (!cleanMobile.startsWith('91')) {
     cleanMobile = '91' + cleanMobile;
   }
 

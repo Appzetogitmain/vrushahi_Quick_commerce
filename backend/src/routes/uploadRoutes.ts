@@ -56,6 +56,14 @@ router.post(
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
+    console.log('[Upload] POST /document-public - body:', req.body);
+    console.log('[Upload] POST /document-public - file:', (req as any).file ? {
+      fieldname: (req as any).file.fieldname,
+      originalname: (req as any).file.originalname,
+      mimetype: (req as any).file.mimetype,
+      size: (req as any).file.size
+    } : 'No file');
+
     if (!(req as any).file) {
       return res.status(400).json({
         success: false,
@@ -63,20 +71,32 @@ router.post(
       });
     }
 
-    const folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    // Check if it's an image or PDF
-    const isImage = (req as any).file.mimetype.startsWith("image/");
-    const resourceType = isImage ? "image" : "raw";
+    const folder = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    console.log('[Upload] Target folder:', folder);
 
-    const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType,
-    });
+    // Use 'auto' to let Cloudinary detect the type (image, video, raw)
+    const resourceType = "auto";
+    console.log('[Upload] Resource Type:', resourceType);
 
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
+    try {
+      const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
+        folder,
+        resourceType,
+      });
+      console.log('[Upload] Success:', result.publicId);
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (uploadError: any) {
+      console.error('[Upload] Cloudinary Error:', uploadError);
+      return res.status(500).json({
+        success: false,
+        message: "Cloudinary upload failed",
+        error: uploadError.message
+      });
+    }
   })
 );
 

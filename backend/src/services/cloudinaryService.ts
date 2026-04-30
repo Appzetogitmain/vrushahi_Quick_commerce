@@ -155,7 +155,7 @@ export async function uploadDocumentFromBuffer(
   return new Promise((resolve, reject) => {
     const uploadOptions = {
       folder: options.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS,
-      resource_type: options.resourceType || "raw",
+      resource_type: options.resourceType || "auto",
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
     };

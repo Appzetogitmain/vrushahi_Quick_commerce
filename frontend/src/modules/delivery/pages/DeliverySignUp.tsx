@@ -67,12 +67,41 @@ export default function DeliverySignUp() {
         ...prev,
         [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
+    } else if (name === "ifscCode") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().slice(0, 11),
+      }));
+    } else if (name === "accountNumber" || name === "pincode") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/\D/g, ""),
+      }));
+    } else if (name === "accountName" || name === "bankName") {
+      // Capitalize first letter of each word
+      const formattedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formattedValue,
+      }));
     } else {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
       }));
     }
+  };
+
+  const calculateAge = (dob: string) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
 
   const fetchCityFromLocation = () => {
@@ -185,6 +214,27 @@ export default function DeliverySignUp() {
 
     if (formData.mobile.length !== 10) {
       setError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (formData.pincode && formData.pincode.length !== 6) {
+      setError("Pincode must be 6 digits");
+      return;
+    }
+
+    if (formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode)) {
+      setError("Please enter a valid IFSC code (e.g. SBIN0012345)");
+      return;
+    }
+
+    if (formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)) {
+      setError("Please enter a valid Bank Account Number");
       return;
     }
 
@@ -396,9 +446,17 @@ export default function DeliverySignUp() {
                     name="dateOfBirth"
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
+                    max={new Date().toISOString().split("T")[0]}
                     className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}
                   />
+                  {formData.dateOfBirth && calculateAge(formData.dateOfBirth) !== null && (
+                    <p className={`text-[10px] mt-1 ml-1 font-bold ${calculateAge(formData.dateOfBirth)! < 18 ? "text-amber-500" : "text-green-600"}`}>
+                      {calculateAge(formData.dateOfBirth)! < 18 
+                        ? `Note: You are ${calculateAge(formData.dateOfBirth)} years old. Drivers are usually required to be 18+.` 
+                        : `Age: ${calculateAge(formData.dateOfBirth)} years`}
+                    </p>
+                  )}
                 </div>
 
 
@@ -523,7 +581,7 @@ export default function DeliverySignUp() {
 
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                     Account holder name
                   </label>
                   <input
@@ -531,14 +589,14 @@ export default function DeliverySignUp() {
                     name="accountName"
                     value={formData.accountName}
                     onChange={handleInputChange}
-                    placeholder="Account holder name"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                    placeholder="ENTER ACCOUNT HOLDER NAME"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                     Bank Name
                   </label>
                   <input
@@ -546,14 +604,14 @@ export default function DeliverySignUp() {
                     name="bankName"
                     value={formData.bankName}
                     onChange={handleInputChange}
-                    placeholder="Bank name"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                    placeholder="ENTER BANK NAME"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                     Account Number
                   </label>
                   <input
@@ -561,14 +619,14 @@ export default function DeliverySignUp() {
                     name="accountNumber"
                     value={formData.accountNumber}
                     onChange={handleInputChange}
-                    placeholder="Account number"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                    placeholder="ENTER ACCOUNT NUMBER"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                     IFSC Code
                   </label>
                   <input
@@ -576,21 +634,21 @@ export default function DeliverySignUp() {
                     name="ifscCode"
                     value={formData.ifscCode}
                     onChange={handleInputChange}
-                    placeholder="IFSC code"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                    placeholder="ENTER IFSC CODE (E.G. SBIN0012345)"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
                     Bonus Type
                   </label>
                   <select
                     name="bonusType"
                     value={formData.bonusType}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
                     disabled={loading}>
                     {bonusTypes.map((type) => (
                       <option
