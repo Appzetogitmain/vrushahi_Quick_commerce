@@ -1,13 +1,17 @@
 import { useDeliveryStatus } from '../context/DeliveryStatusContext';
 import { useDeliveryUser } from '../context/DeliveryUserContext';
+import { useNavigate } from 'react-router-dom';
 
 interface DeliveryHeaderProps {
   userName?: string;
+  hideProfile?: boolean;
+  hideToggle?: boolean;
 }
 
-export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
+export default function DeliveryHeader({ userName, hideProfile, hideToggle }: DeliveryHeaderProps) {
   const { isOnline, setIsOnline } = useDeliveryStatus();
   const { userName: contextUserName } = useDeliveryUser();
+  const navigate = useNavigate();
   const displayName = userName || contextUserName;
 
   return (
@@ -29,36 +33,48 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
         </h1>
         
         {/* User Info Bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Profile Icon */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-              isOnline ? 'bg-green-600' : 'bg-neutral-400'
-            }`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2" fill="none"/>
-                <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
-              </svg>
+        <div className={`flex items-center ${
+          hideProfile && hideToggle ? 'justify-center' : 
+          hideProfile ? 'justify-end' : 
+          hideToggle ? 'justify-start' : 
+          'justify-between'
+        }`}>
+          {!hideProfile && (
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/delivery/profile')}
+            >
+              {/* Profile Icon */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                isOnline ? 'bg-green-600' : 'bg-neutral-400'
+              }`}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2" fill="none"/>
+                  <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-neutral-700 text-sm">Hello</span>
+                <span className="text-neutral-900 text-xs font-medium">{displayName}</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-neutral-700 text-sm">Hello</span>
-              <span className="text-neutral-900 text-xs font-medium">{displayName}</span>
-            </div>
-          </div>
+          )}
           
           {/* Toggle Switch */}
-          <button
-            onClick={() => setIsOnline(!isOnline)}
-            className={`relative w-12 h-6 rounded-full transition-colors ${
-              isOnline ? 'bg-green-600' : 'bg-neutral-300'
-            }`}
-          >
-            <div
-              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                isOnline ? 'translate-x-6' : 'translate-x-0'
+          {!hideToggle && (
+            <button
+              onClick={() => setIsOnline(!isOnline)}
+              className={`relative w-12 h-6 rounded-full transition-colors ${
+                isOnline ? 'bg-green-600' : 'bg-neutral-300'
               }`}
-            />
-          </button>
+            >
+              <div
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  isOnline ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          )}
         </div>
       </div>
     </div>

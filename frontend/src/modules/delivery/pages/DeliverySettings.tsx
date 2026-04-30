@@ -88,7 +88,7 @@ export default function DeliverySettings() {
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-20">
-      <DeliveryHeader />
+      <DeliveryHeader hideProfile={true} hideToggle={true} />
       <div className="px-4 py-4">
         <div className="flex items-center mb-4">
           <button

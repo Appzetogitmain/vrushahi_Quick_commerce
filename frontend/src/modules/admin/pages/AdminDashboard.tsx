@@ -357,8 +357,8 @@ export default function AdminDashboard() {
   const salesLastMonth = salesAnalytics?.lastPeriod || [];
 
   // Transform order analytics data for charts (real data from backend)
-  const orderDataDec2025 = orderAnalyticsDaily?.thisPeriod || [];
-  const orderData2025 = orderAnalytics?.thisPeriod || [];
+  const orderDataCurrentMonth = orderAnalyticsDaily?.thisPeriod || [];
+  const orderDataCurrentYear = orderAnalytics?.thisPeriod || [];
 
   const totalPagesNewOrders = Math.ceil(newOrders.length / ordersEntriesPerPage);
   const startIndexNewOrders = (ordersCurrentPage - 1) * ordersEntriesPerPage;
@@ -517,16 +517,16 @@ export default function AdminDashboard() {
           </h3>
           <div className="mb-4">
             <p className="text-3xl font-bold text-neutral-900">
-              ₹{salesToday.toFixed(2)}
+              â‚¹{salesToday.toFixed(2)}
             </p>
             {salesDifference >= 0 ? (
               <p className="text-sm text-green-600 mt-1">
-                ▲ ₹{Math.abs(salesDifference).toFixed(2)} (+{salesPercentChange}%)
+                â–² â‚¹{Math.abs(salesDifference).toFixed(2)} (+{salesPercentChange}%)
                 vs same day last week
               </p>
             ) : (
               <p className="text-sm text-red-600 mt-1">
-                ▼ ₹{Math.abs(salesDifference).toFixed(2)} ({salesPercentChange}%)
+                â–¼ â‚¹{Math.abs(salesDifference).toFixed(2)} ({salesPercentChange}%)
                 vs same day last week
               </p>
             )}
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
                       {location.location}
                     </span>
                     <span className="text-sm font-semibold text-neutral-900">
-                      ₹{(location.amount / 1000).toFixed(1)}K
+                      â‚¹{(location.amount / 1000).toFixed(1)}K
                     </span>
                   </div>
                 ))
@@ -585,16 +585,16 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
-            title="Order - Dec 2025"
-            data={orderDataDec2025}
+            title={`Order - ${new Date().toLocaleString('default', { month: 'short' })} ${new Date().getFullYear()}`}
+            data={orderDataCurrentMonth}
             maxValue={3}
             height={400}
           />
         </ErrorBoundary>
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
-            title="Order - 2025"
-            data={orderData2025}
+            title={`Order - ${new Date().getFullYear()}`}
+            data={orderDataCurrentYear}
             maxValue={80}
             height={400}
           />
@@ -745,7 +745,7 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                        ₹ {order.amount.toFixed(2)}
+                        â‚¹ {order.amount.toFixed(2)}
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
@@ -948,7 +948,7 @@ export default function AdminDashboard() {
                         {seller.storeName}
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                        ₹ {seller.totalRevenue.toFixed(2)}
+                        â‚¹ {seller.totalRevenue.toFixed(2)}
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
@@ -1055,7 +1055,7 @@ export default function AdminDashboard() {
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright © 2025. Developed By{" "}
+        Copyright © 2026. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
           vrushahi e-Commerce
         </a>
@@ -1063,3 +1063,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

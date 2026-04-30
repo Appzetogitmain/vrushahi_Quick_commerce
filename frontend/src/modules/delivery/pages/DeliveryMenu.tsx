@@ -123,7 +123,7 @@ export default function DeliveryMenu() {
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-20">
-      <DeliveryHeader />
+      <DeliveryHeader hideProfile={true} />
       <div className="px-4 py-4">
         <h2 className="text-neutral-900 text-xl font-semibold mb-4">Menu</h2>
         {menuItems.length > 0 ? (

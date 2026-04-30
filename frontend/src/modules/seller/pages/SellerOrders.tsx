@@ -11,13 +11,25 @@ export default function SellerOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [dateRange, setDateRange] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [status, setStatus] = useState('All Status');
   const [entriesPerPage, setEntriesPerPage] = useState('10');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Fetch orders from API
   useEffect(() => {
@@ -32,14 +44,9 @@ export default function SellerOrders() {
           sortOrder: sortDirection,
         };
 
-        // Parse date range
-        if (dateRange) {
-          const [startDate, endDate] = dateRange.split(' - ');
-          if (startDate && endDate) {
-            params.dateFrom = startDate;
-            params.dateTo = endDate;
-          }
-        }
+        // Add date range
+        if (fromDate) params.dateFrom = fromDate;
+        if (toDate) params.dateTo = toDate;
 
         // Add status filter
         if (status !== 'All Status') {
@@ -47,8 +54,8 @@ export default function SellerOrders() {
         }
 
         // Add search
-        if (searchQuery) {
-          params.search = searchQuery;
+        if (debouncedSearchQuery) {
+          params.search = debouncedSearchQuery;
         }
 
         const response = await getOrders(params);
@@ -65,10 +72,11 @@ export default function SellerOrders() {
     };
 
     fetchOrders();
-  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection]);
+  }, [fromDate, toDate, status, entriesPerPage, debouncedSearchQuery, currentPage, sortField, sortDirection]);
 
   const handleClearDate = () => {
-    setDateRange('');
+    setFromDate('');
+    setToDate('');
     setCurrentPage(1);
   };
 
@@ -171,39 +179,39 @@ export default function SellerOrders() {
                 <label className="text-xs sm:text-sm font-medium text-neutral-700 whitespace-nowrap">
                   From - To Order Date
                 </label>
-                <div className="flex items-center gap-2 bg-neutral-100 border border-neutral-300 rounded px-2 sm:px-3 py-1.5 sm:py-2 w-full sm:w-auto">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="text-neutral-500 flex-shrink-0"
-                  >
-                    <path
-                      d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 bg-neutral-100 border border-neutral-300 rounded px-2 sm:px-3 py-1 sm:py-1.5 flex-1 sm:flex-initial">
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => {
+                        setFromDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none"
                     />
-                  </svg>
-                  <input
-                    type="text"
-                    value={dateRange}
-                    onChange={(e) => {
-                      setDateRange(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="flex-1 sm:w-48 text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none placeholder:text-neutral-400"
-                    placeholder="MM/DD/YYYY - MM/DD/YYYY"
-                  />
-                  {dateRange && (
+                  </div>
+                  <span className="text-neutral-400">to</span>
+                  <div className="flex items-center gap-2 bg-neutral-100 border border-neutral-300 rounded px-2 sm:px-3 py-1 sm:py-1.5 flex-1 sm:flex-initial">
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => {
+                        setToDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none"
+                    />
+                  </div>
+                  {(fromDate || toDate) && (
                     <button
                       onClick={handleClearDate}
-                      className="ml-2 px-2 py-1 text-xs font-medium text-neutral-700 bg-neutral-200 hover:bg-neutral-300 rounded transition-colors flex-shrink-0"
+                      className="p-1.5 text-neutral-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+                      title="Clear dates"
                     >
-                      Clear
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </button>
                   )}
                 </div>
@@ -265,10 +273,10 @@ export default function SellerOrders() {
                 />
               </div>
 
-              {/* Export Button */}
-              <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+              {/* Export Button with Dropdown */}
+              <div className="relative w-full sm:w-auto sm:ml-auto">
                 <button
-                  onClick={handleExport}
+                  onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
                   className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
                 >
                   <svg
@@ -287,14 +295,14 @@ export default function SellerOrders() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Export</span>
+                  <span>Export</span>
                   <svg
                     width="12"
                     height="12"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    className="hidden sm:block flex-shrink-0"
+                    className={`transition-transform duration-200 ${isExportDropdownOpen ? 'rotate-180' : ''}`}
                   >
                     <path
                       d="M6 9L12 15L18 9"
@@ -305,6 +313,45 @@ export default function SellerOrders() {
                     />
                   </svg>
                 </button>
+
+                {isExportDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsExportDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-neutral-200 rounded-lg shadow-xl z-20 py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button
+                        onClick={() => {
+                          handleExport();
+                          setIsExportDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-green-600">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 00 2 2h12a2 2 0 00 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M14 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Export as CSV
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Could implement PDF export here if needed
+                          window.print();
+                          setIsExportDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-red-600">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 00 2 2h12a2 2 0 00 2-2V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M14 2v6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M16 13H8m8 4H8m2-8H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Print PDF
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -584,7 +631,7 @@ export default function SellerOrders() {
       {/* Footer */}
       <footer className="px-3 sm:px-4 md:px-6 text-center py-4 sm:py-6">
         <p className="text-xs sm:text-sm text-neutral-600">
-          Copyright © 2025. Developed By{' '}
+          Copyright © 2026. Developed By{' '}
           <Link to="/seller" className="text-blue-600 hover:text-blue-700">
             vrushahi
           </Link>

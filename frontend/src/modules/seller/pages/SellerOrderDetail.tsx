@@ -376,7 +376,7 @@ export default function SellerOrderDetail() {
 
     doc.setFontSize(8);
     doc.text(
-      "Copyright © 2025. Developed By vrushahi e-Commerce",
+      "Copyright © 2026. Developed By vrushahi e-Commerce",
       pageWidth / 2,
       yPos,
       { align: "center" }
@@ -694,7 +694,7 @@ export default function SellerOrderDetail() {
       {/* Footer */}
       <footer className="mt-6 px-4 sm:px-6 text-center py-4 bg-neutral-100 rounded-lg">
         <p className="text-xs sm:text-sm text-neutral-600">
-          Copyright © 2025. Developed By{" "}
+          Copyright © 2026. Developed By{" "}
           <span className="font-semibold text-teal-600">
             vrushahi e-Commerce
           </span>

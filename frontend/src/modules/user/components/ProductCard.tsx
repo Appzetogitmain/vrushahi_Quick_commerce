@@ -165,19 +165,15 @@ export default function ProductCard({
     e.stopPropagation();
     e.preventDefault();
 
-    // Prevent any operation while another is in progress
-    if (isOperationPendingRef.current || inCartQty <= 0) {
+    if (inCartQty <= 0) {
       return;
     }
-
-    isOperationPendingRef.current = true;
 
     try {
       const productId = String((product as any).id || product._id);
       await updateQuantity(productId, inCartQty - 1);
-    } finally {
-      // Reset the flag after the operation truly completes
-      isOperationPendingRef.current = false;
+    } catch (error) {
+      console.error("Error decreasing quantity:", error);
     }
   };
 
@@ -190,13 +186,6 @@ export default function ProductCard({
       return;
     }
 
-    // Prevent any operation while another is in progress
-    if (isOperationPendingRef.current) {
-      return;
-    }
-
-    isOperationPendingRef.current = true;
-
     try {
       if (inCartQty > 0) {
         const productId = String((product as any).id || product._id);
@@ -204,9 +193,8 @@ export default function ProductCard({
       } else {
         await addToCart(product, addButtonRef.current);
       }
-    } finally {
-      // Reset the flag after the operation truly completes
-      isOperationPendingRef.current = false;
+    } catch (error) {
+      console.error("Error increasing quantity:", error);
     }
   };
 

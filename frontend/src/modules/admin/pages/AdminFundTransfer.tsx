@@ -378,7 +378,7 @@ export default function AdminFundTransfer() {
                 {/* Footer Copy */}
                 <div className="text-center pb-8">
                     <p className="text-sm text-neutral-400 font-medium">
-                        Copyright © 2025. Developed By <span className="text-teal-600 font-bold">Vrushahi Market</span> your own & reliable store
+                        Copyright © 2026. Developed By <span className="text-teal-600 font-bold">Vrushahi Market</span> your own & reliable store
                     </p>
                 </div>
             </div>

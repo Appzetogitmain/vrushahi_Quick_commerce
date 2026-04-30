@@ -63,6 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     newStoreName?: string;
   }>({ isOpen: false });
   const pendingOperationsRef = useRef<Set<string>>(new Set());
+  const needsSyncRef = useRef<Map<string, number>>(new Map()); // Maps productId -> latest requested quantity
 
   const { isAuthenticated, user } = useAuth();
   const { location } = useLocation();
@@ -169,12 +170,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Get consistent product ID - MongoDB returns _id, frontend expects id
     const productId = product._id || product.id;
 
-    // Prevent concurrent operations on the same product
-    if (pendingOperationsRef.current.has(productId)) {
-      return;
-    }
-    pendingOperationsRef.current.add(productId);
-
     // Normalize product to always have 'id' property for consistency
     const normalizedProduct: Product = {
       ...product,
@@ -183,8 +178,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       imageUrl: product.imageUrl || product.mainImage,
     };
 
-    // Optimistic Update
-    // Get source position if element is provided
+    // Trigger fly-to-cart animation
     let sourcePosition: { x: number; y: number } | undefined;
     if (sourceElement) {
       const rect = sourceElement.getBoundingClientRect();
@@ -196,97 +190,108 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLastAddEvent({ product: normalizedProduct, sourcePosition });
     setTimeout(() => setLastAddEvent(null), 800);
 
-    // Optimistically update state
+    // Optimistically update state IMMEDIATELY to keep UI responsive
     const previousItems = [...items];
     setItems((prevItems) => {
-      // Filter out null products and find existing item
       const validItems = prevItems.filter(item => item?.product);
-
-      // Check for variant ID or variant title if product has variants
+      
       const variantId = (product as any).variantId || (product as any).selectedVariant?._id;
       const variantTitle = (product as any).variantTitle || (product as any).pack;
 
-      // Find existing item - match by product ID and variant (if variant exists)
       const existingItem = validItems.find((item) => {
         const itemProductId = String(item.product.id || item.product._id);
-        const targetProductId = String(productId);
-        if (itemProductId !== targetProductId) return false;
-
+        if (itemProductId !== String(productId)) return false;
         const itemProxy = item.product as any;
-        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
-        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
-
-        // If specific variant info is provided, try to match it
         const targetVariantId = String(variantId || "");
         const targetVariantTitle = String(variantTitle || "");
-
         if (targetVariantId || targetVariantTitle) {
+          const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+          const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
           return (targetVariantId && itemVariantId === targetVariantId) ||
                  (targetVariantTitle && itemVariantTitle === targetVariantTitle);
         }
-
-        // If no variant info provided (e.g. from ProductCard), match ANY item of this product
         return true;
       });
 
       if (existingItem) {
-        return validItems.map((item) => {
-          if (item !== existingItem) return item;
-          return { ...item, quantity: item.quantity + 1 };
-        });
+        return validItems.map((item) => 
+          item === existingItem ? { ...item, quantity: item.quantity + 1 } : item
+        );
       }
       return [...validItems, { product: normalizedProduct, quantity: 1 }];
     });
 
+    // Prevent concurrent API operations on the same product
+    if (pendingOperationsRef.current.has(productId)) {
+      // Mark that we need to sync the latest quantity once current op finishes
+      const currentQty = items.find(i => String(i.product.id || i.product._id) === String(productId))?.quantity || 0;
+      needsSyncRef.current.set(String(productId), currentQty + 1);
+      return;
+    }
+    pendingOperationsRef.current.add(productId);
+
     // Only sync to API if user is authenticated
     if (isAuthenticated && user?.userType === 'Customer') {
-      try {
-        // Pass variation info to API if available
-        const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
-        const response = await apiAddToCart(
-          productId,
-          1,
-          variation,
-          location?.latitude,
-          location?.longitude
-        );
-        if (response && response.data && response.data.items) {
-          // Atomic update from server response
-          setItems(mapApiItemsToState(response.data.items));
-          setEstimatedFee(response.data.estimatedDeliveryFee);
-          setPlatformFee(response.data.platformFee);
-          setFreeDeliveryThreshold(response.data.freeDeliveryThreshold);
+      const performSync = async () => {
+        try {
+          // Pass variation info to API if available
+          const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
+          const response = await apiAddToCart(
+            productId,
+            1,
+            variation,
+            location?.latitude,
+            location?.longitude
+          );
+          if (response && response.data && response.data.items) {
+            const apiItems = mapApiItemsToState(response.data.items);
+            setItems(prevItems => {
+              // Smart merge: Preserve local quantities if they are higher than what API just returned
+              return apiItems.map(apiItem => {
+                const localItem = prevItems.find(p => 
+                  String(p.product.id || p.product._id) === String(apiItem.product.id || apiItem.product._id)
+                );
+                if (localItem && localItem.quantity > apiItem.quantity) {
+                  return { ...apiItem, quantity: localItem.quantity };
+                }
+                return apiItem;
+              });
+            });
+            setEstimatedFee(response.data.estimatedDeliveryFee);
+            setPlatformFee(response.data.platformFee);
+            setFreeDeliveryThreshold(response.data.freeDeliveryThreshold);
+          }
+        } catch (error: any) {
+          console.error("Add to cart failed", error);
+          
+          // Handle Store Mismatch
+          if (error.response?.status === 409 && error.response?.data?.code === 'STORE_MISMATCH') {
+            setMismatchData({
+              isOpen: true,
+              product: product,
+              existingStoreName: error.response.data.existingStore,
+              newStoreName: (product as any).seller?.storeName || (product as any).storeName || 'this store'
+            });
+            showToast("Multiple store ordering restricted", 'info');
+          } else {
+            showToast(error.response?.data?.message || "Failed to add to cart", 'error');
+            setItems(previousItems);
+          }
+        } finally {
+          pendingOperationsRef.current.delete(productId);
+          
+          // If we had more clicks while this one was pending, sync the FINAL quantity now
+          if (needsSyncRef.current.has(String(productId))) {
+            const finalQty = needsSyncRef.current.get(String(productId))!;
+            needsSyncRef.current.delete(String(productId));
+            updateQuantity(String(productId), finalQty);
+          }
         }
-      } catch (error: any) {
-        console.error("Add to cart failed", error);
-        
-        // Handle Store Mismatch
-        if (error.response?.status === 409 && error.response?.data?.code === 'STORE_MISMATCH') {
-          setMismatchData({
-            isOpen: true,
-            product: product,
-            existingStoreName: error.response.data.existingStore,
-            newStoreName: (product as any).seller?.storeName || (product as any).storeName || 'this store'
-          });
-          // Silent toast so user knows something happened
-          showToast("Multiple store ordering restricted", 'info');
-        } else {
-          // Show error toast for other errors
-          showToast(error.response?.data?.message || "Failed to add to cart", 'error');
-        }
-        
-        // Revert on error
-        setItems(previousItems);
-      } finally {
-        // Remove from pending operations
-        pendingOperationsRef.current.delete(productId);
-      }
+      };
+
+      performSync();
     } else {
-      // For unregistered users, the optimistic update is already saved to localStorage
-      // For guest users, we could optionally implement store-mismatch logic here too
-      // but usually guest cart is local-only initially.
-      
-      // Remove from pending operations immediately
+      // For guest users, just clean up
       pendingOperationsRef.current.delete(productId);
     }
   };
@@ -385,13 +390,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Create a unique operation key for this product/variant combination
     const operationKey = variantId ? `${productId}-${variantId}` : (variantTitle ? `${productId}-${variantTitle}` : productId);
 
-    // Prevent concurrent operations on the same product
+    // Optimistically update state IMMEDIATELY to keep UI responsive
+    const previousItems = [...items];
+    setItems((prevItems) =>
+      prevItems.filter(item => item?.product).map((item) => {
+        const isTarget = String(item.product.id || item.product._id) === String(productId) &&
+          (!variantId || String((item.product as any).variantId) === String(variantId));
+
+        if (isTarget) {
+          return { ...item, quantity };
+        }
+        return item;
+      })
+    );
+
+    // Prevent concurrent API operations on the same product
     if (pendingOperationsRef.current.has(operationKey)) {
+      // Mark that we need to sync the latest quantity once current op finishes
+      needsSyncRef.current.set(operationKey, quantity);
       return;
     }
     pendingOperationsRef.current.add(operationKey);
 
-    // Find item matching product ID and variant (if variant info provided)
+    // Find the item to get its CartItemID (needed for API call)
     const itemToUpdate = items.find(item => {
       if (!item?.product) return false;
       const itemProductId = String(item.product.id || item.product._id);
@@ -402,7 +423,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const targetVariantId = String(variantId || "");
       const targetVariantTitle = String(variantTitle || "");
 
-      // If variant info provided, match by variant
       if (targetVariantId || targetVariantTitle) {
         const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
         const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
@@ -410,28 +430,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                (targetVariantTitle && itemVariantTitle === targetVariantTitle);
       }
 
-      // If no variant info, match ANY item of this product (ProductCard usage)
       return true;
     });
-
-    const previousItems = [...items];
-    setItems((prevItems) =>
-      prevItems.filter(item => item?.product).map((item) => {
-        if (!itemToUpdate) return item;
-        
-        // Match using the object found in the CLOSURE of the find call, 
-        // fallback to ID matching if needed for extra robustness
-        const isTarget = item === itemToUpdate || (
-          String(item.product.id || item.product._id) === String(productId) &&
-          (!variantId || String((item.product as any).variantId) === String(variantId))
-        );
-
-        if (isTarget) {
-          return { ...item, quantity };
-        }
-        return item;
-      })
-    );
 
     // Only sync to API if user is authenticated and item has CartItemID
     if (isAuthenticated && user?.userType === 'Customer' && itemToUpdate?.id) {
@@ -443,7 +443,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
           location?.longitude
         );
         if (response && response.data && response.data.items) {
-          setItems(mapApiItemsToState(response.data.items));
+          const apiItems = mapApiItemsToState(response.data.items);
+          setItems(prevItems => {
+            // Smart merge: Preserve local quantities if they are higher than what API just returned
+            return apiItems.map(apiItem => {
+              const localItem = prevItems.find(p => 
+                String(p.product.id || p.product._id) === String(apiItem.product.id || apiItem.product._id)
+              );
+              if (localItem && localItem.quantity > apiItem.quantity) {
+                return { ...apiItem, quantity: localItem.quantity };
+              }
+              return apiItem;
+            });
+          });
           setEstimatedFee(response.data.estimatedDeliveryFee);
           setPlatformFee(response.data.platformFee);
           setFreeDeliveryThreshold(response.data.freeDeliveryThreshold);
@@ -452,12 +464,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Update quantity failed", error);
         setItems(previousItems);
       } finally {
-        // Remove from pending operations
         pendingOperationsRef.current.delete(operationKey);
+        
+        // If we had more clicks while this one was pending, sync the FINAL quantity now
+        if (needsSyncRef.current.has(operationKey)) {
+          const finalQty = needsSyncRef.current.get(operationKey)!;
+          needsSyncRef.current.delete(operationKey);
+          updateQuantity(productId, finalQty, variantId, variantTitle);
+        }
       }
     } else {
-      // For unregistered users, remove from pending operations immediately
+      // For guest users, just clean up
       pendingOperationsRef.current.delete(operationKey);
+      
+      // Still handle the "needs sync" case for local consistency
+      if (needsSyncRef.current.has(operationKey)) {
+        const finalQty = needsSyncRef.current.get(operationKey)!;
+        needsSyncRef.current.delete(operationKey);
+        updateQuantity(productId, finalQty, variantId, variantTitle);
+      }
     }
   };
 
