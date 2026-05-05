@@ -245,6 +245,9 @@ const AdminCustomerAppPolicy = lazy(
 const AdminDeliveryAppPolicy = lazy(
   () => import("./modules/admin/pages/AdminDeliveryAppPolicy"),
 );
+const AdminSellerAppPolicy = lazy(
+  () => import("./modules/admin/pages/AdminSellerAppPolicy"),
+);
 const AdminOrders = lazy(() => import("./modules/admin/pages/AdminOrders"));
 const AdminOrderDetail = lazy(
   () => import("./modules/admin/pages/AdminOrderDetail"),
@@ -629,6 +632,10 @@ function AppContent() {
                                     <Route
                                       path="delivery-app-policy"
                                       element={<AdminDeliveryAppPolicy />}
+                                    />
+                                    <Route
+                                      path="seller-app-policy"
+                                      element={<AdminSellerAppPolicy />}
                                     />
                                     <Route
                                       path="billing-settings"

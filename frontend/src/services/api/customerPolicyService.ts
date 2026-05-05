@@ -3,7 +3,7 @@ import { ApiResponse } from "./admin/types";
 
 export interface Policy {
   _id: string;
-  type: "customer" | "delivery";
+  type: "customer" | "delivery" | "seller";
   title: string;
   content: string;
   version: string;

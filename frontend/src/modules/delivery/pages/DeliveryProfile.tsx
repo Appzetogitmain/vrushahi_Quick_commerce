@@ -4,11 +4,13 @@ import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { useDeliveryUser } from '../context/DeliveryUserContext';
 import { getDeliveryProfile, updateProfile } from '../../../services/api/delivery/deliveryService';
+import { useToast } from '../../../context/ToastContext';
 
 export default function DeliveryProfile() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const { userName, setUserName } = useDeliveryUser();
+  const { showToast } = useToast();
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -66,6 +68,62 @@ export default function DeliveryProfile() {
   };
 
   const handleSave = async () => {
+    // Validation
+    if (!profileData.name.trim()) {
+      showToast("Name is required", "error");
+      return;
+    }
+    if (/\d/.test(profileData.name)) {
+      showToast("Name should not contain numbers", "error");
+      return;
+    }
+    if (profileData.name.length < 3) {
+      showToast("Name should be at least 3 characters", "error");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (profileData.email && !emailRegex.test(profileData.email)) {
+      showToast("Please enter a valid email address", "error");
+      return;
+    }
+
+    if (profileData.phone.length !== 10) {
+      showToast("Phone number must be 10 digits", "error");
+      return;
+    }
+
+    if (!profileData.vehicleNumber.trim()) {
+      showToast("Vehicle number is required", "error");
+      return;
+    }
+
+    if (profileData.accountName && /\d/.test(profileData.accountName)) {
+      showToast("Account holder name should not contain numbers", "error");
+      return;
+    }
+
+    if (profileData.bankName && /\d/.test(profileData.bankName)) {
+      showToast("Bank name should not contain numbers", "error");
+      return;
+    }
+
+    if (profileData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(profileData.ifscCode)) {
+      showToast("Please enter a valid IFSC code (e.g. SBIN0001234)", "error");
+      return;
+    }
+
+    if (profileData.accountNumber && !/^\d{9,18}$/.test(profileData.accountNumber)) {
+      showToast("Account number should be between 9 and 18 digits", "error");
+      return;
+    }
+
+    const upiRegex = /^[\w.-]+@[\w.-]+$/;
+    if (profileData.upiId && !upiRegex.test(profileData.upiId)) {
+      showToast("Please enter a valid UPI ID (e.g. name@okaxis)", "error");
+      return;
+    }
+
     try {
       await updateProfile({
         name: profileData.name,
@@ -81,23 +139,44 @@ export default function DeliveryProfile() {
       });
       setUserName(profileData.name);
       setIsEditing(false);
-      // You could add a toast notification here
-    } catch (error) {
+      showToast("Profile updated successfully", "success");
+    } catch (error: any) {
       console.error("Failed to update profile", error);
-      alert("Failed to update profile");
+      showToast(error.response?.data?.message || "Failed to update profile", "error");
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
+    let finalValue = value;
+
+    // Prevent numbers in Name, Account Holder Name, and Bank Name
+    if (['name', 'accountName', 'bankName'].includes(field)) {
+      finalValue = value.replace(/[0-9]/g, '');
+    }
+
+    // Phone should be only numbers, max 10
+    if (field === 'phone') {
+      finalValue = value.replace(/\D/g, '').slice(0, 10);
+    }
+
+    // Account Number should be only numbers, max 18
+    if (field === 'accountNumber') {
+      finalValue = value.replace(/\D/g, '').slice(0, 18);
+    }
+
+    // IFSC should be uppercase alphanumeric, max 11
+    if (field === 'ifscCode') {
+      finalValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+    }
+
     setProfileData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: finalValue,
     }));
   };
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-20">
-      <DeliveryHeader />
       <div className="px-4 py-4">
         <div className="flex items-center mb-4">
           <button

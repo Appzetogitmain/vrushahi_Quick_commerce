@@ -5,6 +5,7 @@ import {
   verifyOTP,
 } from "../../../services/api/auth/deliveryAuthService";
 import OTPInput from "../../../components/OTPInput";
+import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
 import { removeAuthToken } from "../../../services/api/config";
 import LogoLatest from "@assets/LogoLatest.png";
@@ -18,6 +19,8 @@ export default function DeliveryLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isNotRegistered, setIsNotRegistered] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'delivery' });
 
   // Clear any existing token on mount to prevent role conflicts
   useEffect(() => {
@@ -211,6 +214,34 @@ export default function DeliveryLogin() {
             </div>
           )}
 
+          </div>
+
+          {/* Policy Links */}
+          <div className="text-center pt-4">
+            <p className="text-[11px] text-neutral-400 font-medium px-8 leading-relaxed">
+              By logging in, you agree to our{" "}
+              <button
+                onClick={() => {
+                  setPolicyType({ type: 'delivery', title: 'Terms' });
+                  setShowPolicy(true);
+                }}
+                className="text-green-600 hover:underline font-bold"
+              >
+                Terms & Conditions
+              </button>{" "}
+              and{" "}
+              <button
+                onClick={() => {
+                  setPolicyType({ type: 'delivery', title: 'Privacy' });
+                  setShowPolicy(true);
+                }}
+                className="text-green-600 hover:underline font-bold"
+              >
+                Privacy Policy
+              </button>
+            </p>
+          </div>
+
           {/* Sign Up Link */}
           <div className="text-center pt-6 border-t border-neutral-100">
             <p className="text-sm text-neutral-500 font-medium">
@@ -223,7 +254,13 @@ export default function DeliveryLogin() {
             </p>
           </div>
         </div>
-      </div>
+
+      <PolicyModal 
+        isOpen={showPolicy}
+        onClose={() => setShowPolicy(false)}
+        type={policyType.type}
+        titleSearch={policyType.title}
+      />
 
 
 

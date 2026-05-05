@@ -7,13 +7,14 @@ import { uploadImage } from '../../../services/api/uploadService';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import LocationPickerMap from '../../../components/LocationPickerMap';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
+import { useToast } from '../../../context/ToastContext';
 
 const SellerAccountSettings = () => {
   const { user, updateUser } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
 
@@ -83,10 +84,10 @@ const SellerAccountSettings = () => {
           workingHours: data.workingHours || { open: '09:00', close: '21:00', workingDays: [] }
         });
       } else {
-        setError(response.message || 'Failed to fetch profile');
+        showToast(response.message || 'Failed to fetch profile', 'error');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error loading profile');
+      showToast(err.response?.data?.message || 'Error loading profile', 'error');
     } finally {
       setLoading(false);
     }
@@ -138,7 +139,6 @@ const SellerAccountSettings = () => {
 
     try {
       setSaveLoading(true);
-      setError('');
       
       const result = await uploadImage(file, 'vrushahi/sellers');
       
@@ -150,7 +150,7 @@ const SellerAccountSettings = () => {
     } catch (err: any) {
       console.error('Upload error:', err);
       const message = err.response?.data?.message || err.message || 'Failed to upload image';
-      setError(message);
+      showToast(message, 'error');
     } finally {
       setSaveLoading(false);
     }
@@ -160,11 +160,62 @@ const SellerAccountSettings = () => {
     e.preventDefault();
     try {
       setSaveLoading(true);
-      setError('');
+
+      // Validate Basic Info
+      if (sellerData.sellerName && !/^[a-zA-Z\s]+$/.test(sellerData.sellerName)) {
+        showToast('Name should only contain alphabets (a-z)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(sellerData.email)) {
+          showToast('Please enter a valid email address', 'error');
+          setSaveLoading(false);
+          return;
+        }
+        if (/\d/.test(sellerData.email)) {
+          showToast('Email should not contain numbers', 'error');
+          setSaveLoading(false);
+          return;
+        }
+      }
+
+      if (sellerData.mobile && sellerData.mobile.length !== 10) {
+        showToast('Mobile number must be exactly 10 digits', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      // Validate Bank Details
+      if (sellerData.accountName && !/^[a-zA-Z\s]+$/.test(sellerData.accountName)) {
+        showToast('Account holder name should only contain alphabets', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.bankName && !/^[a-zA-Z\s]+$/.test(sellerData.bankName)) {
+        showToast('Bank name should only contain alphabets', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc)) {
+        showToast('Please enter a valid IFSC code (e.g. SBIN0012345)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.accountNumber && (sellerData.accountNumber.length < 9 || sellerData.accountNumber.length > 18)) {
+        showToast('Please enter a valid Bank Account Number (9-18 digits)', 'error');
+        setSaveLoading(false);
+        return;
+      }
 
       // Validate location if address is being updated
       if (sellerData.searchLocation && (!sellerData.latitude || !sellerData.longitude)) {
-        setError('Please select a valid location using the map picker');
+        showToast('Please select a valid location using the map picker', 'error');
         setSaveLoading(false);
         return;
       }
@@ -172,7 +223,7 @@ const SellerAccountSettings = () => {
       // Validate service radius
       const radius = parseFloat(sellerData.serviceRadiusKm);
       if (isNaN(radius) || radius < 0.1 || radius > 100) {
-        setError('Service radius must be between 0.1 and 100 kilometers');
+        showToast('Service radius must be between 0.1 and 100 kilometers', 'error');
         setSaveLoading(false);
         return;
       }
@@ -185,6 +236,7 @@ const SellerAccountSettings = () => {
       const response = await updateSellerProfile(updateData);
       if (response.success) {
         setIsEditing(false);
+        showToast('Profile updated successfully!', 'success');
         const data = response.data;
         const locationCoords = data.location?.coordinates || [];
         setSellerData({
@@ -201,12 +253,12 @@ const SellerAccountSettings = () => {
             id: data._id || user?.id
           });
         }
-        setError('');
+        showToast('Profile updated successfully!', 'success');
       } else {
-        setError(response.message || 'Failed to update profile');
+        showToast(response.message || 'Failed to update profile', 'error');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error updating profile');
+      showToast(err.response?.data?.message || 'Error updating profile', 'error');
     } finally {
       setSaveLoading(false);
     }
@@ -364,19 +416,6 @@ const SellerAccountSettings = () => {
 
           {/* Main Content Area */}
           <div className="flex-1">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl flex justify-between items-center shadow-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {error}
-                </span>
-                <button onClick={() => setError(null)} className="text-red-800 hover:bg-red-100 p-1 rounded transition-colors">&times;</button>
-              </motion.div>
-            )}
 
             <form onSubmit={handleSubmit}>
               <AnimatePresence mode="wait">

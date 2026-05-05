@@ -4,7 +4,7 @@ export interface IWalletTransaction extends Document {
     userId: mongoose.Types.ObjectId; // Generic user reference (seller or delivery boy)
     userType: 'SELLER' | 'DELIVERY_BOY'; // Type of user
     amount: number;
-    type: 'Credit' | 'Debit';
+    type: 'Credit' | 'Debit' | 'Settlement';
     description: string;
     status: 'Completed' | 'Pending' | 'Failed';
     reference: string;
@@ -33,7 +33,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
         },
         type: {
             type: String,
-            enum: ['Credit', 'Debit'],
+            enum: ['Credit', 'Debit', 'Settlement'],
             required: [true, 'Transaction type is required'],
         },
         description: {

@@ -242,8 +242,8 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
             userId: deliveryBoyId,
             userType: "DELIVERY_BOY",
             amount: amount,
-            type: "Debit",
-            description: "Payout to Admin via Razorpay",
+            type: "Settlement",
+            description: "Payout to Admin (COD Settlement)",
             status: "Completed",
             reference,
         });

@@ -9,12 +9,15 @@ import { getPolicies } from "../../../services/api/delivery/deliveryService";
 import { uploadDocumentPublic } from "../../../services/api/uploadService";
 import { validateDocumentFile } from "../../../utils/imageUpload";
 import OTPInput from "../../../components/OTPInput";
+import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
 import LogoLatest from "@assets/LogoLatest.png";
 
 export default function DeliverySignUp() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -34,9 +37,6 @@ export default function DeliverySignUp() {
     vehicleType: "",
   });
 
-  const [selectedPolicy, setSelectedPolicy] = useState<{ title: string; content: string } | null>(null);
-  const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [policyLoading, setPolicyLoading] = useState(false);
 
   // File state for UI
   const [drivingLicenseFile, setDrivingLicenseFile] = useState<File | null>(
@@ -48,8 +48,9 @@ export default function DeliverySignUp() {
   const [showOTP, setShowOTP] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [isCityLoading, setIsCityLoading] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'delivery' });
 
   const bonusTypes = [
     "Select Bonus Type",
@@ -106,7 +107,7 @@ export default function DeliverySignUp() {
 
   const fetchCityFromLocation = () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
+      showToast("Geolocation is not supported by your browser", "error");
       return;
     }
 
@@ -134,16 +135,16 @@ export default function DeliverySignUp() {
               }));
             }
           } else {
-            setError("Could not fetch city from your location");
+            showToast("Could not fetch city from your location", "error");
           }
         } catch (err) {
-          setError("Failed to fetch city details");
+          showToast("Failed to fetch city details", "error");
         } finally {
           setIsCityLoading(false);
         }
       },
       (err) => {
-        setError("Location access denied. Please type your city manually.");
+        showToast("Location access denied. Please type your city manually.", "error");
         setIsCityLoading(false);
       },
       {
@@ -161,7 +162,7 @@ export default function DeliverySignUp() {
     const file = files[0];
     const validation = validateDocumentFile(file);
     if (!validation.valid) {
-      setError(validation.error || "Invalid document file");
+      showToast(validation.error || "Invalid document file", "error");
       return;
     }
 
@@ -170,26 +171,11 @@ export default function DeliverySignUp() {
     } else if (name === "nationalIdentityCard") {
       setNationalIdentityCardFile(file);
     }
-    setError("");
   };
 
-  const handleShowPolicy = async (title: string) => {
-    setPolicyLoading(true);
-    try {
-      const policies = await getPolicies('delivery');
-      const policy = policies.find((p: any) => p.title.toLowerCase().includes(title.toLowerCase()));
-      if (policy) {
-        setSelectedPolicy({ title: policy.title, content: policy.content });
-        setShowPolicyModal(true);
-      } else {
-        alert(`${title} not found.`);
-      }
-    } catch (error) {
-      console.error("Failed to fetch policy", error);
-      alert("Failed to load policy content.");
-    } finally {
-      setPolicyLoading(false);
-    }
+  const handleShowPolicy = (title: string) => {
+    setPolicyType({ type: 'delivery', title });
+    setShowPolicy(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -203,44 +189,62 @@ export default function DeliverySignUp() {
       !formData.address ||
       !formData.city
     ) {
-      setError("Please fill all required fields");
+      showToast("Please fill all required fields", "error");
+      return;
+    }
+
+    if (!/^[a-zA-Z\s]+$/.test(formData.name)) {
+      showToast("Name should only contain alphabets (a-z)", "error");
       return;
     }
 
     if (!drivingLicenseFile || !nationalIdentityCardFile) {
-      setError("Please upload all required documents (Driving License and ID Card)");
+      showToast("Please upload all required documents (Driving License and ID Card)", "error");
       return;
     }
 
     if (formData.mobile.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number");
+      showToast("Please enter a valid 10-digit mobile number", "error");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address");
+      showToast("Please enter a valid email address", "error");
+      return;
+    }
+    if (/\d/.test(formData.email)) {
+      showToast("Email should not contain numbers", "error");
       return;
     }
 
     if (formData.pincode && formData.pincode.length !== 6) {
-      setError("Pincode must be 6 digits");
+      showToast("Pincode must be 6 digits", "error");
+      return;
+    }
+
+    if (formData.accountName && !/^[a-zA-Z\s]+$/.test(formData.accountName)) {
+      showToast("Account holder name should only contain alphabets", "error");
+      return;
+    }
+
+    if (formData.bankName && !/^[a-zA-Z\s]+$/.test(formData.bankName)) {
+      showToast("Bank name should only contain alphabets", "error");
       return;
     }
 
     if (formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode)) {
-      setError("Please enter a valid IFSC code (e.g. SBIN0012345)");
+      showToast("Please enter a valid IFSC code (e.g. SBIN0012345)", "error");
       return;
     }
 
     if (formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)) {
-      setError("Please enter a valid Bank Account Number");
+      showToast("Please enter a valid Bank Account Number (9-18 digits)", "error");
       return;
     }
 
 
     setLoading(true);
-    setError("");
 
     try {
       // Upload documents if provided
@@ -298,13 +302,11 @@ export default function DeliverySignUp() {
           if (otpRes.sessionId) setSessionId(otpRes.sessionId);
           setShowOTP(true);
         } catch (otpErr: any) {
-          setError(
-            otpErr.message || "Registration successful but failed to send OTP."
-          );
+          showToast(otpErr.message || "Registration successful but failed to send OTP.", "error");
         }
       }
     } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+      showToast(err.message || "Registration failed. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -312,7 +314,6 @@ export default function DeliverySignUp() {
 
   const handleOTPComplete = async (otp: string) => {
     setLoading(true);
-    setError("");
 
     try {
       const response = await verifyOTP(formData.mobile, otp, sessionId);
@@ -329,7 +330,7 @@ export default function DeliverySignUp() {
         navigate("/delivery");
       }
     } catch (err: any) {
-      setError(err.message || "Invalid OTP. Please try again.");
+      showToast(err.message || "Invalid OTP. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -711,12 +712,6 @@ export default function DeliverySignUp() {
                 </div>
               </div>
 
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
-                </div>
-              )}
-
               {/* Terms and Conditions Text */}
               <div className="text-center px-4 py-2">
                 <p className="text-[11px] text-neutral-400 font-medium leading-relaxed">
@@ -791,17 +786,10 @@ export default function DeliverySignUp() {
                 <OTPInput onComplete={handleOTPComplete} disabled={loading} />
               </div>
 
-              {error && (
-                <div className="text-sm font-medium text-red-500 bg-red-50 p-4 rounded-[1.25rem] border border-red-100 text-center animate-shake">
-                  {error}
-                </div>
-              )}
-
               <div className="flex justify-center gap-3">
                 <button
                   onClick={() => {
                     setShowOTP(false);
-                    setError("");
                   }}
                   disabled={loading}
                   className="flex-1 max-w-[8rem] py-6 rounded-[1.25rem] font-bold text-sm bg-green-50 text-green-600 hover:bg-green-100 transition-all border border-green-100">
@@ -810,12 +798,11 @@ export default function DeliverySignUp() {
                 <button
                   onClick={async () => {
                     setLoading(true);
-                    setError("");
                     try {
                       const res = await sendOTP(formData.mobile);
                       if (res.sessionId) setSessionId(res.sessionId);
                     } catch (err: any) {
-                      setError(err.message || "Failed to resend OTP.");
+                      showToast(err.message || "Failed to resend OTP.", "error");
                     } finally {
                       setLoading(false);
                     }
@@ -831,44 +818,15 @@ export default function DeliverySignUp() {
         </div>
       </div>
 
+      <PolicyModal 
+        isOpen={showPolicy}
+        onClose={() => setShowPolicy(false)}
+        type={policyType.type}
+        titleSearch={policyType.title}
+      />
+
 
       {/* Policy Modal */}
-      {showPolicyModal && selectedPolicy && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] animate-in slide-in-from-bottom-10 duration-500">
-            {/* Modal Header */}
-            <div className="px-6 py-5 bg-green-600 text-white flex items-center justify-between">
-              <h3 className="font-bold text-lg">{selectedPolicy.title}</h3>
-              <button 
-                onClick={() => setShowPolicyModal(false)}
-                className="p-1 hover:bg-white/20 rounded-full transition-colors"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto text-neutral-600">
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap leading-relaxed text-sm">
-                {selectedPolicy.content}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-neutral-100 flex justify-end bg-neutral-50">
-              <button
-                onClick={() => setShowPolicyModal(false)}
-                className="px-8 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/30"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

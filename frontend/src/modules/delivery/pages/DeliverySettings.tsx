@@ -141,22 +141,12 @@ export default function DeliverySettings() {
             <h3 className="text-neutral-900 font-semibold">Other</h3>
           </div>
           <div className="divide-y divide-neutral-200">
-            <button className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
+            <div className="w-full p-4 flex items-center justify-between bg-white">
               <div className="flex-1 text-left">
                 <p className="text-neutral-900 text-sm font-medium">Language</p>
                 <p className="text-neutral-500 text-xs mt-1">English</p>
               </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M9 18L15 12L9 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-neutral-400"
-                />
-              </svg>
-            </button>
+            </div>
             <button 
               onClick={() => handleShowPolicy('Privacy Policy')}
               disabled={policyLoading}

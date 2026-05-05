@@ -14,6 +14,7 @@ import {
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
 import FileUpload from "../../../components/FileUpload";
+import PolicyModal from "../../../components/PolicyModal";
 import { useToast } from "../../../context/ToastContext";
 import LogoLatest from "@assets/LogoLatest.png";
 
@@ -49,6 +50,9 @@ export default function SellerSignUp() {
       workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     }
   });
+
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'seller' });
 
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<HeaderCategory[]>([]);
@@ -150,8 +154,23 @@ export default function SellerSignUp() {
     // Validation for current step
     if (currentStep === 1) {
       if (!formData.sellerName) return showToast("Seller name is required", "error");
+      if (!/^[a-zA-Z\s]+$/.test(formData.sellerName)) {
+        return showToast("Name should only contain alphabets (a-z)", "error");
+      }
+      
       if (!formData.email) return showToast("Email address is required", "error");
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        return showToast("Please enter a valid email address", "error");
+      }
+      if (/\d/.test(formData.email)) {
+        return showToast("Email should not contain numbers", "error");
+      }
+
       if (!formData.mobile) return showToast("Phone number is required", "error");
+      if (formData.mobile.length !== 10) {
+        return showToast("Mobile number must be exactly 10 digits", "error");
+      }
       if (!isOTPVerified) return showToast("Please verify your mobile number to continue", "error");
     } else if (currentStep === 2) {
       if (!formData.storeName) return showToast("Shop name is required", "error");
@@ -335,6 +354,32 @@ export default function SellerSignUp() {
                     Mobile Number Verified
                   </div>
                 )}
+
+                {/* Policy Links */}
+                <div className="pt-2 text-center">
+                  <p className="text-[11px] text-neutral-400 font-medium px-4 leading-relaxed">
+                    By proceeding, you agree to our{" "}
+                    <button
+                      onClick={() => {
+                        setPolicyType({ type: 'seller', title: 'Terms' });
+                        setShowPolicy(true);
+                      }}
+                      className="text-green-600 hover:underline font-bold"
+                    >
+                      Terms & Conditions
+                    </button>{" "}
+                    and{" "}
+                    <button
+                      onClick={() => {
+                        setPolicyType({ type: 'seller', title: 'Privacy' });
+                        setShowPolicy(true);
+                      }}
+                      className="text-green-600 hover:underline font-bold"
+                    >
+                      Privacy Policy
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
@@ -552,6 +597,13 @@ export default function SellerSignUp() {
           </div>
         </div>
       </div>
+
+      <PolicyModal 
+        isOpen={showPolicy}
+        onClose={() => setShowPolicy(false)}
+        type={policyType.type}
+        titleSearch={policyType.title}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { sendOTP, verifyOTP } from '../../services/api/auth/customerAuthService';
 import { useAuth } from '../../context/AuthContext';
 import OTPInput from '../../components/OTPInput';
+import PolicyModal from '../../components/PolicyModal';
 import Lottie from 'lottie-react';
 import groceryAnimation from '../../../assets/animation/Grocery-animation.json';
 
@@ -14,6 +15,8 @@ export default function Login() {
   const [sessionId, setSessionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'customer' });
 
   const handleContinue = async () => {
     if (mobileNumber.length !== 10) return;
@@ -180,26 +183,37 @@ export default function Login() {
           )}
 
 
-          {!showOTP && (
             <p className="mt-8 text-center text-[11px] text-neutral-400 px-6 leading-normal">
               By continuing, you agree to our{' '}
               <button 
-                onClick={() => navigate('/policy?type=customer')}
+                onClick={() => {
+                  setPolicyType({ type: 'customer', title: 'Terms' });
+                  setShowPolicy(true);
+                }}
                 className="text-[#ba9af7] font-semibold hover:underline"
               >
                 Terms of Service
               </button>{' '}
               &{' '}
               <button 
-                onClick={() => navigate('/policy?type=customer')}
+                onClick={() => {
+                  setPolicyType({ type: 'customer', title: 'Privacy' });
+                  setShowPolicy(true);
+                }}
                 className="text-[#ba9af7] font-semibold hover:underline"
               >
                 Privacy Policy
               </button>
             </p>
-          )}
         </div>
       </div>
+
+      <PolicyModal 
+        isOpen={showPolicy}
+        onClose={() => setShowPolicy(false)}
+        type={policyType.type}
+        titleSearch={policyType.title}
+      />
 
       {/* Footer Branding */}
       <div className="absolute bottom-6 left-0 right-0 text-center">

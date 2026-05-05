@@ -406,8 +406,8 @@ export default function DeliveryWallet() {
                                             </p>
                                         </div>
                                         <p
-                                            className={`font-bold text-lg ${txn.type === "Credit" ? "text-green-600" : "text-red-600"}`}>
-                                            {txn.type === "Credit" ? "+" : "-"}₹
+                                            className={`font-bold text-lg ${txn.type === "Credit" ? "text-green-600" : txn.type === "Settlement" ? "text-blue-600" : "text-red-600"}`}>
+                                            {txn.type === "Credit" ? "+" : txn.type === "Settlement" ? "✓" : "-"}₹
                                             {txn.amount.toFixed(2)}
                                         </p>
                                     </div>

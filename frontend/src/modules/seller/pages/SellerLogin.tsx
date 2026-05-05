@@ -5,6 +5,7 @@ import {
   verifyOTP,
 } from "../../../services/api/auth/sellerAuthService";
 import OTPInput from "../../../components/OTPInput";
+import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
 import LogoLatest from "@assets/LogoLatest.png";
 
@@ -15,6 +16,8 @@ export default function SellerLogin() {
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'seller' });
 
   const handleMobileLogin = async () => {
     if (mobileNumber.length !== 10) return;
@@ -232,8 +235,41 @@ export default function SellerLogin() {
               </button>
             </p>
           </div>
+
+          {/* Policy Links */}
+          <div className="text-center pt-4">
+            <p className="text-[11px] text-neutral-400 font-medium px-8 leading-relaxed">
+              By logging in, you agree to our{" "}
+              <button
+                onClick={() => {
+                  setPolicyType({ type: 'seller', title: 'Terms' });
+                  setShowPolicy(true);
+                }}
+                className="text-green-600 hover:underline font-bold"
+              >
+                Terms & Conditions
+              </button>{" "}
+              and{" "}
+              <button
+                onClick={() => {
+                  setPolicyType({ type: 'seller', title: 'Privacy' });
+                  setShowPolicy(true);
+                }}
+                className="text-green-600 hover:underline font-bold"
+              >
+                Privacy Policy
+              </button>
+            </p>
+          </div>
         </div>
       </div>
+
+      <PolicyModal 
+        isOpen={showPolicy}
+        onClose={() => setShowPolicy(false)}
+        type={policyType.type}
+        titleSearch={policyType.title}
+      />
 
 
 
