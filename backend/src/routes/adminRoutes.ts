@@ -267,6 +267,10 @@ router.post("/cash-collections", cashCollectionController.createCashCollection);
 router.get("/cash-collections/dashboard/stats", cashCollectionController.getCashCollectionStats);
 router.get("/cash-collections/dashboard/agents-summary", cashCollectionController.getAgentsCashSummary);
 router.post("/cash-collections/dashboard/collect", cashCollectionController.processAgentCollection);
+router.get("/cash-collections/dashboard/pending-payouts", cashCollectionController.getPendingOfflinePayouts);
+router.post("/cash-collections/dashboard/verify-payout", cashCollectionController.verifyOfflinePayout);
+router.patch("/cash-collections/dashboard/toggle-block/:riderId", cashCollectionController.toggleRiderBlock);
+router.post("/cash-collections/dashboard/reminder/:riderId", cashCollectionController.sendPaymentReminder);
 
 router.put(
   "/cash-collections/:id",

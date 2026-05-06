@@ -156,6 +156,42 @@ export const createRazorpayPaymentLink = async (
 };
 
 /**
+ * Create a Razorpay QR Code
+ */
+export const createRazorpayQRCode = async (
+    amount: number,
+    description: string,
+    notes: any = {}
+) => {
+    try {
+        const razorpay = getRazorpayInstance();
+
+        const options: any = {
+            type: 'upi_qr',
+            name: 'Vrushahi Settlement',
+            usage: 'single_payment',
+            fixed_amount: true,
+            payment_amount: Math.round(amount * 100),
+            description,
+            notes
+        };
+
+        const qrCode = await razorpay.qrCode.create(options);
+
+        return {
+            success: true,
+            data: qrCode
+        };
+    } catch (error: any) {
+        console.error('Razorpay QR Code Error:', error);
+        return {
+            success: false,
+            message: error.error?.description || error.message || 'Failed to create QR code',
+        };
+    }
+};
+
+/**
  * Verify Razorpay payment signature
  */
 export const verifyPaymentSignature = (
@@ -431,6 +467,13 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
         const razorpayPaymentId = payload.id;
         const razorpayOrderId = payload.order_id;
         const orderIdFromNotes = payload.notes?.orderId;
+        const payoutType = payload.notes?.type;
+
+        // Handle Rider Payout (Dynamic QR)
+        if (payoutType === "RIDER_PAYOUT") {
+            await handleRiderPayout(payload, io);
+            return;
+        }
 
         // Find order either by Order ID in notes (for QR) or Razorpay Order ID
         let order;
@@ -504,6 +547,84 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
         }
     } catch (error) {
         console.error('Error handling payment captured:', error);
+    }
+};
+
+/**
+ * Handle automated Rider Payout from dynamic QR Code
+ */
+const handleRiderPayout = async (payload: any, io?: any) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const deliveryBoyId = payload.notes?.deliveryBoyId;
+        const amount = payload.amount / 100;
+        const razorpayPaymentId = payload.id;
+
+        if (!deliveryBoyId) throw new Error("DeliveryBoy ID missing in notes");
+
+        // Dynamic imports to avoid circular dependencies
+        const Delivery = (await import('../models/Delivery')).default;
+        const PlatformWallet = (await import('../models/PlatformWallet')).default;
+        const CashCollection = (await import('../models/CashCollection')).default;
+        const AppSettings = (await import('../models/AppSettings')).default;
+        const { processPendingCODPayouts } = await import('./commissionService');
+
+        const agent = await Delivery.findById(deliveryBoyId).session(session);
+        if (!agent) throw new Error("Delivery agent not found");
+
+        // Update balances
+        const ratio = (agent.pendingAdminPayout || 0) / (agent.cashCollected || 1);
+        const netAmount = Math.round(amount * ratio * 100) / 100;
+
+        agent.cashCollected = Math.max(0, (agent.cashCollected || 0) - amount);
+        agent.pendingAdminPayout = Math.max(0, (agent.pendingAdminPayout || 0) - netAmount);
+
+        // Check for unblocking
+        const settings = await AppSettings.getSettings();
+        const limit = agent.cashLimit || settings.riderCashLimit || 500;
+
+        if (agent.pendingAdminPayout < limit && agent.paymentStatus === 'Blocked') {
+            agent.paymentStatus = 'Clear';
+        }
+
+        await agent.save({ session });
+
+        // Update Platform Wallet
+        const wallet = await PlatformWallet.getWallet();
+        wallet.pendingFromDeliveryBoy = Math.max(0, (wallet.pendingFromDeliveryBoy || 0) - netAmount);
+        wallet.currentPlatformBalance += amount;
+        await wallet.save({ session });
+
+        // Create a completed cash collection record
+        await CashCollection.create([{
+            deliveryBoy: deliveryBoyId,
+            amount,
+            paymentMode: "Razorpay_QR",
+            type: "Online",
+            status: "Completed",
+            razorpayPaymentId,
+            remark: "Automated Razorpay QR Payout",
+            collectedAt: new Date()
+        }], { session });
+
+        // Process pending commissions
+        await processPendingCODPayouts(agent._id.toString(), amount, session);
+
+        await session.commitTransaction();
+
+        // Socket notification
+        if (io && deliveryBoyId) {
+            io.to(`delivery-${deliveryBoyId}`).emit('payout-success', {
+                amount,
+                message: 'Payout settled successfully via QR'
+            });
+        }
+    } catch (error) {
+        await session.abortTransaction();
+        console.error('Error in handleRiderPayout:', error);
+    } finally {
+        session.endSession();
     }
 };
 

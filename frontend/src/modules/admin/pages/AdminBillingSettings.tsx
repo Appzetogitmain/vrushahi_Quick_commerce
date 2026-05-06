@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../../context/ToastContext';
 import { getAppSettings, updateAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
+import { uploadFile } from '../../../services/api/uploadService';
 import { motion } from 'framer-motion';
 
 export default function AdminBillingSettings() {
@@ -24,6 +25,8 @@ export default function AdminBillingSettings() {
     const [googleMapsKey, setGoogleMapsKey] = useState<string>('');
     const [supportEmail, setSupportEmail] = useState<string>('');
     const [supportPhone, setSupportPhone] = useState<string>('');
+    const [riderCashLimit, setRiderCashLimit] = useState<number>(500);
+    const [adminUpiId, setAdminUpiId] = useState<string>('');
 
 
     useEffect(() => {
@@ -58,6 +61,8 @@ export default function AdminBillingSettings() {
 
                 setSupportEmail(data.supportEmail || '');
                 setSupportPhone(data.supportPhone || '');
+                setRiderCashLimit(data.riderCashLimit || 500);
+                setAdminUpiId(data.adminUpiId || '');
             }
         } catch (error: any) {
             console.error(error);
@@ -85,8 +90,9 @@ export default function AdminBillingSettings() {
                     googleMapsKey
                 },
                 supportEmail,
-                supportPhone
-
+                supportPhone,
+                riderCashLimit,
+                adminUpiId
             };
 
             const response = await updateAppSettings(updatePayload);
@@ -341,6 +347,44 @@ export default function AdminBillingSettings() {
                             </div>
                         </motion.div>
                     )}
+                </div>
+
+                {/* Rider Cash Collection Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">Rider Cash Collection Control</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Global Cash Holding Limit (₹)
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={riderCashLimit}
+                                    onChange={(e) => setRiderCashLimit(Number(e.target.value))}
+                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    placeholder="e.g. 500"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">Riders will be blocked from receiving orders if their pending payout exceeds this.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Admin UPI ID (for Offline Payments)
+                            </label>
+                            <input
+                                type="text"
+                                value={adminUpiId}
+                                onChange={(e) => setAdminUpiId(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g. vrushahi@upi"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">The UPI ID riders should pay to during offline settlement. A QR code will be generated automatically for them.</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Support Contact Section */}

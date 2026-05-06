@@ -41,6 +41,23 @@ export async function uploadImage(
 }
 
 /**
+ * Generic upload function (used by newer components)
+ */
+export async function uploadFile(
+  file: File,
+  folder?: string
+): Promise<UploadResponse> {
+  const formData = new FormData();
+  if (folder) {
+    formData.append("folder", folder);
+  }
+  formData.append("image", file);
+
+  const response = await api.post<UploadResponse>("/upload/image", formData);
+  return response.data;
+}
+
+/**
  * Upload multiple images to Cloudinary via backend
  */
 export async function uploadImages(

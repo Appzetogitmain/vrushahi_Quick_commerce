@@ -936,15 +936,27 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
 
         // 1. Update cashCollected and pendingAdminPayout atomically (ONLY if physical cash)
         if (!isOnlineQR) {
-            await Delivery.findByIdAndUpdate(
+            const updatedDelivery = await Delivery.findByIdAndUpdate(
                 deliveryBoyId,
                 {
                     $inc: {
                         cashCollected: breakdown.totalOrderAmount,
                         pendingAdminPayout: breakdown.amountDeliveryBoyOwesAdmin,
                     }
-                }
+                },
+                { new: true }
             );
+            
+            if (updatedDelivery) {
+                const settings = await AppSettings.getSettings();
+                const limit = updatedDelivery.cashLimit || settings.riderCashLimit || 500;
+                
+                if (updatedDelivery.pendingAdminPayout >= limit) {
+                    updatedDelivery.paymentStatus = 'Blocked';
+                    await updatedDelivery.save();
+                    console.log(`[COD Delivery] 🛑 Rider ${deliveryBoyId} BLOCKED. Balance (₹${updatedDelivery.pendingAdminPayout}) >= Limit (₹${limit})`);
+                }
+            }
             console.log(`[COD Delivery] ✅ Updated rider cashCollected and pendingAdminPayout`);
         }
 

@@ -39,6 +39,8 @@ export interface IDelivery extends Document {
   balance: number;
   cashCollected: number;
   pendingAdminPayout: number;
+  paymentStatus: 'Clear' | 'Blocked';
+  cashLimit?: number;
   rating: number;
   reviewsCount: number;
   settings: {
@@ -197,6 +199,15 @@ const DeliverySchema = new Schema<IDelivery>(
       type: Number,
       default: 0,
       min: [0, 'Pending admin payout cannot be negative'],
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['Clear', 'Blocked'],
+      default: 'Clear',
+    },
+    cashLimit: {
+      type: Number,
+      min: [0, 'Cash limit cannot be negative'],
     },
     rating: {
       type: Number,

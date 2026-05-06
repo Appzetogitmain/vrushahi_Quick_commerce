@@ -101,3 +101,48 @@ export const verifyAdminPayout = async (data: {
         throw error;
     }
 };
+/**
+ * Submit offline payout (UPI/QR)
+ */
+export const submitOfflinePayout = async (data: {
+    amount: number;
+    utrNumber: string;
+    paymentScreenshot: string;
+    remark?: string;
+}) => {
+    try {
+        const response = await api.post('/delivery/wallet/payout/offline', data);
+        return response.data;
+    } catch (error: any) {
+        console.error('Error submitting offline payout:', error);
+        throw error;
+    }
+};
+
+/**
+ * Generate Razorpay QR for payout
+ */
+export const generatePayoutQR = async (amount: number) => {
+    try {
+        const response = await api.post('/delivery/wallet/payout/generate-qr', { amount });
+        return response.data;
+    } catch (error: any) {
+        console.error('Error generating payout QR:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get admin payout settings (UPI ID, QR, Limit)
+ */
+export const getAdminPayoutSettings = async () => {
+    try {
+        // We'll use a public endpoint or reuse existing settings if available
+        // For now, let's assume we need a specific one or it's in the balance response
+        const response = await api.get('/delivery/wallet/payout/settings');
+        return response.data;
+    } catch (error: any) {
+        console.error('Error getting admin payout settings:', error);
+        throw error;
+    }
+};

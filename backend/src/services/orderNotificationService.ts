@@ -49,6 +49,7 @@ export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.Object
         const deliveryBoys = await Delivery.find({
             isOnline: true,
             status: 'Active',
+            paymentStatus: { $ne: 'Blocked' }
         }).select('_id');
 
         return deliveryBoys.map(db => db._id);
@@ -75,6 +76,7 @@ export async function findDeliveryBoysNearLocation(
         const deliveryBoysWithLocation = await Delivery.find({
             isOnline: true,
             status: 'Active',
+            paymentStatus: { $ne: 'Blocked' },
             location: {
                 $near: {
                     $geometry: {
@@ -191,27 +193,64 @@ export async function findDeliveryBoysNearSellerLocations(
     order: any
 ): Promise<mongoose.Types.ObjectId[]> {
     try {
-        // Get unique seller IDs from order items
+        console.log(`🔍 Finding delivery boys for order: ${order.orderNumber || order._id}`);
+        
+        // 1. Ensure order is populated with items and sellers
+        let populatedOrder = order;
+        if (!order.items || order.items.length === 0 || typeof order.items[0] === 'string' || order.items[0] instanceof mongoose.Types.ObjectId || !order.items[0].seller) {
+            try {
+                const fullOrder = await Order.findById(order._id).populate({
+                    path: 'items',
+                    populate: { path: 'seller' }
+                }).lean();
+                if (fullOrder) {
+                    populatedOrder = fullOrder;
+                    console.log('✅ Order populated successfully for location calculation');
+                }
+            } catch (popError) {
+                console.error('❌ Failed to populate order for delivery notification:', popError);
+            }
+        }
+
+        // 2. Get unique seller IDs from order items
         const sellerIds = [...new Set(
-            order.items
-                ?.map((item: any) => item.seller?.toString())
+            populatedOrder.items
+                ?.map((item: any) => {
+                    const seller = item.seller;
+                    if (!seller) return null;
+                    return (seller._id || seller).toString();
+                })
                 .filter((id: string) => id) || []
         )];
 
         if (sellerIds.length === 0) {
-            console.log('No sellers found in order, falling back to all available delivery boys');
+            console.log('⚠️ No sellers found in order items, falling back to all available delivery boys');
             return findAvailableDeliveryBoys();
         }
 
-        // Get seller locations
+        // 3. Get seller documents for locations
         const sellers = await Seller.find({
             _id: { $in: sellerIds },
         }).select('latitude longitude location serviceRadiusKm storeName');
 
         if (sellers.length === 0) {
-            console.log('No seller data found, falling back to all available delivery boys');
+            console.log('⚠️ No seller records found in DB, falling back to all available delivery boys');
             return findAvailableDeliveryBoys();
         }
+
+        const firstItem = populatedOrder.items?.[0];
+        const sellerRef = firstItem?.seller;
+        
+        // Helper to extract coordinates safely
+        const getCoords = (seller: any) => {
+            if (seller?.location?.coordinates) return { lat: seller.location.coordinates[1], lng: seller.location.coordinates[0] };
+            if (seller?.latitude && seller?.longitude) return { lat: parseFloat(seller.latitude), lng: parseFloat(seller.longitude) };
+            return { lat: 0, lng: 0 };
+        };
+
+        const sellerLocation = getCoords(sellerRef);
+
+        console.log(`🛵 Notifying delivery boys near Seller (${sellerRef?.storeName || 'Unknown'}): ${sellerLocation.lat}, ${sellerLocation.lng}`);
 
         // Find delivery boys near each seller location
         const nearbyDeliveryBoyMap = new Map<string, { distance: number }>();
@@ -274,8 +313,26 @@ export async function notifyDeliveryBoysOfNewOrder(
     order: any
 ): Promise<void> {
     try {
+        console.log(`🔔 PREPARING NOTIFICATION for order: ${order.orderNumber || order._id}`);
+        
+        // 1. Ensure order is populated for detailed notification data
+        let populatedOrder = order;
+        if (!order.items || order.items.length === 0 || typeof order.items[0] === 'string' || order.items[0] instanceof mongoose.Types.ObjectId || !order.items[0].seller) {
+            try {
+                const fullOrder = await Order.findById(order._id).populate({
+                    path: 'items',
+                    populate: { path: 'seller' }
+                }).lean();
+                if (fullOrder) {
+                    populatedOrder = fullOrder;
+                }
+            } catch (popError) {
+                console.error('❌ Failed to populate order for notification data:', popError);
+            }
+        }
+
         // Find delivery boys near seller locations (within service radius)
-        let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
+        let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(populatedOrder);
 
         if (nearbyDeliveryBoyIds.length === 0) {
             console.log('No available delivery boys to notify (including fallback)');
@@ -310,20 +367,25 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         // Prepare order data for notification
         const orderData = {
-            orderId: order._id.toString(),
-            orderNumber: order.orderNumber,
-            customerName: order.customerName,
-            customerPhone: order.customerPhone,
+            orderId: populatedOrder._id.toString(),
+            orderNumber: populatedOrder.orderNumber,
+            customerName: populatedOrder.customerName,
+            customerPhone: populatedOrder.customerPhone,
             deliveryAddress: {
-                address: order.deliveryAddress.address,
-                city: order.deliveryAddress.city,
-                state: order.deliveryAddress.state,
-                pincode: order.deliveryAddress.pincode,
+                address: populatedOrder.deliveryAddress.address,
+                city: populatedOrder.deliveryAddress.city,
+                state: populatedOrder.deliveryAddress.state,
+                pincode: populatedOrder.deliveryAddress.pincode,
             },
-            total: order.total,
-            subtotal: order.subtotal,
-            shipping: order.shipping,
-            createdAt: order.createdAt,
+            items: populatedOrder.items.map((item: any) => ({
+                productName: item.productName,
+                quantity: item.quantity,
+                variation: item.variation
+            })),
+            total: populatedOrder.total,
+            subtotal: populatedOrder.subtotal,
+            shipping: populatedOrder.shipping,
+            createdAt: populatedOrder.createdAt,
         };
 
         // Fetch delivery boy documents to get FCM tokens
@@ -345,7 +407,7 @@ export async function notifyDeliveryBoysOfNewOrder(
             const deliveryBoy = deliveryBoyMap.get(idString);
 
             // Calculate earning for this specific delivery boy
-            const earningInfo = await calculateDeliveryBoyEarning(order, deliveryBoy);
+            const earningInfo = await calculateDeliveryBoyEarning(populatedOrder, deliveryBoy);
             const personalizedOrderData = {
                 ...orderData,
                 expectedEarning: earningInfo.amount
@@ -355,8 +417,10 @@ export async function notifyDeliveryBoysOfNewOrder(
                 // Connected: Send socket notification
                 notifiedIds.add(idString);
                 io.to(roomName).emit('new-order', personalizedOrderData);
-                console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName} (Earning: ${earningInfo.amount})`);
-            } else if (deliveryBoy) {
+                console.log(`✅ SUCCESS: Emitted new-order to room: ${roomName} (Active users: ${room.size})`);
+            } else {
+                console.log(`ℹ️ Room ${roomName} is empty or does not exist. (Checked: ${!!room})`);
+                if (deliveryBoy) {
                 // Disconnected: Fallback to FCM Push Notification
                 const tokens = [
                     ...(deliveryBoy.fcmTokenMobile || []),
@@ -382,8 +446,9 @@ export async function notifyDeliveryBoysOfNewOrder(
                 }
             }
         }
+    }
 
-        if (notifiedIds.size === 0) {
+    if (notifiedIds.size === 0) {
             console.log('⚠️ No connected delivery boys found to notify');
             // Don't emit to general room as it includes offline delivery boys
             return;
@@ -489,6 +554,20 @@ export async function handleOrderAcceptance(
             deliveryBoyId: normalizedDeliveryBoyId,
             message: 'Delivery boy accepted your order. Tracking started.',
         });
+
+        // Notify sellers involved in this order that a rider has been assigned
+        try {
+            const fullOrderWithItems = await Order.findById(orderId).populate({
+                path: 'items',
+                populate: { path: 'seller' }
+            });
+            if (fullOrderWithItems) {
+                await notifySellersOfOrderUpdate(io, fullOrderWithItems, 'STATUS_UPDATE');
+                console.log(`📢 Notified sellers about rider assignment for order ${orderId}`);
+            }
+        } catch (sellerNotifyError) {
+            console.error('Error notifying sellers about rider assignment:', sellerNotifyError);
+        }
 
         console.log(`✅ Order ${orderId} accepted by delivery boy ${normalizedDeliveryBoyId} ${state ? '(Memory)' : '(DB Fallback)'}`);
         return { success: true, message: 'Order accepted successfully' };

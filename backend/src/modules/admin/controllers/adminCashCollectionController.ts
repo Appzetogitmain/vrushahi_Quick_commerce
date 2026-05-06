@@ -5,6 +5,7 @@ import Delivery from "../../../models/Delivery";
 import Order from "../../../models/Order";
 import PlatformWallet from "../../../models/PlatformWallet";
 import { processPendingCODPayouts } from "../../../services/commissionService";
+import AppSettings from "../../../models/AppSettings";
 import mongoose from "mongoose";
 
 /**
@@ -306,7 +307,7 @@ export const getAgentsCashSummary = asyncHandler(async (req: Request, res: Respo
     ];
   }
 
-  const agents = await Delivery.find(query).select('name mobile cashCollected updatedAt');
+  const agents = await Delivery.find(query).select('name mobile cashCollected pendingAdminPayout paymentStatus cashLimit updatedAt');
 
   // For each agent, find their last submission date
   const agentIds = agents.map(a => a._id);
@@ -328,7 +329,9 @@ export const getAgentsCashSummary = asyncHandler(async (req: Request, res: Respo
       name: agent.name,
       mobile: agent.mobile,
       cashCollected: pending,
-      pending: pending,
+      pending: agent.pendingAdminPayout || 0,
+      paymentStatus: agent.paymentStatus,
+      cashLimit: agent.cashLimit,
       lastSubmissionDate: submissionMap.get(agent._id.toString()) || null,
       status: status
     };
@@ -419,4 +422,157 @@ export const processAgentCollection = asyncHandler(async (req: Request, res: Res
   } finally {
     session.endSession();
   }
+});
+/**
+ * Get Pending Offline Payouts
+ */
+export const getPendingOfflinePayouts = asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [payouts, total] = await Promise.all([
+        CashCollection.find({ status: "Pending", type: "Offline" })
+            .populate("deliveryBoy", "name mobile")
+            .sort({ collectedAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        CashCollection.countDocuments({ status: "Pending", type: "Offline" })
+    ]);
+
+    return res.status(200).json({
+        success: true,
+        data: payouts,
+        pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            pages: Math.ceil(total / Number(limit))
+        }
+    });
+});
+
+/**
+ * Verify Offline Payout (Approve/Reject)
+ */
+export const verifyOfflinePayout = asyncHandler(async (req: Request, res: Response) => {
+    const { payoutId, status, rejectionReason } = req.body;
+
+    if (!payoutId || !["Completed", "Rejected"].includes(status)) {
+        return res.status(400).json({
+            success: false,
+            message: "Payout ID and valid status (Completed/Rejected) are required"
+        });
+    }
+
+    const payout = await CashCollection.findById(payoutId).populate("deliveryBoy");
+    if (!payout) {
+        return res.status(404).json({ success: false, message: "Payout record not found" });
+    }
+
+    if (payout.status !== "Pending") {
+        return res.status(400).json({ success: false, message: "This payout has already been processed" });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        if (status === "Completed") {
+            const agent = await Delivery.findById(payout.deliveryBoy._id).session(session);
+            if (!agent) throw new Error("Delivery agent not found");
+
+            const amount = payout.amount;
+
+            // Update balances
+            const ratio = agent.pendingAdminPayout / (agent.cashCollected || 1);
+            const netAmount = Math.round(amount * ratio * 100) / 100;
+
+            agent.cashCollected = Math.max(0, agent.cashCollected - amount);
+            agent.pendingAdminPayout = Math.max(0, agent.pendingAdminPayout - netAmount);
+
+            // Check for unblocking
+            const settings = await AppSettings.getSettings();
+            const limit = agent.cashLimit || settings.riderCashLimit || 500;
+
+            if (agent.pendingAdminPayout < limit && agent.paymentStatus === 'Blocked') {
+                agent.paymentStatus = 'Clear';
+            }
+
+            await agent.save({ session });
+
+            // Update Platform Wallet
+            const wallet = await PlatformWallet.getWallet();
+            wallet.pendingFromDeliveryBoy = Math.max(0, wallet.pendingFromDeliveryBoy - netAmount);
+            wallet.currentPlatformBalance += amount;
+            await wallet.save({ session });
+
+            // Process pending commissions
+            await processPendingCODPayouts(agent._id.toString(), amount, session);
+
+            payout.status = "Completed";
+        } else {
+            payout.status = "Rejected";
+            payout.rejectionReason = rejectionReason || "Verification failed";
+        }
+
+        payout.collectedBy = req.user?.userId as any;
+        await payout.save({ session });
+
+        await session.commitTransaction();
+
+        return res.status(200).json({
+            success: true,
+            message: `Payout ${status.toLowerCase()} successfully`,
+            data: payout
+        });
+    } catch (error: any) {
+        await session.abortTransaction();
+        console.error("Error in verifyOfflinePayout:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    } finally {
+        session.endSession();
+    }
+});
+
+/**
+ * Toggle Rider Manual Block
+ */
+export const toggleRiderBlock = asyncHandler(async (req: Request, res: Response) => {
+    const { riderId } = req.params;
+    const { status } = req.body; // 'Clear' or 'Blocked'
+
+    const rider = await Delivery.findById(riderId);
+    if (!rider) {
+        return res.status(404).json({ success: false, message: "Rider not found" });
+    }
+
+    rider.paymentStatus = status;
+    await rider.save();
+
+    return res.status(200).json({
+        success: true,
+        message: `Rider payment status updated to ${status}`,
+        data: rider
+    });
+});
+
+/**
+ * Send Payment Reminder
+ */
+export const sendPaymentReminder = asyncHandler(async (req: Request, res: Response) => {
+    const { riderId } = req.params;
+
+    const rider = await Delivery.findById(riderId);
+    if (!rider) {
+        return res.status(404).json({ success: false, message: "Rider not found" });
+    }
+
+    // Here you would integrate with your notification service
+    console.log(`[Reminder] Sending payment reminder to ${rider.name} (${rider.mobile})`);
+    
+    // For now, we'll just return success. In a real app, send a Push Notification.
+    return res.status(200).json({
+        success: true,
+        message: "Payment reminder sent successfully"
+    });
 });

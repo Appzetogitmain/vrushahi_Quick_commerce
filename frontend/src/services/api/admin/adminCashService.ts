@@ -16,6 +16,8 @@ export interface AgentCashSummary {
   pending: number;
   lastSubmissionDate: string | null;
   status: string;
+  paymentStatus?: 'Clear' | 'Blocked';
+  cashLimit?: number;
 }
 
 export interface CashCollectionRecord {
@@ -64,5 +66,40 @@ export const processAgentCollection = async (data: {
  */
 export const getRecentCollections = async (params?: any): Promise<ApiResponse<any[]>> => {
   const response = await api.get<ApiResponse<any[]>>("/admin/cash-collections", { params });
+  return response.data;
+};
+/**
+ * Get Pending Offline Payouts
+ */
+export const getPendingOfflinePayouts = async (params?: any): Promise<ApiResponse<any[]>> => {
+  const response = await api.get<ApiResponse<any[]>>("/admin/cash-collections/dashboard/pending-payouts", { params });
+  return response.data;
+};
+
+/**
+ * Verify Offline Payout
+ */
+export const verifyOfflinePayout = async (data: {
+  payoutId: string;
+  status: "Completed" | "Rejected";
+  rejectionReason?: string;
+}): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>("/admin/cash-collections/dashboard/verify-payout", data);
+  return response.data;
+};
+
+/**
+ * Toggle Rider Manual Block
+ */
+export const toggleRiderBlock = async (riderId: string, status: 'Clear' | 'Blocked'): Promise<ApiResponse<any>> => {
+  const response = await api.patch<ApiResponse<any>>(`/admin/cash-collections/dashboard/toggle-block/${riderId}`, { status });
+  return response.data;
+};
+
+/**
+ * Send Payment Reminder
+ */
+export const sendPaymentReminder = async (riderId: string): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>(`/admin/cash-collections/dashboard/reminder/${riderId}`);
   return response.data;
 };

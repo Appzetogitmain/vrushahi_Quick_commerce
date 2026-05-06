@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { getCommissionSummary, processPendingCODPayouts } from '../../../services/commissionService';
 import Delivery from '../../../models/Delivery';
-import { createRazorpayOrder, verifyPaymentSignature } from '../../../services/paymentService';
+import { createRazorpayOrder, verifyPaymentSignature, createRazorpayQRCode } from '../../../services/paymentService';
 import WalletTransaction from '../../../models/WalletTransaction';
 import PlatformWallet from '../../../models/PlatformWallet';
 import mongoose from 'mongoose';
+import CashCollection from '../../../models/CashCollection';
+import AppSettings from '../../../models/AppSettings';
 import {
     getWalletBalance,
     getWalletTransactions,
@@ -162,8 +164,61 @@ export const getCommissions = async (req: Request, res: Response) => {
 };
 
 /**
- * Create Admin Payout Order (Razorpay)
+ * Get Admin Payout Settings (for rider)
  */
+export const getPayoutSettings = async (req: Request, res: Response) => {
+    try {
+        const settings = await AppSettings.getSettings();
+        const deliveryBoy = await Delivery.findById(req.user!.userId);
+        
+        return res.status(200).json({
+            success: true,
+            data: {
+                adminUpiId: settings.adminUpiId,
+                riderCashLimit: settings.riderCashLimit || 500,
+                individualCashLimit: deliveryBoy?.cashLimit,
+                paymentStatus: deliveryBoy?.paymentStatus || 'Clear'
+            }
+        });
+    } catch (error: any) {
+        console.error("Error getting payout settings:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Generate Razorpay QR Code for Payout
+ */
+export const generatePayoutQR = async (req: Request, res: Response) => {
+    try {
+        const deliveryBoyId = req.user!.userId;
+        const { amount } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ success: false, message: "Invalid amount" });
+        }
+
+        const deliveryBoy = await Delivery.findById(deliveryBoyId);
+        if (!deliveryBoy) {
+            return res.status(404).json({ success: false, message: "Delivery boy not found" });
+        }
+
+        const description = `Settlement for ${deliveryBoy.name} (${deliveryBoy.mobile})`;
+        const notes = {
+            deliveryBoyId: deliveryBoy._id.toString(),
+            type: "RIDER_PAYOUT",
+            amount: amount
+        };
+
+        const result = await createRazorpayQRCode(amount, description, notes);
+
+        return res.status(result.success ? 200 : 400).json(result);
+    } catch (error: any) {
+        console.error("Error generating payout QR:", error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const createAdminPayoutOrder = async (req: Request, res: Response) => {
     try {
         const deliveryBoyId = req.user!.userId;
@@ -263,7 +318,29 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
 
         // Update delivery boy pending amount
         deliveryBoy.pendingAdminPayout = Math.max(0, currentPending - amount);
+        
+        // 4. Check for unblocking
+        const settings = await AppSettings.getSettings();
+        const limit = deliveryBoy.cashLimit || settings.riderCashLimit || 500;
+        
+        if (deliveryBoy.pendingAdminPayout < limit && deliveryBoy.paymentStatus === 'Blocked') {
+            deliveryBoy.paymentStatus = 'Clear';
+            console.log(`[Payout] 🔓 Rider ${deliveryBoyId} UNBLOCKED. Balance (₹${deliveryBoy.pendingAdminPayout}) < Limit (₹${limit})`);
+        }
+        
         await deliveryBoy.save({ session });
+
+        // 5. Create CashCollection record for history
+        await CashCollection.create([{
+            deliveryBoy: deliveryBoyId,
+            amount: amount,
+            paymentMode: "UPI", // Razorpay usually ends up as UPI/Bank
+            type: "Online",
+            status: "Completed",
+            referenceId: razorpayPaymentId,
+            remark: "Razorpay Online Payout",
+            collectedAt: new Date(),
+        }], { session });
 
         await session.commitTransaction();
 
@@ -277,5 +354,61 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
         return res.status(500).json({ success: false, message: error.message });
     } finally {
         session.endSession();
+    }
+};
+/**
+ * Submit Offline Payout (UPI/QR)
+ */
+export const submitOfflinePayout = async (req: Request, res: Response) => {
+    try {
+        const deliveryBoyId = req.user!.userId;
+        const { amount, utrNumber, paymentScreenshot, remark } = req.body;
+
+        if (!amount || !utrNumber || !paymentScreenshot) {
+            return res.status(400).json({
+                success: false,
+                message: "Amount, UTR number, and payment screenshot are required"
+            });
+        }
+
+        // Verify delivery boy exists
+        const deliveryBoy = await Delivery.findById(deliveryBoyId);
+        if (!deliveryBoy) {
+            return res.status(404).json({
+                success: false,
+                message: "Delivery boy not found"
+            });
+        }
+
+        // Check if a pending payout with this UTR already exists
+        const existingPayout = await CashCollection.findOne({ utrNumber, status: "Pending" });
+        if (existingPayout) {
+            return res.status(400).json({
+                success: false,
+                message: "A pending payout with this UTR number already exists"
+            });
+        }
+
+        // Create a pending cash collection record
+        const collection = await CashCollection.create({
+            deliveryBoy: deliveryBoyId,
+            amount,
+            paymentMode: "UPI",
+            type: "Offline",
+            status: "Pending",
+            utrNumber,
+            paymentScreenshot,
+            remark: remark || "Offline UPI/QR Payout",
+            collectedAt: new Date()
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Payout submitted successfully. Admin will verify it shortly.",
+            data: collection
+        });
+    } catch (error: any) {
+        console.error("Error submitting offline payout:", error);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };

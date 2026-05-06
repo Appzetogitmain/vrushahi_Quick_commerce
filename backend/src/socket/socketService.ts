@@ -44,7 +44,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 if (!origin) return callback(null, true);
 
                 // In production, check against allowed origins
-                if (process.env.NODE_ENV === 'production') {
+                if (process.env.NODE_ENV === 'production' || process.env.STAGING === 'true') {
                     // Get allowed origins from environment variable (comma-separated)
                     const frontendUrl = process.env.FRONTEND_URL || "";
                     const allowedOrigins = frontendUrl
@@ -52,7 +52,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                         .map((url) => url.trim())
                         .filter((url) => url.length > 0);
 
-                    // Default production origins if FRONTEND_URL not set
+                    // Default production origins if FRONTEND_URL not set or for multi-tenant support
                     const defaultOrigins = [
                         "https://www.vrushahi.com",
                         "https://vrushahi.com",
@@ -60,11 +60,14 @@ export const initializeSocket = (httpServer: HttpServer) => {
                         "https://www.kosil.com",
                         "https://kosil.com",
                         "https://kosil-frontend.onrender.com",
+                        "https://kosil.biz",
+                        "https://www.kosil.biz",
                     ];
 
-                    const allAllowedOrigins = allowedOrigins.length > 0
-                        ? [...allowedOrigins, ...defaultOrigins]
-                        : defaultOrigins;
+                    const allAllowedOrigins = [
+                        ...allowedOrigins,
+                        ...defaultOrigins,
+                    ].filter((url, index, self) => self.indexOf(url) === index); // Unique
 
                     // Normalize origins for comparison (remove trailing slash, lowercase)
                     const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase();
@@ -72,6 +75,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
                     // Check if origin matches any allowed origin
                     const isAllowed = allAllowedOrigins.some((allowedOrigin) => {
+                        if (!allowedOrigin) return false;
                         const normalizedAllowed = normalizeUrl(allowedOrigin);
 
                         // Exact match
@@ -89,8 +93,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
                     });
 
                     if (!isAllowed) {
-                        console.warn(`⚠️ Socket.io connection rejected from origin: ${origin}. Allowed origins: ${allAllowedOrigins.join(', ')}`);
-                        console.warn(`⚠️ Normalized origin: ${normalizedOrigin}`);
+                        console.warn(`⚠️ Socket.io connection rejected from origin: ${origin}.`);
+                        // Optional: allow anyway if a special env var is set (for emergency debug)
+                        if (process.env.ALLOW_ALL_SOCKET_ORIGINS === 'true') {
+                            console.warn('⚠️ ALLOW_ALL_SOCKET_ORIGINS is true. Allowing connection anyway.');
+                            return callback(null, true);
+                        }
                     } else {
                         console.log(`✅ Socket.io connection allowed from origin: ${origin}`);
                     }
@@ -98,11 +106,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
                     return callback(null, isAllowed);
                 }
 
-                // In development, allow any localhost port
+                // In development, allow any localhost port or 127.0.0.1
                 if (
                     origin.startsWith('http://localhost:') ||
                     origin.startsWith('http://127.0.0.1:') ||
-                    origin.startsWith('https://localhost:')
+                    origin.startsWith('https://localhost:') ||
+                    origin.startsWith('http://192.168.') // Allow local network for mobile testing
                 ) {
                     return callback(null, true);
                 }
@@ -215,7 +224,25 @@ export const initializeSocket = (httpServer: HttpServer) => {
             socket.emit('joined-notifications-room', {
                 success: true,
                 message: 'Successfully joined delivery notifications room',
-                deliveryBoyId: normalizedDeliveryBoyId
+                deliveryBoyId: normalizedDeliveryBoyId,
+                room: `delivery-${normalizedDeliveryBoyId}`
+            });
+        });
+
+        // Debugging: Ping/Pong for connection testing
+        socket.on('ping-test', () => {
+            console.log(`🏓 Ping from ${socket.id}`);
+            socket.emit('pong-test', { timestamp: new Date() });
+        });
+
+        // Debugging: Broadcast a message to ALL connected clients
+        socket.on('broadcast-debug', (data: any) => {
+            console.log(`📢 Debug Broadcast from ${socket.id}:`, data);
+            io.emit('debug-message', {
+                from: socket.id,
+                user: (socket as any).user?.userId || 'Unauthenticated',
+                data,
+                timestamp: new Date()
             });
         });
 

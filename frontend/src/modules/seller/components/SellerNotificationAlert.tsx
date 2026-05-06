@@ -13,6 +13,8 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   const handleStatusUpdate = async (status: string) => {
     if (!notification) return;
@@ -34,13 +36,50 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
 
   useEffect(() => {
     if (notification) {
-      // Play sound when notification arrives
-      if (audioRef.current) {
-        audioRef.current.volume = volume;
-        audioRef.current.play().catch(err => console.error('Error playing sound:', err));
+      // Initialize audio if not already done
+      if (!audioRef.current) {
+         audioRef.current = new Audio("/assets/sound/seller_alert.mp3");
+         audioRef.current.loop = true;
+      }
+      
+      audioRef.current.volume = volume;
+      
+      // Try to play sound
+      const playSound = async () => {
+        try {
+          await audioRef.current?.play();
+          setHasUserInteracted(true);
+          setAudioError(null);
+        } catch (err: any) {
+          console.error('Error playing sound:', err);
+          if (err.name === 'NotAllowedError') {
+             setAudioError('Tap to enable sound');
+          }
+        }
+      };
+
+      playSound();
+    }
+
+    return () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+    };
+  }, [notification]);
+
+  const handleInteraction = async () => {
+    if (audioRef.current && !hasUserInteracted) {
+      try {
+        await audioRef.current.play();
+        setHasUserInteracted(true);
+        setAudioError(null);
+      } catch (err) {
+        console.error('Manual play failed:', err);
       }
     }
-  }, [notification]);
+  };
 
   useEffect(() => {
     if (audioRef.current) {
@@ -51,7 +90,10 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
   if (!notification) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm"
+      onClick={handleInteraction}
+    >
       <audio
         ref={audioRef}
         src="/assets/sound/seller_alert.mp3"
@@ -72,7 +114,14 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
               <h2 className="text-xl font-bold">
                 {notification.type === 'NEW_ORDER' ? 'New Order Received!' : 'Order Status Updated'}
               </h2>
-              <p className="text-sm opacity-90">#{notification.orderNumber}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm opacity-90">#{notification.orderNumber}</p>
+                {(audioError || !hasUserInteracted) && (
+                   <span className="bg-white bg-opacity-20 text-[10px] px-2 py-0.5 rounded-full animate-pulse border border-white border-opacity-30">
+                      Tap for sound 🔊
+                   </span>
+                )}
+              </div>
             </div>
           </div>
           <button

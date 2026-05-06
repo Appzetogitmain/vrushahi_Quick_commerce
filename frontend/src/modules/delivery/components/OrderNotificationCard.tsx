@@ -257,8 +257,12 @@ export default function OrderNotificationCard({
                         <h3 className="text-base sm:text-lg font-bold text-neutral-900">New Order!</h3>
                     </div>
                     {(audioError || !hasUserInteracted) && (
-                        <div className="text-xs text-neutral-500 bg-neutral-100 px-2 py-1 rounded whitespace-nowrap">
-                            {audioError || 'Tap to enable sound'}
+                        <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-full animate-bounce">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                            </span>
+                            {audioError || 'TAP ANYWHERE FOR SOUND'}
                         </div>
                     )}
                 </div>

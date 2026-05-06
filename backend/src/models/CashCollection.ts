@@ -7,8 +7,13 @@ export interface ICashCollection extends Document {
     paymentMode: "Cash" | "UPI" | "Bank Transfer";
     referenceId?: string;
     remark?: string;
-    collectedBy: Types.ObjectId;
-    collectedAt: Date;
+    collectedBy?: Types.ObjectId;
+    collectedAt?: Date;
+    paymentScreenshot?: string;
+    utrNumber?: string;
+    type: "Direct" | "Online" | "Offline";
+    status: "Pending" | "Completed" | "Rejected";
+    rejectionReason?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -35,6 +40,28 @@ const cashCollectionSchema = new Schema<ICashCollection>(
             enum: ["Cash", "UPI", "Bank Transfer"],
             default: "Cash",
         },
+        type: {
+            type: String,
+            enum: ["Direct", "Online", "Offline"],
+            default: "Direct",
+        },
+        status: {
+            type: String,
+            enum: ["Pending", "Completed", "Rejected"],
+            default: "Completed",
+        },
+        paymentScreenshot: {
+            type: String,
+            trim: true,
+        },
+        utrNumber: {
+            type: String,
+            trim: true,
+        },
+        rejectionReason: {
+            type: String,
+            trim: true,
+        },
         referenceId: {
             type: String,
             trim: true,
@@ -46,7 +73,7 @@ const cashCollectionSchema = new Schema<ICashCollection>(
         collectedBy: {
             type: Schema.Types.ObjectId,
             ref: "Admin",
-            required: [true, "Collected by admin is required"],
+            required: false,
         },
         collectedAt: {
             type: Date,

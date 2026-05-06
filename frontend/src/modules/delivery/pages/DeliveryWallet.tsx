@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { QRCodeSVG } from "qrcode.react";
 import { useToast } from "../../../context/ToastContext";
 import {
     getDeliveryWalletBalance,
@@ -10,7 +11,11 @@ import {
     getDeliveryCommissions,
     createAdminPayoutOrder,
     verifyAdminPayout,
+    submitOfflinePayout,
+    generatePayoutQR,
+    getAdminPayoutSettings,
 } from "../../../services/api/deliveryWalletService";
+import { uploadFile } from "../../../services/api/uploadService";
 import { useAuth } from "../../../context/AuthContext";
 
 type Tab = "transactions" | "withdrawals" | "commissions";
@@ -40,6 +45,14 @@ export default function DeliveryWallet() {
         "Bank Transfer",
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [paymentOption, setPaymentOption] = useState<"Online" | "Offline">("Online");
+    const [utrNumber, setUtrNumber] = useState("");
+    const [screenshotUrl, setScreenshotUrl] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
+    const [payoutSettings, setPayoutSettings] = useState<any>(null);
+    const [paymentStatus, setPaymentStatus] = useState<'Clear' | 'Blocked'>('Clear');
+    const [razorpayQR, setRazorpayQR] = useState<any>(null);
+    const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
     useEffect(() => {
         fetchWalletData();
@@ -61,6 +74,13 @@ export default function DeliveryWallet() {
                 setPendingAdminPayout(balanceRes.data.pendingAdminPayout || 0);
                 setCashCollected(balanceRes.data.cashCollected || 0);
             }
+            
+            const settingsRes = await getAdminPayoutSettings();
+            if (settingsRes.success) {
+                setPayoutSettings(settingsRes.data);
+                setPaymentStatus(settingsRes.data.paymentStatus);
+            }
+
             if (transactionsRes.success)
                 setTransactions(transactionsRes.data.transactions || []);
             if (withdrawalsRes.success) setWithdrawals(withdrawalsRes.data || []);
@@ -90,7 +110,33 @@ export default function DeliveryWallet() {
 
             setIsSubmitting(true);
 
-            // Load Razorpay
+            if (paymentOption === "Offline") {
+                if (!utrNumber || !screenshotUrl) {
+                    showToast("UTR number and screenshot are required", "error");
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                const response = await submitOfflinePayout({
+                    amount,
+                    utrNumber,
+                    paymentScreenshot: screenshotUrl,
+                    remark: "Manual UPI/QR Payout"
+                });
+
+                if (response.success) {
+                    showToast("Payout submitted for verification", "success");
+                    setShowPayoutModal(false);
+                    setPayoutAmount("");
+                    setUtrNumber("");
+                    setScreenshotUrl("");
+                    fetchWalletData();
+                }
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Online Razorpay Logic (Existing)
             const loadRazorpay = () => {
                 return new Promise((resolve) => {
                     const script = document.createElement("script");
@@ -108,7 +154,6 @@ export default function DeliveryWallet() {
                 return;
             }
 
-            // Create Order
             const orderRes = await createAdminPayoutOrder(amount);
             if (!orderRes.success) {
                 showToast(orderRes.message || "Failed to create payout order", "error");
@@ -166,6 +211,28 @@ export default function DeliveryWallet() {
         } catch (error: any) {
             showToast(error.response?.data?.message || "Failed to initiate payout", "error");
             setIsSubmitting(false);
+        }
+    };
+
+    const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsUploading(true);
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            const response = await uploadFile(file, "payouts");
+            if (response.success) {
+                const url = Array.isArray(response.data) ? response.data[0].url : (response.data as any).url;
+                setScreenshotUrl(url);
+                showToast("Screenshot uploaded successfully", "success");
+            }
+        } catch (error: any) {
+            showToast("Failed to upload screenshot", "error");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -235,6 +302,27 @@ export default function DeliveryWallet() {
                     <h1 className="text-xl font-bold text-gray-900">Wallet</h1>
                 </div>
             </div>
+
+            {/* Block Warning */}
+            {paymentStatus === 'Blocked' && (
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="mx-4 mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-4">
+                    <div className="bg-red-100 p-2 rounded-xl text-red-600">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 className="text-red-900 font-bold text-sm">Action Required: Account Blocked</h4>
+                        <p className="text-red-700 text-xs mt-1 leading-relaxed">
+                            Your cash collection limit (₹{payoutSettings?.individualCashLimit || payoutSettings?.riderCashLimit || 500}) has been exceeded. 
+                            Please settle your accounts with Vrushahi to continue receiving new orders.
+                        </p>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Balance Card */}
             <motion.div
@@ -407,9 +495,12 @@ export default function DeliveryWallet() {
                                         </div>
                                         <p
                                             className={`font-bold text-lg ${txn.type === "Credit" ? "text-green-600" : txn.type === "Settlement" ? "text-blue-600" : "text-red-600"}`}>
-                                            {txn.type === "Credit" ? "+" : txn.type === "Settlement" ? "✓" : "-"}₹
+                                            {txn.type === "Credit" ? "+" : txn.type === "Settlement" ? (txn.status === 'Pending' ? '...' : '✓') : "-"}₹
                                             {txn.amount.toFixed(2)}
                                         </p>
+                                        {txn.status === 'Pending' && (
+                                            <p className="text-[10px] text-orange-500 font-bold mt-1">Under Verification</p>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -571,11 +662,11 @@ export default function DeliveryWallet() {
             )}
             {/* Vrushahi Payout Modal */}
             {showPayoutModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4">
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                        initial={{ opacity: 0, y: 100 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-t-[32px] sm:rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl max-h-[95vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-black text-neutral-900">Vrushahi Payout</h2>
                             <button onClick={() => setShowPayoutModal(false)} className="text-neutral-400 hover:text-neutral-900">
@@ -587,9 +678,87 @@ export default function DeliveryWallet() {
 
                         <div className="bg-orange-50 rounded-2xl p-4 mb-6 border border-orange-100">
                             <p className="text-sm text-orange-800 font-medium leading-relaxed">
-                                You are settling the COD cash collected from customers. This amount will be paid directly to Vrushahi.
+                                {paymentOption === "Online" 
+                                    ? "You are settling the COD cash collected from customers. This amount will be paid directly to Vrushahi."
+                                    : "Pay via any UPI app to the details below and upload the screenshot."}
                             </p>
                         </div>
+
+                        {/* Payment Method Toggle */}
+                        <div className="flex bg-neutral-100 p-1 rounded-2xl mb-6">
+                            <button 
+                                onClick={() => {
+                                    setPaymentOption("Online");
+                                    setRazorpayQR(null);
+                                }}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${paymentOption === "Online" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}>
+                                Online (Razorpay)
+                            </button>
+                            <button 
+                                onClick={async () => {
+                                    setPaymentOption("Offline");
+                                    setPayoutAmount(pendingAdminPayout.toString());
+                                    
+                                    // Automatically generate QR when switching to Offline
+                                    try {
+                                        setIsGeneratingQR(true);
+                                        const res = await generatePayoutQR(pendingAdminPayout);
+                                        if (res.success) {
+                                            setRazorpayQR(res.data);
+                                        } else {
+                                            showToast(res.message || "Failed to generate QR", "error");
+                                        }
+                                    } catch (err: any) {
+                                        const errorMsg = err.response?.data?.message || "Error generating Razorpay QR";
+                                        showToast(errorMsg, "error");
+                                    } finally {
+                                        setIsGeneratingQR(false);
+                                    }
+                                }}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${paymentOption === "Offline" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"}`}>
+                                Offline (Razorpay QR)
+                            </button>
+                        </div>
+
+                        {paymentOption === "Offline" && (
+                            <div className="mb-6 space-y-4">
+                                <div className="flex flex-col items-center bg-neutral-50 border border-neutral-100 rounded-3xl p-6">
+                                    {isGeneratingQR ? (
+                                        <div className="w-48 h-48 flex flex-col items-center justify-center space-y-3">
+                                            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="text-xs text-neutral-500 font-medium">Generating Secure QR...</p>
+                                        </div>
+                                    ) : razorpayQR?.image_url ? (
+                                        <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
+                                            <img 
+                                                src={razorpayQR.image_url} 
+                                                alt="Razorpay Settlement QR" 
+                                                className="w-48 h-48 object-contain"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-48 h-48 bg-white border border-dashed border-neutral-200 rounded-2xl flex items-center justify-center mb-4">
+                                            <p className="text-[10px] text-neutral-400 text-center px-4 italic">Failed to load QR. Please try again.</p>
+                                        </div>
+                                    )}
+                                    <div className="text-center">
+                                        <p className="text-xs text-neutral-400 uppercase font-bold tracking-widest mb-1">Payment Method</p>
+                                        <p className="text-sm font-black text-neutral-900">Direct Razorpay Settlement</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                    <div className="flex gap-3">
+                                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                        </div>
+                                        <p className="text-xs text-blue-800 leading-relaxed">
+                                            Scan this QR with any UPI app (GPay, PhonePe, Paytm). The system will **automatically** verify your payment. No screenshot required!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mb-6">
                             <label className="block text-sm font-bold text-neutral-700 mb-2">
@@ -601,25 +770,31 @@ export default function DeliveryWallet() {
                                     type="number"
                                     value={payoutAmount}
                                     onChange={(e) => setPayoutAmount(e.target.value)}
-                                    className="w-full bg-neutral-50 border-2 border-neutral-100 rounded-2xl pl-10 pr-4 py-4 font-bold text-xl focus:border-orange-500 focus:bg-white transition-all outline-none"
+                                    className="w-full bg-neutral-50 border-2 border-neutral-100 rounded-2xl pl-10 pr-4 py-4 font-bold text-xl focus:border-orange-500 focus:bg-white transition-all outline-none disabled:opacity-70 disabled:bg-neutral-100"
                                     placeholder="0.00"
+                                    disabled={paymentOption === "Offline"}
                                 />
                             </div>
                             <p className="text-xs text-neutral-500 mt-2 font-medium">
-                                Max available: <span className="font-bold text-orange-600">₹{pendingAdminPayout.toLocaleString('en-IN')}</span>
+                                {paymentOption === "Offline" 
+                                    ? "Full settlement is required for QR-based payments." 
+                                    : <>Max available: <span className="font-bold text-orange-600">₹{pendingAdminPayout.toLocaleString('en-IN')}</span></>}
                             </p>
                         </div>
 
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setShowPayoutModal(false)}
+                                onClick={() => {
+                                    setShowPayoutModal(false);
+                                    setRazorpayQR(null);
+                                }}
                                 className="flex-1 py-4 rounded-2xl font-bold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all"
                                 disabled={isSubmitting}>
                                 Cancel
                             </button>
                             <button
                                 onClick={handleAdminPayout}
-                                className="flex-1 bg-neutral-900 text-white rounded-2xl py-4 font-bold hover:bg-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                                className={`flex-1 bg-neutral-900 text-white rounded-2xl py-4 font-bold hover:bg-black transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:active:scale-100 ${paymentOption === "Offline" ? "hidden" : ""}`}
                                 disabled={isSubmitting || !payoutAmount || parseFloat(payoutAmount) <= 0}>
                                 {isSubmitting ? (
                                     <div className="flex items-center justify-center gap-2">
