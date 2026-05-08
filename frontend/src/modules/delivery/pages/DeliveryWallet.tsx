@@ -36,6 +36,10 @@ export default function DeliveryWallet() {
         paid: 0,
         pending: 0,
     });
+    const [deliveryConfig, setDeliveryConfig] = useState({
+        basePay: 0,
+        kmRate: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -73,6 +77,7 @@ export default function DeliveryWallet() {
                 setBalance(balanceRes.data.balance);
                 setPendingAdminPayout(balanceRes.data.pendingAdminPayout || 0);
                 setCashCollected(balanceRes.data.cashCollected || 0);
+                setDeliveryConfig(balanceRes.data.deliveryConfig || { basePay: 0, kmRate: 0 });
             }
             
             const settingsRes = await getAdminPayoutSettings();
@@ -415,6 +420,44 @@ export default function DeliveryWallet() {
                 </motion.div>
             </div>
 
+            {/* Earning Structure Information */}
+            <div className="bg-white mx-4 rounded-2xl shadow-sm border border-neutral-200 overflow-hidden mb-6">
+                <div className="p-4 border-b border-neutral-200 bg-green-50/50 flex items-center justify-between">
+                    <h3 className="text-neutral-900 font-bold flex items-center gap-2 text-sm">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+                        </div>
+                        Earning Structure
+                    </h3>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-[9px] font-black uppercase tracking-widest rounded-md border border-green-200">
+                        Active Plan
+                    </span>
+                </div>
+                <div className="p-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                            <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1">Base Pay</p>
+                            <p className="text-neutral-900 text-lg font-black">₹{deliveryConfig.basePay}</p>
+                            <p className="text-[10px] text-neutral-500 font-medium">Minimum per order</p>
+                        </div>
+                        <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-100">
+                            <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1">Distance Pay</p>
+                            <p className="text-neutral-900 text-lg font-black">₹{deliveryConfig.kmRate}<span className="text-xs font-bold text-neutral-400">/km</span></p>
+                            <p className="text-[10px] text-neutral-500 font-medium">Additional per KM</p>
+                        </div>
+                    </div>
+                    <div className="bg-blue-50/50 rounded-xl p-3 border border-blue-100 flex items-start gap-3">
+                        <div className="mt-0.5">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                        </div>
+                        <p className="text-[11px] text-blue-700 font-medium leading-relaxed">
+                            Your earning for each delivery is calculated as: <br />
+                            <strong className="text-blue-900 font-black">Base Pay + (Total Distance × Distance Pay)</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* Commission Summary */}
             <div className="mx-4 mb-4 grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -729,11 +772,11 @@ export default function DeliveryWallet() {
                                             <p className="text-xs text-neutral-500 font-medium">Generating Secure QR...</p>
                                         </div>
                                     ) : razorpayQR?.image_url ? (
-                                        <div className="bg-white p-4 rounded-xl shadow-sm mb-4">
+                                        <div className="bg-white p-2 sm:p-4 rounded-xl shadow-sm mb-4 w-full max-w-[300px] mx-auto">
                                             <img 
                                                 src={razorpayQR.image_url} 
                                                 alt="Razorpay Settlement QR" 
-                                                className="w-48 h-48 object-contain"
+                                                className="w-full h-auto object-contain rounded-lg"
                                             />
                                         </div>
                                     ) : (

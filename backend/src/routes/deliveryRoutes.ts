@@ -12,6 +12,7 @@ const router = Router();
 // Profile & Status
 router.get("/profile", getProfile);
 router.put("/profile", deliveryProfileController.updateProfile);
+router.put("/profile/resubmit", deliveryProfileController.resubmitForApproval);
 router.put("/status", deliveryProfileController.updateStatus);
 router.put("/settings", deliveryProfileController.updateSettings);
 

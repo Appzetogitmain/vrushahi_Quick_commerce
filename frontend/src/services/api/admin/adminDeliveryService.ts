@@ -14,6 +14,8 @@ export interface DeliveryBoy {
   pincode?: string;
   drivingLicense?: string;
   nationalIdentityCard?: string;
+  policeVerificationForm?: string;
+  policeVerificationDeadline?: string;
   bankAccountNumber: string;
   bankName: string;
   accountName: string;
@@ -26,7 +28,8 @@ export interface DeliveryBoy {
   maxAmount?: number;
   balance: number;
   cashCollected: number;
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Rejected";
+  rejectionReason?: string;
   available: "Available" | "Not Available";
   vehicleNumber?: string;
   vehicleType?: string;
@@ -48,6 +51,7 @@ export interface CreateDeliveryBoyData {
   pincode?: string;
   drivingLicense?: string;
   nationalIdentityCard?: string;
+  policeVerificationForm?: string;
   bankAccountNumber: string;
   bankName: string;
   accountName: string;
@@ -71,6 +75,7 @@ export interface UpdateDeliveryBoyData {
   pincode?: string;
   drivingLicense?: string;
   nationalIdentityCard?: string;
+  policeVerificationForm?: string;
   bankAccountNumber?: string;
   bankName?: string;
   accountName?: string;
@@ -184,11 +189,12 @@ export const deleteDeliveryBoy = async (
 
 export const updateDeliveryBoyStatus = async (
   id: string,
-  status: "Active" | "Inactive"
+  status: "Active" | "Inactive" | "Rejected",
+  rejectionReason?: string
 ): Promise<ApiResponse<DeliveryBoy>> => {
   const response = await api.patch<ApiResponse<DeliveryBoy>>(
     `/admin/delivery/${id}/status`,
-    { status }
+    { status, rejectionReason }
   );
   return response.data;
 };

@@ -79,7 +79,19 @@ export const getAllDeliveryBoys = asyncHandler(
 
     const query: any = {};
 
-    if (status) query.status = status;
+    if (status) {
+      if (status === 'PV_Pending') {
+        query.$or = [
+          { policeVerificationForm: { $exists: false } },
+          { policeVerificationForm: "" },
+          { policeVerificationForm: null }
+        ];
+      } else if (status === 'Limit_Reached') {
+        query.paymentStatus = 'Blocked';
+      } else {
+        query.status = status;
+      }
+    }
     if (available) query.available = available;
     if (search) {
       query.$or = [
@@ -224,18 +236,27 @@ export const deleteDeliveryBoy = asyncHandler(
 export const updateDeliveryStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
 
-    if (!["Active", "Inactive"].includes(status)) {
+    if (!["Active", "Inactive", "Rejected"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be Active or Inactive",
+        message: "Status must be Active, Inactive or Rejected",
       });
+    }
+
+    const updateData: any = { status };
+    if (status === 'Rejected') {
+      updateData.rejectionReason = rejectionReason || 'Your application was rejected. Please check your documents and try again.';
+      updateData.available = 'Not Available';
+      updateData.isOnline = false;
+    } else if (status === 'Active') {
+      updateData.rejectionReason = ""; // Clear reason on approval
     }
 
     const deliveryBoy = await Delivery.findByIdAndUpdate(
       id,
-      { status },
+      updateData,
       { new: true, runValidators: true }
     ).select("-password");
 

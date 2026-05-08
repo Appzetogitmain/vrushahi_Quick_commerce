@@ -50,7 +50,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       const response = await axios.post(uploadUrl, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           ...(token && { 'Authorization': `Bearer ${token}` })
         }
       });

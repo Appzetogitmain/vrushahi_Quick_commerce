@@ -112,4 +112,12 @@ export const toggleShopStatus = async (): Promise<any> => {
   return response.data;
 };
 
+/**
+ * Re-submit for approval
+ */
+export const reSubmitApproval = async (): Promise<any> => {
+  const response = await api.put('/auth/seller/resubmit-approval');
+  return response.data;
+};
+
 

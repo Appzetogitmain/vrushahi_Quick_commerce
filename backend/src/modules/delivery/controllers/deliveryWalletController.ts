@@ -22,13 +22,19 @@ export const getBalance = async (req: Request, res: Response) => {
         const deliveryBoyId = req.user!.userId;
         const balance = await getWalletBalance(deliveryBoyId, 'DELIVERY_BOY');
         const deliveryBoy = await Delivery.findById(deliveryBoyId).select('pendingAdminPayout cashCollected');
+        const settings = await AppSettings.getSettings();
+        const deliveryConfig = {
+            basePay: settings?.deliveryConfig?.deliveryBoyBasePay || 0,
+            kmRate: settings?.deliveryConfig?.deliveryBoyKmRate || 0
+        };
 
         return res.status(200).json({
             success: true,
             data: {
                 balance,
                 pendingAdminPayout: deliveryBoy?.pendingAdminPayout || 0,
-                cashCollected: deliveryBoy?.cashCollected || 0
+                cashCollected: deliveryBoy?.cashCollected || 0,
+                deliveryConfig
             },
         });
     } catch (error: any) {
@@ -174,7 +180,7 @@ export const getPayoutSettings = async (req: Request, res: Response) => {
         return res.status(200).json({
             success: true,
             data: {
-                adminUpiId: settings.adminUpiId,
+
                 riderCashLimit: settings.riderCashLimit || 500,
                 individualCashLimit: deliveryBoy?.cashLimit,
                 paymentStatus: deliveryBoy?.paymentStatus || 'Clear'

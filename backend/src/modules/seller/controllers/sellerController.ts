@@ -65,7 +65,7 @@ export const getSellerById = asyncHandler(
 export const updateSellerStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
 
     if (!status || !["Approved", "Pending", "Rejected"].includes(status)) {
       return res.status(400).json({
@@ -74,9 +74,16 @@ export const updateSellerStatus = asyncHandler(
       });
     }
 
+    const updateFields: any = { status };
+    if (status === "Rejected" && rejectionReason) {
+      updateFields.rejectionReason = rejectionReason;
+    } else if (status === "Approved") {
+      updateFields.rejectionReason = ""; // Clear rejection reason on approval
+    }
+
     const seller = await Seller.findByIdAndUpdate(
       id,
-      { status },
+      updateFields,
       { new: true, runValidators: true }
     ).select("-password");
 

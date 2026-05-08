@@ -32,9 +32,9 @@ export default function DeliverySignUp() {
     bankName: "",
     accountNumber: "",
     ifscCode: "",
-    bonusType: "",
     vehicleNumber: "",
     vehicleType: "",
+    policeVerificationForm: "",
   });
 
 
@@ -44,6 +44,8 @@ export default function DeliverySignUp() {
   );
   const [nationalIdentityCardFile, setNationalIdentityCardFile] =
     useState<File | null>(null);
+  const [policeVerificationFile, setPoliceVerificationFile] =
+    useState<File | null>(null);
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
   const [sessionId, setSessionId] = useState("");
@@ -52,12 +54,7 @@ export default function DeliverySignUp() {
   const [showPolicy, setShowPolicy] = useState(false);
   const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'delivery' });
 
-  const bonusTypes = [
-    "Select Bonus Type",
-    "Fixed",
-    "Salaried",
-    "Commission Based",
-  ];
+
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -170,6 +167,8 @@ export default function DeliverySignUp() {
       setDrivingLicenseFile(file);
     } else if (name === "nationalIdentityCard") {
       setNationalIdentityCardFile(file);
+    } else if (name === "policeVerification") {
+      setPoliceVerificationFile(file);
     }
   };
 
@@ -250,8 +249,9 @@ export default function DeliverySignUp() {
       // Upload documents if provided
       let drivingLicenseUrl = formData.drivingLicenseUrl;
       let nationalIdentityCardUrl = formData.nationalIdentityCardUrl;
+      let policeVerificationUrl = formData.policeVerificationForm;
 
-      if (drivingLicenseFile || nationalIdentityCardFile) {
+      if (drivingLicenseFile || nationalIdentityCardFile || policeVerificationFile) {
         setUploadingDocs(true);
 
         if (drivingLicenseFile) {
@@ -268,6 +268,14 @@ export default function DeliverySignUp() {
             "vrushahi/delivery/documents"
           );
           nationalIdentityCardUrl = nationalIdResult.secureUrl;
+        }
+
+        if (policeVerificationFile) {
+          const policeResult = await uploadDocumentPublic(
+            policeVerificationFile,
+            "vrushahi/delivery/documents"
+          );
+          policeVerificationUrl = policeResult.secureUrl;
         }
 
         setUploadingDocs(false);
@@ -287,9 +295,9 @@ export default function DeliverySignUp() {
         bankName: formData.bankName || undefined,
         accountNumber: formData.accountNumber || undefined,
         ifscCode: formData.ifscCode || undefined,
-        bonusType: formData.bonusType || undefined,
         vehicleNumber: formData.vehicleNumber || undefined,
         vehicleType: formData.vehicleType || undefined,
+        policeVerificationForm: policeVerificationUrl || undefined,
       });
 
       if (response.success) {
@@ -641,25 +649,7 @@ export default function DeliverySignUp() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
-                    Bonus Type
-                  </label>
-                  <select
-                    name="bonusType"
-                    value={formData.bonusType}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}>
-                    {bonusTypes.map((type) => (
-                      <option
-                        key={type}
-                        value={type === "Select Bonus Type" ? "" : type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
               </div>
 
               {/* Documents Section */}
@@ -706,6 +696,30 @@ export default function DeliverySignUp() {
                     {nationalIdentityCardFile && (
                       <p className="text-xs text-neutral-600">
                         {nationalIdentityCardFile.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Police Verification Form (Optional)
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      name="policeVerification"
+                      onChange={handleFileChange}
+                      accept="image/*,.pdf"
+                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                      disabled={loading || uploadingDocs}
+                    />
+                    <p className="text-[10px] text-neutral-500 font-medium">
+                      Note: If not uploaded now, you must upload it within 30 days of registration to continue receiving new orders.
+                    </p>
+                    {policeVerificationFile && (
+                      <p className="text-xs text-neutral-600 font-bold">
+                        {policeVerificationFile.name}
                       </p>
                     )}
                   </div>

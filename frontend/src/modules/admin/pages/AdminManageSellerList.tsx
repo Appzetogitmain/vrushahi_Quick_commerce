@@ -38,6 +38,7 @@ interface Seller {
     idProof?: string;
     addressProof?: string;
     fssaiLicNo?: string;
+    businessLicense?: string;
     workingHours?: {
         open: string;
         close: string;
@@ -84,6 +85,7 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         idProof: seller.idProof,
         addressProof: seller.addressProof,
         fssaiLicNo: seller.fssaiLicNo,
+        businessLicense: seller.businessLicense,
         workingHours: seller.workingHours,
         requireProductApproval: seller.requireProductApproval,
         viewCustomerDetails: seller.viewCustomerDetails,
@@ -309,14 +311,21 @@ export default function AdminManageSellerList() {
         const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
         if (!sellerId) return;
 
+        const reason = window.prompt('Enter rejection reason (mandatory):');
+        if (reason === null) return; // User cancelled
+        if (!reason.trim()) {
+            setError('Rejection reason is required.');
+            return;
+        }
+
         try {
-            const response = await updateSellerStatus(sellerId, 'Rejected');
+            const response = await updateSellerStatus(sellerId, 'Rejected', reason);
             if (response.success) {
                 // Update local state
                 setSellers(prevSellers =>
                     prevSellers.map(seller =>
                         seller._id === sellerId
-                            ? { ...seller, status: 'Rejected', needApproval: false }
+                            ? { ...seller, status: 'Rejected', needApproval: false, rejectionReason: reason }
                             : seller
                     )
                 );
@@ -1050,10 +1059,31 @@ export default function AdminManageSellerList() {
                                 )}
 
                                 {/* Identity & Verification Documents */}
-                                {(editingSeller.idProof || editingSeller.profile || editingSeller.addressProof || editingSeller.fssaiLicNo) && (
+                                {(editingSeller.idProof || editingSeller.profile || editingSeller.addressProof || editingSeller.fssaiLicNo || editingSeller.businessLicense) && (
                                     <div className="bg-neutral-50 rounded-lg p-4">
                                         <h4 className="text-sm font-semibold text-neutral-700 mb-3">Identity & Verification</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                            {editingSeller.businessLicense && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">Business License</label>
+                                                    {editingSeller.businessLicense.endsWith('.pdf') ? (
+                                                        <a href={editingSeller.businessLicense} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center w-full h-32 bg-white border border-neutral-200 rounded-lg text-teal-600 hover:text-teal-700">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                                            </svg>
+                                                            <span className="text-xs font-bold uppercase">View PDF</span>
+                                                        </a>
+                                                    ) : (
+                                                        <img 
+                                                            src={editingSeller.businessLicense} 
+                                                            alt="Business License" 
+                                                            className="w-full h-32 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                                            onClick={() => handleImagePreview(editingSeller.businessLicense!)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
                                             {editingSeller.profile && (
                                                 <div>
                                                     <label className="text-xs text-neutral-500 block mb-2">Owner Photo</label>

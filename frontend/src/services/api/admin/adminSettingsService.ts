@@ -77,7 +77,8 @@ export interface AppSettings {
   platformFee?: number;
   freeDeliveryThreshold?: number;
   riderCashLimit?: number;
-  adminUpiId?: string;
+  riderPoliceVerificationDays?: number;
+
   deliveryConfig?: {
     isDistanceBased: boolean;
     googleMapsKey?: string;

@@ -169,7 +169,7 @@ export const createRazorpayQRCode = async (
         const options: any = {
             type: 'upi_qr',
             name: 'Vrushahi Settlement',
-            usage: 'single_payment',
+            usage: 'single_use',
             fixed_amount: true,
             payment_amount: Math.round(amount * 100),
             description,

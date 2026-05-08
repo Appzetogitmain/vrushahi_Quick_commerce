@@ -4,7 +4,7 @@ import DashboardCard from '../components/DashboardCard';
 import OrderChart from '../components/OrderChart';
 import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
-import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
+import { getSellerProfile, toggleShopStatus, reSubmitApproval } from '../../../services/api/auth/sellerAuthService';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
 import ProfileCompletionBanner from '../components/ProfileCompletionBanner';
 
@@ -101,6 +101,23 @@ export default function SellerDashboard() {
         status: error.response?.status
       });
       alert('Error toggling shop status: ' + (error.response?.data?.message || error.message || 'Unknown error'));
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleResubmit = async () => {
+    try {
+      setStatusLoading(true);
+      const response = await reSubmitApproval();
+      if (response.success) {
+        alert('Your profile has been resubmitted for approval.');
+        setProfile((prev: any) => ({ ...prev, status: 'Pending' }));
+      } else {
+        alert(response.message || 'Failed to resubmit profile');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error resubmitting profile');
     } finally {
       setStatusLoading(false);
     }
@@ -280,7 +297,6 @@ export default function SellerDashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header with Shop Status Toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-lg shadow-sm border border-neutral-200 gap-4 sm:gap-0">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
@@ -305,6 +321,33 @@ export default function SellerDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Rejection Alert */}
+      {profile && profile.status === 'Rejected' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex gap-4">
+            <div className="bg-red-100 p-3 rounded-full flex-shrink-0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-red-900 leading-tight">Your Application was Rejected</h3>
+              <p className="text-red-700 mt-1 font-medium italic">Reason: {profile.rejectionReason || 'No reason provided'}</p>
+              <p className="text-red-600 text-sm mt-2">Please update your profile details or documents as per the reason and resubmit for approval.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleResubmit}
+            disabled={statusLoading}
+            className="w-full md:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-all hover:shadow-md active:scale-95 disabled:opacity-50"
+          >
+            {statusLoading ? 'Processing...' : 'Re-submit for Approval'}
+          </button>
+        </div>
+      )}
       {/* Profile Completion Nudge */}
       {profile && (
         <ProfileCompletionBanner 

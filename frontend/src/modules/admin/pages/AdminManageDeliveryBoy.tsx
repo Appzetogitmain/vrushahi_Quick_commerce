@@ -20,12 +20,15 @@ export default function AdminManageDeliveryBoy() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [totalPages, setTotalPages] = useState(1);
     const [totalDeliveryBoys, setTotalDeliveryBoys] = useState(0);
     const [successMessage, setSuccessMessage] = useState('');
     const [selectedDeliveryBoy, setSelectedDeliveryBoy] = useState<DeliveryBoy | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [rejectingId, setRejectingId] = useState<string | null>(null);
 
     // Debounce search term and fetch delivery boys
     useEffect(() => {
@@ -108,10 +111,10 @@ export default function AdminManageDeliveryBoy() {
         setCurrentPage(1); // Reset to first page when sorting changes
     };
 
-    const handleStatusChange = async (deliveryBoyId: string, newStatus: 'Active' | 'Inactive') => {
+    const handleStatusChange = async (deliveryBoyId: string, newStatus: 'Active' | 'Inactive' | 'Rejected', reason?: string) => {
         try {
             setProcessing(deliveryBoyId);
-            const response = await updateDeliveryBoyStatus(deliveryBoyId, newStatus);
+            const response = await updateDeliveryBoyStatus(deliveryBoyId, newStatus, reason);
 
             if (response.success) {
                 // Update local state
@@ -149,6 +152,24 @@ export default function AdminManageDeliveryBoy() {
         } finally {
             setProcessing(null);
         }
+    };
+
+    const handleReject = (deliveryBoyId: string) => {
+        setRejectingId(deliveryBoyId);
+        setRejectionReason('');
+        setShowRejectModal(true);
+    };
+
+    const confirmReject = async () => {
+        if (!rejectingId || !rejectionReason.trim()) {
+            setError('Please provide a reason for rejection');
+            return;
+        }
+
+        await handleStatusChange(rejectingId, 'Rejected', rejectionReason);
+        setShowRejectModal(false);
+        setRejectingId(null);
+        setRejectionReason('');
     };
 
     const handleAvailabilityChange = async (deliveryBoyId: string, newAvailability: 'Available' | 'Not Available') => {
@@ -247,9 +268,7 @@ export default function AdminManageDeliveryBoy() {
                 deliveryBoy.mobile,
                 `"${deliveryBoy.address}"`,
                 `"${deliveryBoy.city}"`,
-                deliveryBoy.commissionType === 'Percentage'
-                    ? `"Commission ${deliveryBoy.commission}%"`
-                    : 'Fixed',
+                'Distance Based',
                 deliveryBoy.balance,
                 deliveryBoy.cashCollected,
                 deliveryBoy.status,
@@ -350,6 +369,9 @@ export default function AdminManageDeliveryBoy() {
                                     <option value="All">All Status</option>
                                     <option value="Active">Active</option>
                                     <option value="Inactive">Inactive</option>
+                                    <option value="Rejected">Rejected</option>
+                                    <option value="PV_Pending">Police Verification Pending</option>
+                                    <option value="Limit_Reached">Cash Limit Reached</option>
                                 </select>
                             </div>
 
@@ -483,6 +505,9 @@ export default function AdminManageDeliveryBoy() {
                                         </div>
                                     </th>
                                     <th className="p-4">
+                                        Police Verification
+                                    </th>
+                                    <th className="p-4">
                                         Action
                                     </th>
                                 </tr>
@@ -516,19 +541,10 @@ export default function AdminManageDeliveryBoy() {
                                             <td className="p-4 align-middle">{deliveryBoy.name}</td>
                                             <td className="p-4 align-middle">{deliveryBoy.mobile}</td>
                                             <td className="p-4 align-middle">
-                                                {deliveryBoy.commissionType === 'Percentage' ? (
-                                                    <div className="text-xs">
-                                                        <div className="font-medium">Commission {deliveryBoy.commission}%</div>
-                                                        <div className="text-neutral-500 mt-1">
-                                                            Min Amt: {deliveryBoy.minAmount}
-                                                        </div>
-                                                        <div className="text-neutral-500">
-                                                            Max Amt: {deliveryBoy.maxAmount}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs">Fixed</span>
-                                                )}
+                                                <div className="text-xs">
+                                                    <div className="font-medium text-green-600">Distance Based</div>
+                                                    <div className="text-neutral-500">System Managed</div>
+                                                </div>
                                             </td>
                                             <td className="p-4 align-middle">₹{deliveryBoy.balance.toFixed(2)}</td>
                                             <td className="p-4 align-middle">₹{deliveryBoy.cashCollected.toFixed(2)}</td>
@@ -549,27 +565,32 @@ export default function AdminManageDeliveryBoy() {
                                                 </span>
                                             </td>
                                             <td className="p-4 align-middle">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => handleStatusChange(deliveryBoy._id, deliveryBoy.status === 'Active' ? 'Inactive' : 'Active')}
-                                                        disabled={processing === deliveryBoy._id}
-                                                        className={`p-1.5 rounded transition-colors ${deliveryBoy.status === 'Active'
-                                                            ? 'text-red-600 hover:bg-red-50'
-                                                            : 'text-green-600 hover:bg-green-50'
-                                                            }`}
-                                                        title={deliveryBoy.status === 'Active' ? 'Deactivate' : 'Activate'}
-                                                    >
-                                                        {deliveryBoy.status === 'Active' ? (
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <circle cx="12" cy="12" r="10"></circle>
-                                                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                                                            </svg>
-                                                        ) : (
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                                            </svg>
+                                                {deliveryBoy.policeVerificationForm ? (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Verified
+                                                    </span>
+                                                ) : (
+                                                    <div className="flex flex-col">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) < new Date()
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                            {deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) < new Date()
+                                                                ? 'Expired'
+                                                                : 'Pending'}
+                                                        </span>
+                                                        {deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) >= new Date() && (
+                                                            <span className="text-[10px] text-neutral-500 mt-1">
+                                                                Ends: {new Date(deliveryBoy.policeVerificationDeadline).toLocaleDateString()}
+                                                            </span>
                                                         )}
-                                                    </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="p-4 align-middle">
+                                                <div className="flex items-center gap-2">
+
                                                     <button
                                                         onClick={() => handleAvailabilityChange(deliveryBoy._id, deliveryBoy.available === 'Available' ? 'Not Available' : 'Available')}
                                                         disabled={processing === deliveryBoy._id}
@@ -584,11 +605,12 @@ export default function AdminManageDeliveryBoy() {
                                                             <path d="M9 12l2 2 4-4"></path>
                                                         </svg>
                                                     </button>
+
                                                     <button
                                                         onClick={() => handleDelete(deliveryBoy._id)}
                                                         disabled={processing === deliveryBoy._id}
-                                                        className="p-1.5 text-red-600 hover:bg-red-50 disabled:text-neutral-400 disabled:cursor-not-allowed rounded transition-colors"
-                                                        title="Delete"
+                                                        className="p-1.5 text-neutral-400 hover:bg-neutral-50 rounded transition-colors"
+                                                        title="Delete (Final)"
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -753,6 +775,32 @@ export default function AdminManageDeliveryBoy() {
                                             {selectedDeliveryBoy.dateOfBirth ? new Date(selectedDeliveryBoy.dateOfBirth).toLocaleDateString() : 'N/A'}
                                         </p>
                                     </div>
+                                    <div>
+                                        <p className="text-xs text-neutral-500 uppercase">Police Verification</p>
+                                        {selectedDeliveryBoy.policeVerificationForm ? (
+                                            <a
+                                                href={selectedDeliveryBoy.policeVerificationForm}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-teal-600 font-bold hover:underline flex items-center mt-1"
+                                            >
+                                                View Document
+                                                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </a>
+                                        ) : (
+                                            <p className={`text-sm font-bold mt-1 ${
+                                                selectedDeliveryBoy.policeVerificationDeadline && new Date(selectedDeliveryBoy.policeVerificationDeadline) < new Date()
+                                                    ? 'text-red-600'
+                                                    : 'text-yellow-600'
+                                            }`}>
+                                                {selectedDeliveryBoy.policeVerificationDeadline && new Date(selectedDeliveryBoy.policeVerificationDeadline) < new Date()
+                                                    ? 'Expired'
+                                                    : `Pending (Deadline: ${selectedDeliveryBoy.policeVerificationDeadline ? new Date(selectedDeliveryBoy.policeVerificationDeadline).toLocaleDateString() : 'N/A'})`}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Address & Status */}
@@ -852,21 +900,96 @@ export default function AdminManageDeliveryBoy() {
                                             </a>
                                         ) : <p className="text-sm text-neutral-400 italic">Not Uploaded</p>}
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-neutral-500 uppercase">Bonus Type</p>
-                                        <p className="font-medium text-sm">{selectedDeliveryBoy.bonusType || 'Commission Based'}</p>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="border-t p-4 flex justify-end">
+                        <div className="border-t p-4 flex justify-end gap-3">
+                            {selectedDeliveryBoy.status !== 'Active' && (
+                                <button
+                                    onClick={() => {
+                                        handleStatusChange(selectedDeliveryBoy._id, 'Active');
+                                        setShowDetailModal(false);
+                                    }}
+                                    disabled={processing === selectedDeliveryBoy._id}
+                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                >
+                                    Approve
+                                </button>
+                            )}
+                            {selectedDeliveryBoy.status === 'Active' && (
+                                <button
+                                    onClick={() => {
+                                        handleStatusChange(selectedDeliveryBoy._id, 'Inactive');
+                                        setShowDetailModal(false);
+                                    }}
+                                    disabled={processing === selectedDeliveryBoy._id}
+                                    className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+                                >
+                                    Deactivate
+                                </button>
+                            )}
+                            {selectedDeliveryBoy.status !== 'Rejected' && (
+                                <button
+                                    onClick={() => {
+                                        handleReject(selectedDeliveryBoy._id);
+                                        setShowDetailModal(false);
+                                    }}
+                                    disabled={processing === selectedDeliveryBoy._id}
+                                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                >
+                                    Reject
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowDetailModal(false)}
                                 className="px-6 py-2 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors font-medium"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Reject Modal */}
+            {showRejectModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="bg-red-600 p-6 text-white">
+                            <h3 className="text-xl font-bold flex items-center gap-2">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                Reject Delivery Partner
+                            </h3>
+                            <p className="text-red-100 text-sm mt-1">Please provide a reason why you are rejecting this application.</p>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-bold text-neutral-700 mb-2 uppercase tracking-wider">Reason for Rejection</label>
+                            <textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="e.g. Invalid Driving License, Document image not clear, etc."
+                                className="w-full px-4 py-3 bg-neutral-50 border-2 border-neutral-100 rounded-xl focus:outline-none focus:border-red-500 transition-all min-h-[120px] resize-none text-sm"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="p-6 pt-0 flex gap-3">
+                            <button
+                                onClick={() => setShowRejectModal(false)}
+                                className="flex-1 px-4 py-3 bg-neutral-100 text-neutral-600 rounded-xl font-bold hover:bg-neutral-200 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmReject}
+                                disabled={processing !== null}
+                                className="flex-2 px-8 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {processing !== null ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                ) : 'Confirm Reject'}
                             </button>
                         </div>
                     </div>

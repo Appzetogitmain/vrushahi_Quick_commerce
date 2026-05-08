@@ -46,10 +46,16 @@ function calculateDistance(
  */
 export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.ObjectId[]> {
     try {
+        const now = new Date();
         const deliveryBoys = await Delivery.find({
             isOnline: true,
             status: 'Active',
-            paymentStatus: { $ne: 'Blocked' }
+            paymentStatus: { $ne: 'Blocked' },
+            $or: [
+                { policeVerificationForm: { $exists: true, $ne: "" } },
+                { policeVerificationDeadline: { $gt: now } },
+                { policeVerificationDeadline: { $exists: false } } // For legacy riders who don't have a deadline yet
+            ]
         }).select('_id');
 
         return deliveryBoys.map(db => db._id);
@@ -73,10 +79,16 @@ export async function findDeliveryBoysNearLocation(
         // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
         const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
 
+        const now = new Date();
         const deliveryBoysWithLocation = await Delivery.find({
             isOnline: true,
             status: 'Active',
             paymentStatus: { $ne: 'Blocked' },
+            $or: [
+                { policeVerificationForm: { $exists: true, $ne: "" } },
+                { policeVerificationDeadline: { $gt: now } },
+                { policeVerificationDeadline: { $exists: false } }
+            ],
             location: {
                 $near: {
                     $geometry: {
@@ -407,7 +419,7 @@ export async function notifyDeliveryBoysOfNewOrder(
             const deliveryBoy = deliveryBoyMap.get(idString);
 
             // Calculate earning for this specific delivery boy
-            const earningInfo = await calculateDeliveryBoyEarning(populatedOrder, deliveryBoy);
+            const earningInfo = await calculateDeliveryBoyEarning(populatedOrder);
             const personalizedOrderData = {
                 ...orderData,
                 expectedEarning: earningInfo.amount

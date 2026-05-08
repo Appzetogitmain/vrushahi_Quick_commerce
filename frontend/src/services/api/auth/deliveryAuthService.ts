@@ -46,6 +46,7 @@ export interface RegisterData {
   bonusType?: string;
   vehicleNumber?: string;
   vehicleType?: string;
+  policeVerificationForm?: string;
 }
 
 export interface RegisterResponse {

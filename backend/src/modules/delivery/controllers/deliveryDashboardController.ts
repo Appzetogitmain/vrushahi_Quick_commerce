@@ -162,7 +162,11 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             returnItems: 0, // Need 'OrderItem' logic for this, keeping 0 for now
             todayEarning: todayEarning,
             totalEarning: totalEarning,
-            pendingOrdersList: formattedPendingList
+            pendingOrdersList: formattedPendingList,
+            policeVerificationForm: deliveryPartner.policeVerificationForm,
+            policeVerificationDeadline: deliveryPartner.policeVerificationDeadline,
+            status: deliveryPartner.status,
+            rejectionReason: deliveryPartner.rejectionReason
         }
     });
 

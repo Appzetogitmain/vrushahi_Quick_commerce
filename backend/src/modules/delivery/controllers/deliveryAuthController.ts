@@ -6,6 +6,7 @@ import {
 } from "../../../services/otpService";
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import AppSettings from "../../../models/AppSettings";
 // import { uploadDocument } from "../../../services/uploadService"; // File does not exist
 
 /**
@@ -126,9 +127,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     bankName,
     accountNumber,
     ifscCode,
-    bonusType,
     vehicleNumber,
     vehicleType,
+    policeVerificationForm,
   } = req.body;
 
   // Validation
@@ -161,6 +162,15 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  // Calculate Police Verification Deadline if form not provided
+  let policeVerificationDeadline = undefined;
+  if (!policeVerificationForm) {
+    const settings = await AppSettings.getSettings();
+    const days = settings.riderPoliceVerificationDays || 30;
+    policeVerificationDeadline = new Date();
+    policeVerificationDeadline.setDate(policeVerificationDeadline.getDate() + days);
+  }
+
   // Create new delivery partner
   await Delivery.create({
     name,
@@ -178,9 +188,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     bankName,
     accountNumber,
     ifscCode,
-    bonusType,
     vehicleNumber,
     vehicleType,
+    policeVerificationForm,
+    policeVerificationDeadline,
     status: "Inactive", // New delivery partners start as Inactive
     balance: 0,
     cashCollected: 0,
@@ -216,8 +227,17 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  const settings = await AppSettings.getSettings();
+  const deliveryConfig = {
+    basePay: settings?.deliveryConfig?.deliveryBoyBasePay || 0,
+    kmRate: settings?.deliveryConfig?.deliveryBoyKmRate || 0
+  };
+
   return res.status(200).json({
     success: true,
-    data: delivery,
+    data: {
+      ...delivery.toObject(),
+      deliveryConfig
+    },
   });
 });

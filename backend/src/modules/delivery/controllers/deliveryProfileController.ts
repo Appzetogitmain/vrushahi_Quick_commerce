@@ -19,7 +19,8 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
         bankName,
         accountNumber,
         ifscCode,
-        upiId
+        upiId,
+        policeVerificationForm
     } = req.body;
 
     const delivery = await Delivery.findById(deliveryId);
@@ -45,6 +46,9 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     if (accountNumber) delivery.accountNumber = accountNumber;
     if (ifscCode) delivery.ifscCode = ifscCode;
     if (upiId !== undefined) delivery.upiId = upiId;
+    if (policeVerificationForm) delivery.policeVerificationForm = policeVerificationForm;
+
+    if (policeVerificationForm) delivery.policeVerificationForm = policeVerificationForm;
 
     await delivery.save();
 
@@ -128,5 +132,40 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
         success: true,
         message: "Settings updated successfully",
         data: delivery.settings
+    });
+});
+
+/**
+ * Resubmit Profile for Approval
+ * Manually resets status to Inactive and increments submissionCount
+ */
+export const resubmitForApproval = asyncHandler(async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+
+    const delivery = await Delivery.findById(deliveryId);
+
+    if (!delivery) {
+        return res.status(404).json({
+            success: false,
+            message: "Delivery partner not found"
+        });
+    }
+
+    if (delivery.status !== 'Rejected') {
+        return res.status(400).json({
+            success: false,
+            message: "Only rejected profiles can be resubmitted"
+        });
+    }
+
+    delivery.status = 'Inactive';
+    delivery.rejectionReason = '';
+
+    await delivery.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Profile resubmitted for approval successfully",
+        data: delivery
     });
 });

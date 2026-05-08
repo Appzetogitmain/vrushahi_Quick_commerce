@@ -26,7 +26,8 @@ export default function AdminBillingSettings() {
     const [supportEmail, setSupportEmail] = useState<string>('');
     const [supportPhone, setSupportPhone] = useState<string>('');
     const [riderCashLimit, setRiderCashLimit] = useState<number>(500);
-    const [adminUpiId, setAdminUpiId] = useState<string>('');
+    const [riderPoliceVerificationDays, setRiderPoliceVerificationDays] = useState<number>(30);
+
 
 
     useEffect(() => {
@@ -62,7 +63,8 @@ export default function AdminBillingSettings() {
                 setSupportEmail(data.supportEmail || '');
                 setSupportPhone(data.supportPhone || '');
                 setRiderCashLimit(data.riderCashLimit || 500);
-                setAdminUpiId(data.adminUpiId || '');
+                setRiderPoliceVerificationDays(data.riderPoliceVerificationDays || 30);
+
             }
         } catch (error: any) {
             console.error(error);
@@ -92,7 +94,7 @@ export default function AdminBillingSettings() {
                 supportEmail,
                 supportPhone,
                 riderCashLimit,
-                adminUpiId
+                riderPoliceVerificationDays
             };
 
             const response = await updateAppSettings(updatePayload);
@@ -194,6 +196,12 @@ export default function AdminBillingSettings() {
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">Delivery Configuration</h2>
                             <p className="text-sm text-gray-500">Choose between fixed or distance-based pricing</p>
+                            <div className="mt-4 p-3 bg-green-50 border border-green-100 rounded-lg">
+                                <p className="text-xs text-green-800 flex items-center gap-2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <strong>Strictly Distance-Based Rider Earnings:</strong> Rider commissions are calculated as: <em>Base Pay + (Distance × KM Rate)</em>.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex items-center gap-2 bg-neutral-100 p-1 rounded-lg">
@@ -246,9 +254,17 @@ export default function AdminBillingSettings() {
                                 <strong>Note:</strong> Distance calculation requires Google Maps API Key. Without a key, it may fallback to straight line distance.
                             </div>
 
+                            <div className="col-span-full">
+                                <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                    CUSTOMER PRICING (What customer pays)
+                                </h3>
+                            </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                     Base Charge (₹)
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 uppercase font-bold">Customer Side</span>
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
@@ -264,8 +280,9 @@ export default function AdminBillingSettings() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                     Base Distance (km)
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 uppercase font-bold">Customer Side</span>
                                 </label>
                                 <div className="relative">
                                     <input
@@ -282,8 +299,9 @@ export default function AdminBillingSettings() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                     Extra per km Charge (₹)
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100 uppercase font-bold">Customer Side</span>
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
@@ -298,9 +316,17 @@ export default function AdminBillingSettings() {
                                 <p className="mt-1 text-xs text-gray-500">Charged for every km after base distance.</p>
                             </div>
 
+                            <div className="col-span-full mt-4">
+                                <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2 mb-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                    RIDER EARNING (What partner receives)
+                                </h3>
+                            </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                     Delivery Boy Commission (₹/km)
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded border border-orange-100 uppercase font-bold">Rider Side</span>
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
@@ -316,8 +342,9 @@ export default function AdminBillingSettings() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                                     Delivery Partner Base Pay (₹)
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded border border-orange-100 uppercase font-bold">Rider Side</span>
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
@@ -373,17 +400,20 @@ export default function AdminBillingSettings() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Admin UPI ID (for Offline Payments)
+                                Police Verification Deadline (Days)
                             </label>
                             <input
-                                type="text"
-                                value={adminUpiId}
-                                onChange={(e) => setAdminUpiId(e.target.value)}
+                                type="number"
+                                min="1"
+                                value={riderPoliceVerificationDays}
+                                onChange={(e) => setRiderPoliceVerificationDays(Number(e.target.value))}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                                placeholder="e.g. vrushahi@upi"
+                                placeholder="e.g. 30"
                             />
-                            <p className="mt-1 text-xs text-gray-500">The UPI ID riders should pay to during offline settlement. A QR code will be generated automatically for them.</p>
+                            <p className="mt-1 text-xs text-gray-500">Number of days a rider has to upload their police verification form after registration.</p>
                         </div>
+
+
                     </div>
                 </div>
 

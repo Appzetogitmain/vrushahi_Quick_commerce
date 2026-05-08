@@ -41,6 +41,7 @@ const SellerAccountSettings = () => {
     ifsc: '',
     upiId: '',
     profile: '',
+    storeImage: '',
     logo: '',
     storeBanner: '',
     storeDescription: '',
@@ -133,7 +134,7 @@ const SellerAccountSettings = () => {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'storeBanner' | 'profile') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'storeBanner' | 'profile' | 'storeImage') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -648,6 +649,43 @@ const SellerAccountSettings = () => {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 ml-1">Recommended size: 1200x400px. Supports JPG, PNG.</p>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-gray-700 ml-1">Real Store Image</label>
+                          <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-video transition-all hover:border-teal-300">
+                            <img
+                              src={sellerData.storeImage || 'https://placehold.co/800x450?text=Store+Image'}
+                              alt="Real Store Image"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                            {isEditing && (
+                              <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleImageUpload(e, 'storeImage')}
+                                />
+                                <div className="bg-white/20 p-4 rounded-full border border-white/30 backdrop-blur-md">
+                                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                </div>
+                              </label>
+                            )}
+                          </div>
+                          <div className="mt-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                            <p className="text-[10px] text-red-600 font-bold uppercase tracking-tight flex items-center gap-1.5">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                <line x1="12" y1="9" x2="12" y2="13" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                              </svg>
+                              WARNING: Real store image ONLY
+                            </p>
+                            <p className="text-[11px] text-red-500 mt-1">
+                              Fake or AI images will result in permanent rejection.
+                            </p>
+                          </div>
                         </div>
 
                         <div className="space-y-3">

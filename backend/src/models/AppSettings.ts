@@ -58,7 +58,8 @@ export interface IAppSettings extends Document {
   deliveryCharges: number;
   freeDeliveryThreshold?: number;
   riderCashLimit?: number;
-  adminUpiId?: string;
+  riderPoliceVerificationDays?: number;
+
   deliveryConfig?: {
     isDistanceBased: boolean;
     googleMapsKey?: string;
@@ -280,10 +281,12 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       default: 500,
       min: [0, "Rider cash limit cannot be negative"],
     },
-    adminUpiId: {
-      type: String,
-      trim: true,
+    riderPoliceVerificationDays: {
+      type: Number,
+      default: 30,
+      min: [1, "Police verification days must be at least 1"],
     },
+
     deliveryConfig: {
       isDistanceBased: { type: Boolean, default: false },
       googleMapsKey: { type: String, trim: true },

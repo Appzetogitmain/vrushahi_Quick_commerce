@@ -43,6 +43,8 @@ export default function SellerSignUp() {
     serviceRadiusKm: "10",
     idProof: "",
     profile: "",
+    storeImage: "",
+    businessLicense: "",
     fssaiLicNo: "",
     workingHours: {
       open: "09:00",
@@ -181,6 +183,8 @@ export default function SellerSignUp() {
     } else if (currentStep === 4) {
       if (!formData.idProof) return showToast("Please upload ID proof (Aadhar/PAN)", "error");
       if (!formData.profile) return showToast("Please upload owner photo", "error");
+      if (!formData.businessLicense) return showToast("Please upload business license", "error");
+      if (!formData.storeImage) return showToast("Please upload real store image", "error");
       const isFood = formData.categories.some(c => c.toLowerCase().includes('food') || c.toLowerCase().includes('restaurant'));
       if (isFood && !formData.fssaiLicNo) return showToast("FSSAI license number is required for food categories", "error");
     } else if (currentStep === 5) {
@@ -202,6 +206,12 @@ export default function SellerSignUp() {
       const response = await register(formData);
       if (response.success) {
         showToast("Registration successful!", "success");
+        
+        // Log in automatically
+        if (response.data.token && response.data.user) {
+          login(response.data.token, response.data.user);
+        }
+        
         setCurrentStep(6);
       }
     } catch (err: any) {
@@ -500,6 +510,37 @@ export default function SellerSignUp() {
                     value={formData.profile}
                     onUploadSuccess={(url) => setFormData(prev => ({ ...prev, profile: url }))}
                   />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <FileUpload 
+                    label="Business License"
+                    required
+                    value={formData.businessLicense}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, businessLicense: url }))}
+                  />
+                  <FileUpload 
+                    label="Real Store Image"
+                    required
+                    value={formData.storeImage}
+                    onUploadSuccess={(url) => setFormData(prev => ({ ...prev, storeImage: url }))}
+                  />
+                </div>
+
+                <div>
+                  <div className="mt-2 p-3 bg-red-50 rounded-xl border border-red-100">
+                    <p className="text-[10px] text-red-600 font-bold uppercase tracking-tight flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      WARNING: Real store image ONLY
+                    </p>
+                    <p className="text-[11px] text-red-500 mt-1 leading-tight">
+                      Please upload a real image of your store. AI-generated or fake images will lead to <span className="font-bold">permanent rejection</span> and you will never be approved.
+                    </p>
+                  </div>
                 </div>
                 
                 {isFoodCategory && (

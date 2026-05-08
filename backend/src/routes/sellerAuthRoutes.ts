@@ -17,6 +17,7 @@ router.post("/register", sellerAuthController.register);
 // Profile routes (protected)
 router.get("/profile", authenticate, sellerAuthController.getProfile);
 router.put("/profile", authenticate, sellerAuthController.updateProfile);
+router.put("/resubmit-approval", authenticate, sellerAuthController.reSubmitApproval);
 router.put("/toggle-shop-status", authenticate, sellerAuthController.toggleShopStatus);
 
 export default router;

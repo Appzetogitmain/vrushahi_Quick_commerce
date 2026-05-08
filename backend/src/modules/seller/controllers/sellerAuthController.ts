@@ -135,6 +135,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     longitude,
     idProof,
     profile,
+    storeImage,
+    businessLicense,
     fssaiLicNo,
     workingHours
   } = req.body;
@@ -201,6 +203,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     serviceRadiusKm: parseFloat(serviceRadiusKm) || 10,
     idProof,
     profile,
+    storeImage,
+    businessLicense,
     fssaiLicNo,
     workingHours,
     status: "Pending",
@@ -226,6 +230,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         email: seller.email,
         storeName: seller.storeName,
         status: seller.status,
+        userType: 'Seller',
       },
     },
   });
@@ -359,3 +364,37 @@ export const toggleShopStatus = asyncHandler(
     });
   }
 );
+
+/**
+ * Re-submit for approval
+ */
+export const reSubmitApproval = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  const seller = await Seller.findById(sellerId);
+  if (!seller) {
+    return res.status(404).json({
+      success: false,
+      message: "Seller not found",
+    });
+  }
+
+  if (seller.status !== "Rejected") {
+    return res.status(400).json({
+      success: false,
+      message: "Only rejected profiles can be resubmitted",
+    });
+  }
+
+  seller.status = "Pending";
+  // Optionally clear rejection reason when resubmitting
+  // seller.rejectionReason = undefined; 
+  
+  await seller.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Profile resubmitted for approval successfully",
+    data: { status: seller.status },
+  });
+});

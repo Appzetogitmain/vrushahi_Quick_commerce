@@ -54,8 +54,10 @@ export interface ISeller extends Document {
 
   // Documents (URLs pointing to cloud storage)
   profile?: string;
+  storeImage?: string;
   idProof?: string;
   addressProof?: string;
+  businessLicense?: string;
 
   // Settings
   requireProductApproval: boolean;
@@ -71,6 +73,7 @@ export interface ISeller extends Document {
   isShopOpen: boolean;
   rating: number;
   reviewsCount: number;
+  rejectionReason?: string;
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
 
@@ -243,11 +246,19 @@ const SellerSchema = new Schema<ISeller>(
       type: String,
       trim: true,
     },
+    storeImage: {
+      type: String,
+      trim: true,
+    },
     idProof: {
       type: String,
       trim: true,
     },
     addressProof: {
+      type: String,
+      trim: true,
+    },
+    businessLicense: {
       type: String,
       trim: true,
     },
@@ -273,6 +284,10 @@ const SellerSchema = new Schema<ISeller>(
       type: String,
       enum: ['Approved', 'Pending', 'Rejected'],
       default: 'Pending',
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
     },
     balance: {
       type: Number,
@@ -316,7 +331,7 @@ const SellerSchema = new Schema<ISeller>(
 );
 
 // Hash password before saving (only if password is provided)
-SellerSchema.pre('save', async function (next) {
+SellerSchema.pre('save', async function (this: ISeller, next) {
   // Skip password hashing if password is not provided or not modified
   if (!this.isModified('password') || !this.password) {
     return next();

@@ -17,6 +17,8 @@ export interface Seller {
   commission: number;
   categories: string[];
   status: "Approved" | "Pending" | "Rejected";
+  rejectionReason?: string;
+  storeImage?: string;
   category?: string;
   address?: string;
   city?: string;
@@ -37,6 +39,7 @@ export interface Seller {
   idProof?: string;
   addressProof?: string;
   fssaiLicNo?: string;
+  businessLicense?: string;
   workingHours?: {
     open: string;
     close: string;
@@ -118,11 +121,12 @@ export const getSellerById = async (
  */
 export const updateSellerStatus = async (
   id: string,
-  status: "Approved" | "Pending" | "Rejected"
+  status: "Approved" | "Pending" | "Rejected",
+  rejectionReason?: string
 ): Promise<ApiResponse<Seller>> => {
   const response = await api.patch<ApiResponse<Seller>>(
     `/sellers/${id}/status`,
-    { status }
+    { status, rejectionReason }
   );
   return response.data;
 };

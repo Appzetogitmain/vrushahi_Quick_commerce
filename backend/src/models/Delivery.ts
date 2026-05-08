@@ -15,6 +15,8 @@ export interface IDelivery extends Document {
   // Documents (URLs pointing to cloud storage)
   drivingLicense?: string;
   nationalIdentityCard?: string;
+  policeVerificationForm?: string;
+  policeVerificationDeadline?: Date;
 
   // Bank Account Information
   accountName?: string;
@@ -30,8 +32,10 @@ export interface IDelivery extends Document {
   // Commission & Payment
   bonusType?: string; // 'Fixed' | 'Salaried' | 'Commission Based'
   commissionRate?: number; // Individual commission rate (overrides global setting)
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | 'Rejected';
+  rejectionReason?: string;
   isOnline: boolean; // Availability status
+  available: 'Available' | 'Not Available';
   location?: {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]
@@ -122,6 +126,13 @@ const DeliverySchema = new Schema<IDelivery>(
       type: String,
       trim: true,
     },
+    policeVerificationForm: {
+      type: String,
+      trim: true,
+    },
+    policeVerificationDeadline: {
+      type: Date,
+    },
 
     // Bank Account Information
     accountName: {
@@ -167,12 +178,21 @@ const DeliverySchema = new Schema<IDelivery>(
     },
     status: {
       type: String,
-      enum: ['Active', 'Inactive'],
+      enum: ['Active', 'Inactive', 'Rejected'],
       default: 'Inactive', // New delivery partners start as Inactive until approved
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
     },
     isOnline: {
       type: Boolean,
       default: false,
+    },
+    available: {
+      type: String,
+      enum: ['Available', 'Not Available'],
+      default: 'Not Available',
     },
     location: {
       type: {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { useDeliveryUser } from '../context/DeliveryUserContext';
-import { getDeliveryProfile, updateProfile } from '../../../services/api/delivery/deliveryService';
+import { getDeliveryProfile, updateProfile, resubmitProfile } from '../../../services/api/delivery/deliveryService';
 import { useToast } from '../../../context/ToastContext';
 
 export default function DeliveryProfile() {
@@ -11,6 +11,7 @@ export default function DeliveryProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const { userName, setUserName } = useDeliveryUser();
   const { showToast } = useToast();
+  const [isUploadingPv, setIsUploadingPv] = useState(false);
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -27,6 +28,10 @@ export default function DeliveryProfile() {
     accountNumber: '',
     ifscCode: '',
     upiId: '',
+    policeVerificationForm: '',
+    policeVerificationDeadline: '',
+    status: '',
+    rejectionReason: '',
   });
 
   // Fetch profile data on mount
@@ -49,6 +54,10 @@ export default function DeliveryProfile() {
           accountNumber: data.accountNumber || '',
           ifscCode: data.ifscCode || '',
           upiId: data.upiId || '',
+          policeVerificationForm: data.policeVerificationForm || '',
+          policeVerificationDeadline: data.policeVerificationDeadline || '',
+          status: data.status || '',
+          rejectionReason: data.rejectionReason || '',
         });
         setUserName(data.name);
       } catch (error) {
@@ -135,7 +144,8 @@ export default function DeliveryProfile() {
         bankName: profileData.bankName,
         accountNumber: profileData.accountNumber,
         ifscCode: profileData.ifscCode,
-        upiId: profileData.upiId
+        upiId: profileData.upiId,
+        policeVerificationForm: profileData.policeVerificationForm
       });
       setUserName(profileData.name);
       setIsEditing(false);
@@ -146,22 +156,70 @@ export default function DeliveryProfile() {
     }
   };
 
+  const handlePvUpload = async (file: File) => {
+    try {
+      setIsUploadingPv(true);
+      const { uploadDocumentPublic } = await import('../../../services/api/uploadService');
+      const result = await uploadDocumentPublic(file, 'vrushahi/delivery/documents');
+      
+      // Update local state
+      setProfileData(prev => ({ ...prev, policeVerificationForm: result.secureUrl }));
+
+      // Immediately save to database to avoid data loss on refresh
+      await updateProfile({
+        policeVerificationForm: result.secureUrl
+      });
+
+      showToast("Police Verification form uploaded and saved successfully!", "success");
+    } catch (err: any) {
+      console.error("PV upload failed:", err);
+      showToast(err.response?.data?.message || "Upload failed. Please try again.", "error");
+    } finally {
+      setIsUploadingPv(false);
+    }
+  };
+
+  const handleResubmit = async () => {
+    try {
+      await resubmitProfile();
+      setProfileData(prev => ({ ...prev, status: 'Inactive', rejectionReason: '' }));
+      showToast("Profile resubmitted for approval successfully!", "success");
+    } catch (err: any) {
+      console.error("Resubmit failed:", err);
+      showToast(err.message || "Failed to resubmit. Please try again.", "error");
+    }
+  };
+
+
   const handleInputChange = (field: string, value: string) => {
     let finalValue = value;
 
     // Prevent numbers in Name, Account Holder Name, and Bank Name
     if (['name', 'accountName', 'bankName'].includes(field)) {
-      finalValue = value.replace(/[0-9]/g, '');
+      if (/\d/.test(value)) {
+        showToast("Numbers are not allowed in this field", "error");
+        finalValue = value.replace(/[0-9]/g, '');
+      }
     }
 
     // Phone should be only numbers, max 10
     if (field === 'phone') {
-      finalValue = value.replace(/\D/g, '').slice(0, 10);
+      if (/[^\d]/.test(value)) {
+        showToast("Only numbers allowed in phone", "error");
+        finalValue = value.replace(/\D/g, '').slice(0, 10);
+      } else {
+        finalValue = value.slice(0, 10);
+      }
     }
 
     // Account Number should be only numbers, max 18
     if (field === 'accountNumber') {
-      finalValue = value.replace(/\D/g, '').slice(0, 18);
+      if (/[^\d]/.test(value)) {
+        showToast("Only numbers allowed in account number", "error");
+        finalValue = value.replace(/\D/g, '').slice(0, 18);
+      } else {
+        finalValue = value.slice(0, 18);
+      }
     }
 
     // IFSC should be uppercase alphanumeric, max 11
@@ -195,6 +253,31 @@ export default function DeliveryProfile() {
           </button>
           <h2 className="text-neutral-900 text-xl font-semibold">Profile</h2>
         </div>
+
+        {/* Rejected Status Alert */}
+        {profileData.status === 'Rejected' && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-red-100 p-2 rounded-full mt-0.5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-red-800 font-bold text-sm mb-1">Account Rejected</h3>
+                <p className="text-red-700 text-xs mb-3">{profileData.rejectionReason || 'Please review your documents and try again.'}</p>
+                <button
+                  onClick={handleResubmit}
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow-sm"
+                >
+                  Resubmit for Approval
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Profile Card */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200 mb-4">
@@ -303,82 +386,171 @@ export default function DeliveryProfile() {
         </div>
 
         {/* Payout Information */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden mt-4">
-          <div className="p-4 border-b border-neutral-200 bg-neutral-50/50">
-            <h3 className="text-neutral-900 font-semibold flex items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden mt-6">
+          <div className="p-4 border-b border-neutral-200 bg-neutral-50/50 flex items-center justify-between">
+            <h3 className="text-neutral-900 font-bold flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              </div>
               Payout Details
             </h3>
+            {profileData.accountNumber && (
+              <span className="px-2 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-md border border-green-100">
+                Linked
+              </span>
+            )}
           </div>
           <div className="divide-y divide-neutral-200">
             <div className="p-4">
-              <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Account Holder Name</p>
+              <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1.5">Account Holder Name</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={profileData.accountName}
                   onChange={(e) => handleInputChange('accountName', e.target.value)}
-                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter as per bank record"
+                  className="w-full text-neutral-900 text-sm font-semibold px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
                 />
               ) : (
-                <p className="text-neutral-900 text-sm font-medium">{profileData.accountName || 'Not added'}</p>
+                <p className="text-neutral-900 text-sm font-bold">{profileData.accountName || 'Not added'}</p>
               )}
             </div>
             <div className="grid grid-cols-2 divide-x divide-neutral-200">
               <div className="p-4">
-                <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Bank Name</p>
+                <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1.5">Bank Name</p>
                 {isEditing ? (
                   <input
                     type="text"
                     value={profileData.bankName}
                     onChange={(e) => handleInputChange('bankName', e.target.value)}
-                    className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="e.g. HDFC"
+                    className="w-full text-neutral-900 text-sm font-semibold px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
                   />
                 ) : (
-                  <p className="text-neutral-900 text-sm font-medium">{profileData.bankName || 'N/A'}</p>
+                  <p className="text-neutral-900 text-sm font-bold">{profileData.bankName || 'N/A'}</p>
                 )}
               </div>
               <div className="p-4">
-                <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">IFSC Code</p>
+                <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1.5">IFSC Code</p>
                 {isEditing ? (
                   <input
                     type="text"
                     value={profileData.ifscCode}
                     onChange={(e) => handleInputChange('ifscCode', e.target.value)}
-                    className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="HDFC0001234"
+                    className="w-full text-neutral-900 text-sm font-semibold px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
                   />
                 ) : (
-                  <p className="text-neutral-900 text-sm font-medium">{profileData.ifscCode || 'N/A'}</p>
+                  <p className="text-neutral-900 text-sm font-bold uppercase">{profileData.ifscCode || 'N/A'}</p>
                 )}
               </div>
             </div>
             <div className="p-4">
-              <p className="text-neutral-500 text-[10px] font-bold uppercase mb-1">Account Number</p>
+              <p className="text-neutral-400 text-[10px] font-black uppercase tracking-widest mb-1.5">Account Number</p>
               {isEditing ? (
                 <input
                   type="text"
                   value={profileData.accountNumber}
                   onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="00000000000000"
+                  className="w-full text-neutral-900 text-sm font-semibold px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
                 />
               ) : (
-                <p className="text-neutral-900 text-sm font-medium">{profileData.accountNumber || 'N/A'}</p>
+                <p className="text-neutral-900 text-sm font-bold tracking-widest">{profileData.accountNumber || 'N/A'}</p>
               )}
             </div>
-            <div className="p-4 bg-orange-50/30">
-              <p className="text-orange-600 text-[10px] font-bold uppercase mb-1">UPI ID</p>
+            <div className="p-4 bg-orange-50/50">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-orange-600 text-[10px] font-black uppercase tracking-widest">UPI ID (Instant Payout)</p>
+                <div className="w-4 h-4 bg-orange-200 rounded-full flex items-center justify-center">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="3"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </div>
+              </div>
               {isEditing ? (
                 <input
                   type="text"
                   value={profileData.upiId}
                   onChange={(e) => handleInputChange('upiId', e.target.value)}
-                  placeholder="e.g. name@okaxis"
-                  className="w-full text-neutral-900 text-sm px-3 py-2 border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="username@bank"
+                  className="w-full text-neutral-900 text-sm font-bold px-4 py-3 bg-white border border-orange-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
               ) : (
-                <p className="text-neutral-900 text-sm font-bold">{profileData.upiId || 'Not added'}</p>
+                <p className="text-neutral-900 text-sm font-black text-orange-700">{profileData.upiId || 'Not added'}</p>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Police Verification Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden mt-4">
+          <div className="p-4 border-b border-neutral-200 bg-neutral-50/50">
+            <h3 className="text-neutral-900 font-semibold flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Police Verification
+            </h3>
+          </div>
+          <div className="p-4">
+            {profileData.policeVerificationForm ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                  <div className="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#22c55e"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    <span className="text-green-700 text-sm font-bold uppercase tracking-tight">Verified / Uploaded</span>
+                  </div>
+                  <a 
+                    href={profileData.policeVerificationForm} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-teal-600 text-xs font-bold underline"
+                  >
+                    View File
+                  </a>
+                </div>
+                {isEditing && (
+                  <div>
+                    <label className="block text-neutral-500 text-[10px] font-bold uppercase mb-2">Replace Document</label>
+                    <input 
+                      type="file" 
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handlePvUpload(file);
+                      }}
+                      className="w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#eab308"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                    <span className="text-yellow-700 text-sm font-bold uppercase tracking-tight">Missing Verification</span>
+                  </div>
+                  {profileData.policeVerificationDeadline && (
+                    <p className="text-[10px] text-yellow-600 font-medium">
+                      Deadline: {new Date(profileData.policeVerificationDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(profileData.policeVerificationDeadline) < new Date() && (
+                        <span className="text-red-600 ml-2 font-black">EXPIRED</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <input 
+                    type="file" 
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePvUpload(file);
+                    }}
+                    className="w-full text-sm text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                  />
+                  {isUploadingPv && <p className="text-[10px] text-orange-500 mt-1 animate-pulse">Uploading...</p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
