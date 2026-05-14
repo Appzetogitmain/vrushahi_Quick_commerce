@@ -35,11 +35,21 @@ export interface MiscReturnRequest {
   quantity: number;
   total: number;
   reason: string;
-  status: "Pending" | "Approved" | "Rejected" | "Refunded";
+  status: "Pending" | "Approved" | "Rejected" | "Refunded" | "Completed";
   requestedAt: string;
   processedAt?: string;
   refundAmount?: number;
   adminNotes?: string;
+  productCustody?: string;
+  pickupStatus?: string;
+  qcStatus?: string;
+  qcNotes?: string;
+  riderImages?: string[];
+  customerOtpVerified?: boolean;
+  sellerOtpVerified?: boolean;
+  deliveryBoyName?: string;
+  returnPickupFee?: number;
+  riderPayoutProcessed?: boolean;
 }
 
 export interface HeaderCategory {
@@ -73,7 +83,7 @@ export interface CreateReturnRequestData {
 }
 
 export interface UpdateReturnRequestData {
-  status?: "Pending" | "Approved" | "Rejected" | "Refunded";
+  status?: "Pending" | "Approved" | "Rejected" | "Refunded" | "Completed";
   refundAmount?: number;
   adminNotes?: string;
 }

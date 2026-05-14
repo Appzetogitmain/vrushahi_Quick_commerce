@@ -4,35 +4,110 @@ import Return from "../../../models/Return";
 // import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
 
+import mongoose from "mongoose";
+import { decrypt } from "../../../utils/encryptionUtils";
+import { notifyDeliveryBoysOfReturnPickup } from "../../../services/returnNotificationService";
+import { Server as SocketIOServer } from "socket.io";
+
 export const getReturnRequests = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = req.user?.userId;
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, page = 1, limit = 10, search, dateFrom, dateTo, sortBy, sortOrder } = req.query;
 
     const query: any = {};
     if (status && status !== 'All Status') {
       query.status = status;
     }
 
-    // Find return requests where the associated OrderItem belongs to this seller
-    // 1. Find OrderItems for this seller
-    const sellerOrderItems = await OrderItem.find({ seller: sellerId }).select('_id');
-    const sellerOrderItemIds = sellerOrderItems.map(item => item._id);
+    // 1. Date Range Filter
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) {
+        const start = new Date(dateFrom as string);
+        if (!isNaN(start.getTime())) {
+          query.createdAt.$gte = start;
+        }
+      }
+      if (dateTo) {
+        const end = new Date(dateTo as string);
+        if (!isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = end;
+        }
+      }
+    }
 
-    // 2. Filter Returns by these OrderItem IDs
-    query.orderItem = { $in: sellerOrderItemIds };
+    // 2. Search across productName, orderNumber, customer name, reason, description
+    if (search && (search as string).trim()) {
+      const searchRegex = { $regex: (search as string).trim(), $options: 'i' };
+
+      // Find OrderItems belonging to this seller matching product name
+      const matchingItems = await OrderItem.find({
+        seller: sellerId,
+        productName: searchRegex
+      }).select('_id');
+      const itemIds = matchingItems.map(item => item._id);
+
+      // Find matching Orders by orderNumber
+      const matchingOrders = await mongoose.model('Order').find({
+        orderNumber: searchRegex
+      }).select('_id');
+      const orderIds = matchingOrders.map(o => o._id);
+
+      // Find matching Customers by name
+      const matchingCustomers = await mongoose.model('Customer').find({
+        name: searchRegex
+      }).select('_id');
+      const customerIds = matchingCustomers.map(c => c._id);
+
+      // Combine conditions - must be one of these AND belong to the seller's items
+      const sellerItems = await OrderItem.find({ seller: sellerId }).select('_id');
+      const sellerItemIds = sellerItems.map(item => item._id);
+
+      query.$and = [
+        {
+          $or: [
+            { orderItem: { $in: itemIds } },
+            { order: { $in: orderIds } },
+            { customer: { $in: customerIds } },
+            { reason: searchRegex },
+            { description: searchRegex }
+          ]
+        },
+        { orderItem: { $in: sellerItemIds } }
+      ];
+    } else {
+      // Normal query: returns for seller's order items
+      const sellerOrderItems = await OrderItem.find({ seller: sellerId }).select('_id');
+      const sellerOrderItemIds = sellerOrderItems.map(item => item._id);
+      query.orderItem = { $in: sellerOrderItemIds };
+    }
+
+    // 3. Sorting (by status or createdAt on Return model)
+    const sort: any = {};
+    if (sortBy === 'status' || sortBy === 'createdAt' || sortBy === 'date') {
+      const field = sortBy === 'date' ? 'createdAt' : sortBy;
+      sort[field] = sortOrder === 'asc' ? 1 : -1;
+    } else {
+      sort.createdAt = -1; // default sort
+    }
 
     const returns = await Return.find(query)
       .populate({
         path: 'orderItem',
-        select: 'productName productImage quantity unitPrice total sku'
+        select: 'productName productImage quantity unitPrice total sku variation product',
+        populate: {
+          path: 'product',
+          select: 'productName mainImage variations'
+        }
       })
       .populate({
         path: 'order',
-        select: 'orderNumber customerName'
+        select: 'orderNumber customerName customerEmail customerPhone deliveryAddress paymentMethod createdAt'
       })
-      .populate('customer', 'name email mobile')
-      .sort({ createdAt: -1 })
+      .populate('customer', 'name email mobile bankDetails')
+      .populate('deliveryBoy', 'firstName lastName phone')
+      .sort(sort)
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
@@ -42,16 +117,66 @@ export const getReturnRequests = asyncHandler(
     const formattedReturns = returns.map(ret => {
       const item = ret.orderItem as any;
       const order = ret.order as any;
+      const product = item?.product;
+      const custObj = ret.customer && typeof (ret.customer as any).toObject === "function" ? (ret.customer as any).toObject({ getters: true }) : ret.customer;
+      const bankDetails = custObj?.bankDetails ? {
+        accountName: decrypt(custObj.bankDetails.accountName || ""),
+        accountNumber: decrypt(custObj.bankDetails.accountNumber || ""),
+        bankName: decrypt(custObj.bankDetails.bankName || ""),
+        ifscCode: decrypt(custObj.bankDetails.ifscCode || ""),
+        upiId: decrypt(custObj.bankDetails.upiId || ""),
+      } : null;
+
+      let productImage = item?.productImage || product?.mainImage || "";
+      let variantText = item?.variation || "N/A";
+
+      if (product && product.variations && Array.isArray(product.variations)) {
+        const matchingVar = product.variations.find((v: any) => v._id?.toString() === item?.variation || v.id === item?.variation);
+        if (matchingVar) {
+          variantText = `${matchingVar.name ? matchingVar.name + ': ' : ''}${matchingVar.value || matchingVar.name || item?.variation}`;
+          if (matchingVar.image && matchingVar.image.trim() !== "") {
+            productImage = matchingVar.image;
+          }
+        }
+      }
+
+      const calculatedTotal = (item?.unitPrice || 0) * ret.quantity;
       return {
         id: ret._id,
+        // Existing backend fields
         productName: item?.productName || 'Unknown Product',
         customerName: order?.customerName || 'Unknown Customer',
         orderId: order?.orderNumber || 'Unknown Order',
-        amount: item?.total || 0,
+        amount: calculatedTotal,
         status: ret.status,
-        date: ret.createdAt,
+        date: ret.createdAt ? new Date(ret.createdAt).toLocaleDateString('en-GB') : 'N/A', // format like "12/06/2025"
         returnReason: ret.reason,
-        image: item?.productImage
+        description: ret.description || '',
+        refundMethod: ret.refundMethod || 'UPI',
+        images: ret.images || [],
+        bankDetails,
+        image: productImage,
+
+        // Frontend expectations (SellerReturnRequest.tsx)
+        orderItemId: item?._id || 'N/A',
+        product: item?.productName || 'Unknown Product',
+        variant: variantText,
+        price: item?.unitPrice || 0,
+        discPrice: item?.unitPrice || 0, // snapshot discPrice can match price or 0
+        quantity: ret.quantity,
+        total: calculatedTotal,
+        customerPhone: (ret.customer as any)?.mobile || order?.customerPhone || 'N/A',
+
+        productCustody: ret.productCustody || "With Customer",
+        pickupStatus: ret.pickupStatus || "Pending",
+        qcStatus: ret.qcStatus || "Pending",
+        qcNotes: ret.qcNotes || "",
+        riderImages: ret.riderImages || [],
+        customerOtpVerified: ret.customerOtpVerified || false,
+        sellerOtpVerified: ret.sellerOtpVerified || false,
+        deliveryBoyName: ret.deliveryBoy ? `${(ret.deliveryBoy as any).firstName} ${(ret.deliveryBoy as any).lastName}` : "Not Assigned",
+        returnPickupFee: ret.returnPickupFee || 0,
+        riderPayoutProcessed: ret.riderPayoutProcessed || false,
       };
     });
 
@@ -74,13 +199,18 @@ export const getReturnRequestById = asyncHandler(
     const returnRequest = await Return.findById(id)
       .populate({
         path: 'orderItem',
-        select: 'productName productImage quantity unitPrice total sku'
+        select: 'productName productImage quantity unitPrice total sku variation product',
+        populate: {
+          path: 'product',
+          select: 'productName mainImage variations'
+        }
       })
       .populate({
         path: 'order',
         select: 'orderNumber customerName deliveryAddress paymentMethod'
       })
-      .populate('customer', 'name email mobile');
+      .populate('customer', 'name email mobile bankDetails')
+      .populate('deliveryBoy', 'firstName lastName phone');
 
     if (!returnRequest) {
       return res.status(404).json({
@@ -91,6 +221,23 @@ export const getReturnRequestById = asyncHandler(
 
     const item = returnRequest.orderItem as any;
     const order = returnRequest.order as any;
+    const product = item?.product;
+    const custObj = returnRequest.customer && typeof (returnRequest.customer as any).toObject === "function" ? (returnRequest.customer as any).toObject({ getters: true }) : returnRequest.customer;
+    const bankDetails = custObj?.bankDetails ? {
+      accountName: decrypt(custObj.bankDetails.accountName || ""),
+      accountNumber: decrypt(custObj.bankDetails.accountNumber || ""),
+      bankName: decrypt(custObj.bankDetails.bankName || ""),
+      ifscCode: decrypt(custObj.bankDetails.ifscCode || ""),
+      upiId: decrypt(custObj.bankDetails.upiId || ""),
+    } : null;
+
+    let productImage = item?.productImage || product?.mainImage || "";
+    if (product && product.variations && Array.isArray(product.variations)) {
+      const matchingVar = product.variations.find((v: any) => v._id?.toString() === item?.variation || v.id === item?.variation);
+      if (matchingVar && matchingVar.image && matchingVar.image.trim() !== "") {
+        productImage = matchingVar.image;
+      }
+    }
 
     const formattedDetail = {
       id: returnRequest._id,
@@ -110,14 +257,27 @@ export const getReturnRequestById = asyncHandler(
           price: item?.unitPrice || 0,
           quantity: returnRequest.quantity, // Return quantity might differ from order item quantity? Using return quantity.
           total: (item?.unitPrice || 0) * returnRequest.quantity,
-          image: item?.productImage
+          image: productImage
         }
       ],
       subtotal: (item?.unitPrice || 0) * returnRequest.quantity,
       tax: 0, // Mock for now
       total: (item?.unitPrice || 0) * returnRequest.quantity,
       reason: returnRequest.reason,
-      reasonDescription: returnRequest.description
+      reasonDescription: returnRequest.description,
+      refundMethod: returnRequest.refundMethod,
+      images: returnRequest.images,
+      bankDetails,
+      productCustody: returnRequest.productCustody || "With Customer",
+      pickupStatus: returnRequest.pickupStatus || "Pending",
+      qcStatus: returnRequest.qcStatus || "Pending",
+      qcNotes: returnRequest.qcNotes || "",
+      riderImages: returnRequest.riderImages || [],
+      customerOtpVerified: returnRequest.customerOtpVerified || false,
+      sellerOtpVerified: returnRequest.sellerOtpVerified || false,
+      deliveryBoyName: returnRequest.deliveryBoy ? `${(returnRequest.deliveryBoy as any).firstName} ${(returnRequest.deliveryBoy as any).lastName}` : "Not Assigned",
+      returnPickupFee: returnRequest.returnPickupFee || 0,
+      riderPayoutProcessed: returnRequest.riderPayoutProcessed || false,
     };
 
 
@@ -144,6 +304,22 @@ export const updateReturnStatus = asyncHandler(
         success: false,
         message: "Return request not found"
       });
+    }
+
+    if (status === "Approved" || status === "Completed") {
+      await OrderItem.findByIdAndUpdate(returnRequest.orderItem, { status: "Returned" });
+      if (status === "Approved") {
+        try {
+          const io: SocketIOServer = req.app.get("io");
+          if (io) {
+            notifyDeliveryBoysOfReturnPickup(io, returnRequest);
+          }
+        } catch (ioErr) {
+          console.error("Error triggering return pickup broadcast:", ioErr);
+        }
+      }
+    } else if (status === "Rejected") {
+      await OrderItem.findByIdAndUpdate(returnRequest.orderItem, { status: "Delivered" });
     }
 
     return res.status(200).json({

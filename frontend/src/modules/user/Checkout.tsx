@@ -65,6 +65,7 @@ export default function Checkout() {
   const [selectedAddress, setSelectedAddress] = useState<OrderAddress | null>(
     null
   );
+  const [showAddressSheet, setShowAddressSheet] = useState(false);
 
   // Recalculate delivery charges when address changes
   useEffect(() => {
@@ -916,197 +917,273 @@ export default function Checkout() {
   </h1>
 </header>
 
-{/* Ordering for someone else */ }
-<div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-neutral-50 border-b border-neutral-200">
-  <div className="flex items-center justify-between">
-    <span className="text-xs text-neutral-700">
-      Ordering for someone else?
-    </span>
-    <button
-      onClick={() =>
-        navigate("/checkout/address", {
-          state: {
-            editAddress: selectedAddress || (savedAddresses.length > 0 ? savedAddresses[0] : null),
-          },
-        })
-      }
-      className="text-xs text-[#b57edc] font-bold hover:text-[#9b51e0] transition-all">
-      Add details
-    </button>
-  </div>
-</div>
-
-{/* Saved Address Section */ }
-{
-  savedAddresses.length > 0 && (
-    <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 border-b border-neutral-200">
-      <div className="mb-3 flex justify-between items-center">
-        <div>
-          <h3 className="text-xs font-semibold text-neutral-900 mb-0.5">
-            Delivery Address
-          </h3>
-          <p className="text-[10px] text-neutral-600">
-            Select one of your saved addresses
-          </p>
+      {/* Saved Address Section */}
+      <div className="px-4 md:px-6 lg:px-8 py-3 border-b border-neutral-200 bg-white">
+        <div className="mb-3 flex justify-between items-center">
+          <div>
+            <h3 className="text-xs font-bold text-neutral-900 mb-0.5 uppercase tracking-wide">
+              Delivery Address
+            </h3>
+            <p className="text-[10px] text-neutral-500 font-medium">
+              {selectedAddress ? `Delivering to ${selectedAddress.name}` : "Please select or add an address"}
+            </p>
+          </div>
+          {savedAddresses.length > 0 ? (
+            <button
+              onClick={() => setShowAddressSheet(true)}
+              className="text-[#ff3269] font-bold text-xs uppercase tracking-wider hover:underline flex items-center gap-1 transition-all"
+            >
+              Change
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate("/checkout/address", { state: { isNew: true } })}
+              className="text-[#ff3269] font-bold text-xs uppercase tracking-wider hover:underline flex items-center gap-1 transition-all"
+            >
+              Add New
+            </button>
+          )}
         </div>
-        <button
-          onClick={() => navigate("/checkout/address", { state: { isNew: true } })}
-          className="text-[#ff3269] font-black text-[10px] uppercase tracking-wider"
-        >
-          Add New
-        </button>
-      </div>
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-        {savedAddresses.map((addr) => (
-          <div
-            key={addr.id}
-            className={`border rounded-xl p-3 cursor-pointer transition-all relative ${selectedAddress?.id === addr.id && !isMapSelected
-              ? "border-[#ff3269] bg-pink-50/30 ring-1 ring-[#ff3269]/10"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}
-            onClick={() => {
-              setSelectedAddress(addr);
-              setIsMapSelected(false);
-            }}>
+        {selectedAddress ? (
+          <div className="border border-neutral-100 rounded-xl p-3 bg-neutral-50/50 relative">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedAddress?.id === addr.id && !isMapSelected
-                      ? "border-[#ff3269] bg-[#ff3269]"
-                      : "border-neutral-300"
-                      }`}>
-                    {selectedAddress?.id === addr.id && !isMapSelected && (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          stroke="white"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
                   <span className="text-xs font-bold text-neutral-900 truncate">
-                    {addr.name}
+                    {selectedAddress.name}
                   </span>
-                  <span className="text-[8px] font-black bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                    {(addr as any).type || 'Home'}
+                  <span className="text-[8px] font-black bg-[#ff3269]/10 text-[#ff3269] px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    {(selectedAddress as any).type || 'Home'}
                   </span>
                 </div>
-                <p className="text-[10px] text-neutral-500 font-medium mb-1">
-                  📞 {addr.phone}
+                <p className="text-[10px] text-neutral-500 font-medium mb-1 flex items-center gap-1">
+                  <span>📞</span> {selectedAddress.phone}
                 </p>
-                <p className="text-[10px] text-neutral-600 line-clamp-2 leading-relaxed">
-                  {addr.flat && !addr.street.startsWith(addr.flat) ? `${addr.flat}, ` : ""}
-                  {addr.street}
-                  {addr.landmark ? `, Near ${addr.landmark}` : ""}
-                  , {addr.city} - {addr.pincode}
+                <p className="text-[10px] text-neutral-600 leading-relaxed font-normal">
+                  {selectedAddress.flat && !selectedAddress.street.startsWith(selectedAddress.flat) ? `${selectedAddress.flat}, ` : ""}
+                  {selectedAddress.street}
+                  {selectedAddress.landmark ? `, Near ${selectedAddress.landmark}` : ""}
+                  , {selectedAddress.city} - {selectedAddress.pincode}
                 </p>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/checkout/address", {
-                    state: {
-                      editAddress: addr,
-                    },
-                  });
-                }}
-                className="p-2 -mr-1 hover:bg-neutral-50 rounded-lg transition-colors group"
-                title="Edit Address"
-              >
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6 border border-dashed border-neutral-200 rounded-xl bg-neutral-50/30">
+            <p className="text-[11px] text-neutral-500 font-medium mb-3">No delivery address selected</p>
+            <button
+              onClick={() => navigate("/checkout/address", { state: { isNew: true } })}
+              className="px-5 py-2.5 bg-[#ff3269] text-white font-bold text-xs rounded-xl shadow-md shadow-pink-100 hover:bg-[#ff1f5a] transition-all transform active:scale-95 flex items-center gap-1.5 mx-auto"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add New Address
+            </button>
+          </div>
+        )}
+
+        {/* Set Location on Map Button */}
+        {selectedAddress && (
+          <div className="mt-2.5">
+            <button
+              onClick={() => {
+                // Prioritize current GPS location (matches homepage header), then saved address
+                setMapLocation({
+                  lat: userLocation?.latitude || selectedAddress?.latitude || 0,
+                  lng: userLocation?.longitude || selectedAddress?.longitude || 0,
+                });
+                setShowMapPicker(true);
+              }}
+              className={`flex items-center gap-2.5 text-xs font-bold px-4 py-2.5 rounded-xl w-full justify-center transition-all ${isMapSelected
+                ? "text-[#9b51e0] bg-purple-100/60 border border-purple-200 shadow-sm"
+                : "text-[#b57edc] hover:text-[#9b51e0] bg-[#f8f6ff] border border-purple-100/80 hover:bg-purple-100/40 hover:border-purple-200"
+                }`}
+            >
+              {isMapSelected ? (
                 <svg
-                  width="14"
-                  height="14"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              ) : (
+                <svg
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-neutral-400 group-hover:text-[#ff3269]"
                 >
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
                 </svg>
+              )}
+              {isMapSelected
+                ? "Precise Location Selected"
+                : selectedAddress?.latitude
+                  ? "Update Precise Location on Map"
+                  : "Set Exact Location on Map"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Address Selection Bottom Sheet Modal */}
+      <Sheet open={showAddressSheet} onOpenChange={setShowAddressSheet}>
+        <SheetContent side="bottom" className="max-h-[85vh] rounded-t-3xl border-t border-neutral-100 shadow-2xl p-0">
+          <div className="flex flex-col h-full max-h-[85vh]">
+            <SheetHeader className="text-left px-5 pt-5 pb-3 border-b border-neutral-100 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <SheetTitle className="text-base font-bold text-neutral-900 tracking-tight">
+                    Select Delivery Address
+                  </SheetTitle>
+                  <p className="text-[10px] text-neutral-500 font-medium">
+                    Choose an address for this delivery
+                  </p>
+                </div>
+                <SheetClose onClick={() => setShowAddressSheet(false)} className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 transition-colors">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </SheetClose>
+              </div>
+            </SheetHeader>
+
+            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
+              {savedAddresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`border rounded-xl p-3 cursor-pointer transition-all relative ${selectedAddress?.id === addr.id && !isMapSelected
+                    ? "border-[#ff3269] bg-pink-50/20 ring-1 ring-[#ff3269]/10"
+                    : "border-neutral-200 bg-white hover:border-neutral-300"
+                    }`}
+                  onClick={() => {
+                    setSelectedAddress(addr);
+                    setIsMapSelected(false);
+                    setShowAddressSheet(false);
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selectedAddress?.id === addr.id && !isMapSelected
+                            ? "border-[#ff3269] bg-[#ff3269]"
+                            : "border-neutral-300"
+                            }`}
+                        >
+                          {selectedAddress?.id === addr.id && !isMapSelected && (
+                            <svg
+                              width="8"
+                              height="8"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M20 6L9 17l-5-5"
+                                stroke="white"
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-xs font-bold text-neutral-900 truncate">
+                          {addr.name}
+                        </span>
+                        <span className="text-[8px] font-black bg-neutral-100 text-neutral-500 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          {(addr as any).type || 'Home'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-neutral-500 font-medium mb-1">
+                        📞 {addr.phone}
+                      </p>
+                      <p className="text-[10px] text-neutral-600 line-clamp-2 leading-relaxed">
+                        {addr.flat && !addr.street.startsWith(addr.flat) ? `${addr.flat}, ` : ""}
+                        {addr.street}
+                        {addr.landmark ? `, Near ${addr.landmark}` : ""}
+                        , {addr.city} - {addr.pincode}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAddressSheet(false);
+                        navigate("/checkout/address", {
+                          state: {
+                            editAddress: addr,
+                          },
+                        });
+                      }}
+                      className="p-2 -mr-1 hover:bg-neutral-50 rounded-lg transition-colors group"
+                      title="Edit Address"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-neutral-400 group-hover:text-[#ff3269]"
+                      >
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-neutral-100 bg-neutral-50/50 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setShowAddressSheet(false);
+                  navigate("/checkout/address", { state: { isNew: true } });
+                }}
+                className="w-full py-3 bg-white border-2 border-dashed border-[#ff3269]/30 hover:border-[#ff3269] text-[#ff3269] font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-pink-50/10 active:scale-[0.98]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add New Address
               </button>
             </div>
           </div>
-        ))}
-      </div>
-      {/* Set Location on Map Button */}
-      <div className="mt-2.5">
-        <button
-          onClick={() => {
-            // Prioritize current GPS location (matches homepage header), then saved address
-            setMapLocation({
-              lat: userLocation?.latitude || selectedAddress?.latitude || 0,
-              lng:
-                userLocation?.longitude || selectedAddress?.longitude || 0,
-            });
-            setShowMapPicker(true);
-          }}
-          className={`flex items-center gap-3 text-sm font-bold px-5 py-3 rounded-xl w-full justify-center transition-all ${isMapSelected
-            ? "text-[#9b51e0] bg-purple-100 border-2 border-purple-100 shadow-sm"
-            : "text-[#b57edc] hover:text-[#9b51e0] bg-[#f8f6ff] border-2 border-purple-100/50 hover:bg-purple-100 hover:border-purple-200"
-            }`}>
-          {isMapSelected ? (
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          ) : (
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle
-                cx="12"
-                cy="10"
-                r="3"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-          {isMapSelected
-            ? "Precise Location Selected"
-            : selectedAddress?.latitude
-              ? "Update Precise Location on Map"
-              : "Set Exact Location on Map"}
-        </button>
-      </div>
-    </div>
-  )
-}
+        </SheetContent>
+      </Sheet>
 
-{/* Main Product Card */ }
+      {/* Main Product Card */}
 <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-white border-b border-neutral-200">
   <div className="bg-white rounded-lg border border-purple-100 p-2.5">
     {/* Delivery info */}
@@ -1825,8 +1902,8 @@ export default function Checkout() {
   </SheetContent>
 </Sheet>
 
-{/* Bottom Sticky Button */ }
-<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+{/* Bottom Sticky Button */}
+<div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
   {selectedAddress ? (
     <div className="p-3">
       <button

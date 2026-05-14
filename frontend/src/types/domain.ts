@@ -27,6 +27,7 @@ export interface Product {
     stock?: number;
     status?: string;
     _id?: { $oid: string } | string;
+    image?: string;
   }>;
   imageUrl?: string;
   mainImage?: string;

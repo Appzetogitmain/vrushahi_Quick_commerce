@@ -6,6 +6,7 @@ export { default as Seller } from './Seller';
 export { default as Customer } from './Customer';
 export { default as Delivery } from './Delivery';
 export { default as Otp } from './Otp';
+export { default as AuditLog } from './AuditLog';
 
 // Core Business Models
 export { default as Category } from "./Category";

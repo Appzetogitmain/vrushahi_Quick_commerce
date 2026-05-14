@@ -14,6 +14,7 @@ export default function AdminBillingSettings() {
     const [platformFee, setPlatformFee] = useState<number>(0);
     const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(0);
     const [deliveryCharges, setDeliveryCharges] = useState<number>(0);
+    const [returnPickupFee, setReturnPickupFee] = useState<number>(20);
 
     // Distance Based Config
     const [isDistanceBased, setIsDistanceBased] = useState(false);
@@ -27,6 +28,7 @@ export default function AdminBillingSettings() {
     const [supportPhone, setSupportPhone] = useState<string>('');
     const [riderCashLimit, setRiderCashLimit] = useState<number>(500);
     const [riderPoliceVerificationDays, setRiderPoliceVerificationDays] = useState<number>(30);
+    const [riderMaxConcurrentOrders, setRiderMaxConcurrentOrders] = useState<number>(1);
 
 
 
@@ -46,6 +48,7 @@ export default function AdminBillingSettings() {
                 setPlatformFee(data.platformFee || 0);
                 setFreeDeliveryThreshold(data.freeDeliveryThreshold || 0);
                 setDeliveryCharges(data.deliveryCharges || 0);
+                setReturnPickupFee(data.returnPickupFee ?? 20);
 
                 if (data.deliveryConfig) {
                     setIsDistanceBased(data.deliveryConfig.isDistanceBased || false);
@@ -64,6 +67,7 @@ export default function AdminBillingSettings() {
                 setSupportPhone(data.supportPhone || '');
                 setRiderCashLimit(data.riderCashLimit || 500);
                 setRiderPoliceVerificationDays(data.riderPoliceVerificationDays || 30);
+                setRiderMaxConcurrentOrders(data.riderMaxConcurrentOrders || 1);
 
             }
         } catch (error: any) {
@@ -82,6 +86,7 @@ export default function AdminBillingSettings() {
                 platformFee,
                 freeDeliveryThreshold,
                 deliveryCharges,
+                returnPickupFee,
                 deliveryConfig: {
                     isDistanceBased,
                     baseCharge,
@@ -94,7 +99,8 @@ export default function AdminBillingSettings() {
                 supportEmail,
                 supportPhone,
                 riderCashLimit,
-                riderPoliceVerificationDays
+                riderPoliceVerificationDays,
+                riderMaxConcurrentOrders
             };
 
             const response = await updateAppSettings(updatePayload);
@@ -186,6 +192,24 @@ export default function AdminBillingSettings() {
                                 />
                             </div>
                             <p className="mt-1 text-xs text-gray-500">Orders above this amount will have free delivery.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Return Pickup Fee / Rider Settlement (₹)
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={returnPickupFee}
+                                    onChange={(e) => setReturnPickupFee(Number(e.target.value))}
+                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    placeholder="e.g. 20"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">Fee deducted from seller and credited to rider upon return completion/rejection.</p>
                         </div>
                     </div>
                 </div>
@@ -411,6 +435,21 @@ export default function AdminBillingSettings() {
                                 placeholder="e.g. 30"
                             />
                             <p className="mt-1 text-xs text-gray-500">Number of days a rider has to upload their police verification form after registration.</p>
+                        </div>
+
+                        <div className="col-span-full">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Max Concurrent Orders per Rider
+                            </label>
+                            <input
+                                type="number"
+                                min="1"
+                                value={riderMaxConcurrentOrders}
+                                onChange={(e) => setRiderMaxConcurrentOrders(Number(e.target.value))}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g. 1"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Maximum number of active orders a delivery partner can handle simultaneously. Set to 1 for strict one-order-at-a-time quick commerce.</p>
                         </div>
 
 

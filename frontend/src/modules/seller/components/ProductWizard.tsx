@@ -16,6 +16,11 @@ import {
   Plus
 } from "lucide-react";
 import CategoryFields from "./CategoryFields";
+import {
+  validateImageFile,
+  compressImage,
+  createImagePreview,
+} from "../../../utils/imageUpload";
 
 interface ProductWizardProps {
   formData: any;
@@ -40,6 +45,7 @@ interface ProductWizardProps {
   setVariationForm: React.Dispatch<React.SetStateAction<any>>;
   addVariation: () => void;
   removeVariation: (index: number) => void;
+  handleRemoveMainImage: () => void;
   isEdit?: boolean;
 }
 
@@ -66,11 +72,21 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
   setVariationForm,
   addVariation,
   removeVariation,
+  handleRemoveMainImage,
   isEdit
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [mode, setMode] = useState<"wizard" | "single">("wizard");
   const totalSteps = 5;
+
+  const sanitizeNumberValue = (value: string): string => {
+    if (/^0+$/.test(value)) {
+      return "0";
+    } else if (/^0\d/.test(value)) {
+      return value.replace(/^0+/, "");
+    }
+    return value;
+  };
 
   const steps = [
     { id: 1, name: "Identity", icon: Package },
@@ -262,6 +278,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     name="compareAtPrice"
                     value={formData.compareAtPrice || ''}
                     onChange={handleChange}
+                    min="0"
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     className="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
                     placeholder="0.00"
                   />
@@ -276,6 +298,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     name="price"
                     value={formData.price || ''}
                     onChange={handleChange}
+                    min="0"
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     className="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-bold text-teal-700"
                     placeholder="0.00"
                   />
@@ -290,6 +318,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     name="costPrice"
                     value={formData.costPrice || ''}
                     onChange={handleChange}
+                    min="0"
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                        e.preventDefault();
+                      }
+                    }}
                     className="w-full pl-8 pr-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-neutral-50"
                     placeholder="0.00"
                   />
@@ -303,6 +337,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   name="stock"
                   value={formData.stock || ''}
                   onChange={handleChange}
+                  min="0"
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
                   placeholder="0"
                 />
@@ -314,6 +354,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   name="minOrderQuantity"
                   value={formData.minOrderQuantity || '1'}
                   onChange={handleChange}
+                  min="1"
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
                   placeholder="1"
                 />
@@ -325,6 +371,12 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   name="maxOrderLimit"
                   value={formData.maxOrderLimit || '0'}
                   onChange={handleChange}
+                  min="0"
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
                   placeholder="0 for unlimited"
                 />
@@ -381,6 +433,17 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                            <Upload className="text-white" />
                         </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleRemoveMainImage();
+                          }}
+                          className="absolute top-2 right-2 bg-rose-500 text-white rounded-full p-1.5 shadow hover:bg-rose-600 z-10 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
                       </>
                     ) : (
                       <div className="flex flex-col items-center">
@@ -447,12 +510,72 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                       className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
+                  <div className="md:col-span-4">
+                    <label className="block text-xs font-semibold text-neutral-500 mb-2 uppercase tracking-wider">Variation Image (Optional)</label>
+                    <div className="flex items-center space-x-4">
+                      <div className="relative w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 hover:border-teal-500 flex flex-col items-center justify-center cursor-pointer bg-white overflow-hidden transition-colors">
+                        {variationForm.imagePreview ? (
+                          <>
+                            <img src={variationForm.imagePreview} alt="Var Preview" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setVariationForm({ ...variationForm, imageFile: null, imagePreview: "" });
+                              }}
+                              className="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1 shadow hover:bg-rose-600 transition-colors"
+                            >
+                              <X size={10} />
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center">
+                            <Upload className="text-neutral-400" size={20} />
+                            <span className="text-[9px] text-neutral-500 mt-1 font-semibold">Upload</span>
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const validation = validateImageFile(file);
+                              if (!validation.valid) {
+                                alert(validation.error || "Invalid image");
+                                return;
+                              }
+                              try {
+                                const compressed = await compressImage(file);
+                                const preview = await createImagePreview(compressed);
+                                setVariationForm({ ...variationForm, imageFile: compressed, imagePreview: preview });
+                              } catch (err) {
+                                alert("Failed to process variation image");
+                              }
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </div>
+                      <div className="text-xs text-neutral-500">
+                        <p className="font-bold text-neutral-700">Add a specific image for this variation</p>
+                        <p>Will be displayed to users when they select this variant option.</p>
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-neutral-500 mb-1 uppercase tracking-wider">Price (₹)</label>
                     <input
                       type="number"
                       value={variationForm.price}
-                      onChange={(e) => setVariationForm({...variationForm, price: e.target.value})}
+                      onChange={(e) => setVariationForm({...variationForm, price: sanitizeNumberValue(e.target.value)})}
+                      min="0"
+                      onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }}
                       className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
@@ -461,7 +584,13 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     <input
                       type="number"
                       value={variationForm.discPrice}
-                      onChange={(e) => setVariationForm({...variationForm, discPrice: e.target.value})}
+                      onChange={(e) => setVariationForm({...variationForm, discPrice: sanitizeNumberValue(e.target.value)})}
+                      min="0"
+                      onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }}
                       className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
@@ -470,7 +599,13 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     <input
                       type="number"
                       value={variationForm.stock}
-                      onChange={(e) => setVariationForm({...variationForm, stock: e.target.value})}
+                      onChange={(e) => setVariationForm({...variationForm, stock: sanitizeNumberValue(e.target.value)})}
+                      min="0"
+                      onKeyDown={(e) => {
+                        if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                          e.preventDefault();
+                        }
+                      }}
                       className="w-full px-4 py-2 bg-white border border-neutral-200 rounded-lg outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
@@ -501,8 +636,15 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                       <tbody>
                         {variations.map((v, i) => (
                           <tr key={i} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors">
-                             <td className="px-4 py-3 font-semibold text-neutral-800">
-                                {v.title}
+                             <td className="px-4 py-3 font-semibold text-neutral-800 flex items-center gap-3">
+                                {v.imagePreview || v.image ? (
+                                  <img src={v.imagePreview || v.image} alt={v.title} className="w-10 h-10 object-cover rounded-lg border border-neutral-200" />
+                                ) : (
+                                  <div className="w-10 h-10 bg-neutral-100 rounded-lg flex items-center justify-center border border-neutral-200 text-neutral-400">
+                                    <ImageIcon size={16} />
+                                  </div>
+                                )}
+                                <span>{v.title || v.value}</span>
                              </td>
                             <td className="px-4 py-3">
                               <span className="font-bold text-teal-700">₹{v.discPrice || v.price}</span>
@@ -560,6 +702,54 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   onChange={handleChange}
                   onAttributesChange={onAttributesChange}
                 />
+
+                {/* Return Policy Section */}
+                <div className="border-t border-neutral-100 pt-6 mt-6">
+                  <h4 className="text-sm font-bold text-neutral-800 mb-4 uppercase tracking-wider">Return Policy</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">Is this product Returnable?</label>
+                      <div className="flex bg-neutral-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, isReturnable: "Yes" })}
+                          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.isReturnable === "Yes" ? "bg-white text-teal-700 shadow-sm" : "text-neutral-500"}`}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, isReturnable: "No" })}
+                          className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.isReturnable === "No" ? "bg-white text-rose-700 shadow-sm" : "text-neutral-500"}`}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    {formData.isReturnable === "Yes" && (
+                      <div className="animate-in fade-in slide-in-from-left-2 duration-200">
+                        <label className="block text-sm font-medium text-neutral-700 mb-2">Return Period (in Days) <span className="text-rose-500">*</span></label>
+                        <input
+                          type="number"
+                          name="maxReturnDays"
+                          value={formData.maxReturnDays || ''}
+                          onChange={handleChange}
+                          min="1"
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === '.') {
+                              e.preventDefault();
+                            }
+                          }}
+                          placeholder="e.g. 7"
+                          className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none"
+                          required
+                        />
+                        <p className="mt-1 text-xs text-neutral-400">Specify the number of days a customer can return this item after delivery.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
                <div className="mt-8">
@@ -681,7 +871,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
           {renderStepContent(5)}
         </section>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 shadow-2xl flex justify-center z-50">
+        <div className="sticky bottom-0 bg-white border-t border-neutral-200 p-4 shadow-2xl flex justify-center z-40 -mx-3 sm:-mx-4 md:-mx-6 -mb-3 sm:-mb-4 md:-mb-6 mt-8">
             <div className="max-w-4xl w-full flex space-x-4">
                <button
                  type="button"

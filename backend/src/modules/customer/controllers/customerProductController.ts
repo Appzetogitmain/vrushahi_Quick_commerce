@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import HeaderCategory from "../../../models/HeaderCategory";
 import HomeSection from "../../../models/HomeSection";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
+import { populateProductsSubcategory } from "../../../utils/productHelper";
 
 // Get products with filtering options (public)
 export const getProducts = async (req: Request, res: Response) => {
@@ -231,13 +232,14 @@ export const getProducts = async (req: Request, res: Response) => {
 
     const products = await Product.find(query)
       .populate("category", "name icon image")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate("seller", "storeName")
       .sort(sortOptions)
       .skip(skip)
       .limit(Number(limit))
       .lean();
+
+    await populateProductsSubcategory(products);
 
     const total = await Product.countDocuments(query);
 
@@ -246,15 +248,19 @@ export const getProducts = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      data: products.map((p: any) => ({
-        ...p,
-        // If location was provided, check seller proximity. If not, mark all as available.
-        isAvailable: (!userLat || !userLng)
-          ? true
-          : nearbySellerIds.some(
-              (id) => id.toString() === sellerIdFrom(p)
-            ),
-      })),
+      data: products.map((p: any) => {
+        const fallbackImage = p.mainImage || p.variations?.find((v: any) => !!v.image)?.image || "";
+        return {
+          ...p,
+          mainImage: fallbackImage,
+          // If location was provided, check seller proximity. If not, mark all as available.
+          isAvailable: (!userLat || !userLng)
+            ? true
+            : nearbySellerIds.some(
+                (id) => id.toString() === sellerIdFrom(p)
+              ),
+        };
+      }),
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -290,12 +296,12 @@ export const getProductById = async (req: Request, res: Response) => {
       publish: true,
     })
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate(
         "seller",
         "storeName city fssaiLicNo address location serviceRadiusKm rating reviewsCount createdAt"
-      );
+      )
+      .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -303,6 +309,8 @@ export const getProductById = async (req: Request, res: Response) => {
         message: "Product not found or unavailable",
       });
     }
+
+    await populateProductsSubcategory(product);
 
     // Parse location
     const userLat = latitude ? parseFloat(latitude as string) : null;
@@ -395,11 +403,24 @@ export const getProductById = async (req: Request, res: Response) => {
         "productName price mrp variations mainImage pack discount _id rating reviewsCount"
       );
 
+    const productObj = typeof product.toObject === "function" ? product.toObject() : product;
+    if (!productObj.mainImage) {
+      productObj.mainImage = productObj.variations?.find((v: any) => !!v.image)?.image || "";
+    }
+
+    const mappedSimilarProducts = similarProducts.map((p: any) => {
+      const pObj = typeof p.toObject === "function" ? p.toObject() : p;
+      return {
+        ...pObj,
+        mainImage: pObj.mainImage || pObj.variations?.find((v: any) => !!v.image)?.image || "",
+      };
+    });
+
     return res.status(200).json({
       success: true,
       data: {
-        ...product.toObject(),
-        similarProducts,
+        ...productObj,
+        similarProducts: mappedSimilarProducts,
         isAvailableAtLocation, // Add availability flag to response
       },
     });

@@ -151,7 +151,13 @@ export default function Login() {
           ) : (
             <div className="space-y-6">
               <div className="flex justify-center">
-                <OTPInput onComplete={handleOTPComplete} disabled={loading} />
+                <OTPInput
+                  onComplete={handleOTPComplete}
+                  disabled={loading}
+                  focusBorderClass="focus:border-[#ba9af7]"
+                  focusRingClass="focus:ring-[#ba9af7]/20"
+                  hoverBorderClass="hover:border-[#ba9af7]/60"
+                />
               </div>
 
               {error && (

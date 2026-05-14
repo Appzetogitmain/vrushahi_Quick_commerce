@@ -76,6 +76,9 @@ const DeliveryAllOrders = lazy(
 const DeliveryReturnOrders = lazy(
   () => import("./modules/delivery/pages/DeliveryReturnOrders"),
 );
+const DeliveryReturnOrderDetail = lazy(
+  () => import("./modules/delivery/pages/DeliveryReturnOrderDetail"),
+);
 const DeliveryProfile = lazy(
   () => import("./modules/delivery/pages/DeliveryProfile"),
 );
@@ -393,6 +396,10 @@ function AppContent() {
                                     <Route
                                       path="orders/return"
                                       element={<DeliveryReturnOrders />}
+                                    />
+                                    <Route
+                                      path="orders/return-pickup/:id"
+                                      element={<DeliveryReturnOrderDetail />}
                                     />
                                     <Route
                                       path="notifications"

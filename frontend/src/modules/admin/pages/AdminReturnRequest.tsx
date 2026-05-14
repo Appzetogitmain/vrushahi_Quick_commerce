@@ -22,6 +22,10 @@ export default function AdminReturnRequest() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal State for detailed inspection
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Fetch return requests on component mount
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -155,6 +159,36 @@ export default function AdminReturnRequest() {
         "Failed to reject return request: " +
         (err.response?.data?.message || "Please try again.")
       );
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleCompleteReturn = async (requestId: string) => {
+    if (!confirm("Are you sure you want to mark this return as Completed and process refund & rider settlement?")) return;
+
+    try {
+      setUpdating(requestId);
+      const response = await updateReturnRequest(requestId, {
+        status: "Completed",
+      });
+
+      if (response.success) {
+        setReturnRequests((requests) =>
+          requests.map((req) =>
+            req._id === requestId ? { ...req, status: "Completed", riderPayoutProcessed: true } : req
+          )
+        );
+        alert("Return request completed successfully! Payout settled.");
+        if (selectedRequest && selectedRequest._id === requestId) {
+          setSelectedRequest((prev: any) => ({ ...prev, status: "Completed", riderPayoutProcessed: true }));
+        }
+      } else {
+        alert("Failed to complete return: " + (response.message || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Error completing return request:", err);
+      alert("Failed to complete return: " + (err.response?.data?.message || "Please try again."));
     } finally {
       setUpdating(null);
     }
@@ -688,6 +722,15 @@ export default function AdminReturnRequest() {
                     </td>
                     <td className="px-4 sm:px-6 py-3">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setIsModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 border border-green-200/50 rounded-lg transition-colors text-xs font-bold"
+                          title="View Details">
+                          View Details
+                        </button>
                         {request.status === "Pending" ? (
                           <>
                             <button
@@ -801,6 +844,302 @@ export default function AdminReturnRequest() {
           </div>
         </div>
       </div>
+
+      {/* Return Request Detail Modal */}
+      {isModalOpen && selectedRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-neutral-200 max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+            {/* Modal Header */}
+            <div className="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                📂 Return Request Details
+              </h3>
+              <button 
+                onClick={() => { setIsModalOpen(false); setSelectedRequest(null); }}
+                className="text-white hover:bg-teal-700/50 p-1.5 rounded-lg transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Customer and Order summary grids */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-left">
+                  <span className="text-xs text-neutral-400 font-bold uppercase block mb-1 tracking-wider">Customer Details</span>
+                  <div className="text-sm font-bold text-neutral-800">{selectedRequest.userName || 'N/A'}</div>
+                  <div className="text-xs text-neutral-500 mt-1">Customer ID: {selectedRequest.userId || 'N/A'}</div>
+                </div>
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-left">
+                  <span className="text-xs text-neutral-400 font-bold uppercase block mb-1 tracking-wider">Order Reference</span>
+                  <div className="text-sm font-bold text-neutral-800">Order ID: {selectedRequest.orderId || 'N/A'}</div>
+                  <div className="text-xs text-neutral-500 mt-1">Requested: {new Date(selectedRequest.requestedAt).toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Product Info Display Card */}
+              <div className="border border-neutral-200 rounded-xl overflow-hidden text-left">
+                <div className="bg-neutral-50 px-4 py-2 border-b border-neutral-200 text-xs font-bold text-neutral-500 uppercase tracking-wider">
+                  Item to be Returned
+                </div>
+                <div className="p-4 flex gap-4">
+                  {selectedRequest.productImage ? (
+                    <img 
+                      src={selectedRequest.productImage} 
+                      alt={selectedRequest.productName} 
+                      className="w-16 h-16 object-cover rounded-xl border border-neutral-200 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-neutral-100 border border-neutral-200 rounded-xl flex items-center justify-center flex-shrink-0 text-neutral-400 font-bold">
+                      📦
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-neutral-800 truncate">{selectedRequest.productName}</h4>
+                    <p className="text-xs text-neutral-500 font-medium mt-0.5">Variant: {selectedRequest.variant || '-'}</p>
+                    <div className="flex items-center gap-4 mt-3 text-xs">
+                      <div>Price: <span className="font-semibold text-neutral-700">₹{selectedRequest.price.toFixed(2)}</span></div>
+                      <div>Quantity: <span className="font-semibold text-neutral-700">{selectedRequest.quantity}</span></div>
+                      <div>Total: <span className="font-bold text-teal-600 text-sm">₹{selectedRequest.total.toFixed(2)}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Return Reason Detail */}
+              <div className="bg-amber-50 border border-amber-200/60 p-4 rounded-xl text-left">
+                <span className="text-xs text-amber-700 font-bold uppercase block mb-1 tracking-wider">Return Reason</span>
+                <div className="text-sm font-bold text-neutral-800">{selectedRequest.reason || 'No reason provided'}</div>
+                {selectedRequest.description && (
+                  <div className="text-xs text-neutral-600 mt-2 bg-white/70 p-3 rounded-lg border border-amber-100 leading-relaxed italic">
+                    "{selectedRequest.description}"
+                  </div>
+                )}
+              </div>
+
+              {/* Rider Custody & Handover Tracking */}
+              <div className="border border-purple-200 bg-purple-50/30 p-4 rounded-xl text-left space-y-3">
+                <div className="flex justify-between items-center border-b border-purple-100 pb-2">
+                  <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">🚚 Return Pickup & Custody Tracking</span>
+                  <span className="px-2.5 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">
+                    {selectedRequest.pickupStatus}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-neutral-500 block">Assigned Delivery Partner:</span>
+                    <span className="font-bold text-neutral-800">{selectedRequest.deliveryBoyName || 'Not Assigned'}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500 block">Product Custody Status:</span>
+                    <span className="font-bold text-neutral-800">{selectedRequest.productCustody || 'With Customer'}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500 block">Customer Handover OTP:</span>
+                    <span className={`font-bold ${selectedRequest.customerOtpVerified ? 'text-green-600' : 'text-amber-600'}`}>
+                      {selectedRequest.customerOtpVerified ? '✅ OTP Verified (Picked up)' : '⏳ Verification Pending'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500 block">Seller Handover OTP:</span>
+                    <span className={`font-bold ${selectedRequest.sellerOtpVerified ? 'text-green-600' : 'text-amber-600'}`}>
+                      {selectedRequest.sellerOtpVerified ? '✅ OTP Verified (Returned to Seller)' : '⏳ Handover Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rider QC Inspection Report */}
+              <div className="border border-blue-200 bg-blue-50/30 p-4 rounded-xl text-left space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">📋 Rider Quality Check (QC) Inspection</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                    selectedRequest.qcStatus === 'Passed' ? 'bg-green-100 text-green-800' :
+                    selectedRequest.qcStatus === 'Failed' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {selectedRequest.qcStatus || 'Pending'}
+                  </span>
+                </div>
+                <div className="text-xs text-neutral-700 bg-white p-2.5 rounded-lg border border-blue-100 min-h-[40px]">
+                  <span className="font-semibold block text-neutral-400 mb-1">QC Inspection Notes:</span>
+                  {selectedRequest.qcNotes || 'No notes provided by rider yet.'}
+                </div>
+              </div>
+
+              {/* Customer and Rider Uploaded Photos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {selectedRequest.images && selectedRequest.images.length > 0 && (
+                  <div className="border border-neutral-200 rounded-xl p-3 space-y-2 text-left bg-white">
+                    <span className="text-xs text-neutral-500 font-bold uppercase block tracking-wider">Customer Photos</span>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRequest.images.map((img: string, idx: number) => (
+                        <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 block hover:opacity-85">
+                          <img src={img} alt="Customer upload" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedRequest.riderImages && selectedRequest.riderImages.length > 0 && (
+                  <div className="border border-teal-200 bg-teal-50/20 rounded-xl p-3 space-y-2 text-left">
+                    <span className="text-xs text-teal-800 font-bold uppercase block tracking-wider">Rider QC Photos</span>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRequest.riderImages.map((img: string, idx: number) => (
+                        <a key={idx} href={img} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-teal-200 block hover:opacity-85">
+                          <img src={img} alt="Rider QC upload" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Settlement and Payout Detail */}
+              <div className="border border-emerald-200 bg-emerald-50/40 p-4 rounded-xl text-left space-y-2">
+                <span className="text-xs font-bold text-emerald-800 uppercase block tracking-wider">💰 Return Fee Settlement</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-neutral-500 block">Return Pickup Fee:</span>
+                    <span className="font-bold text-neutral-800">₹{selectedRequest.returnPickupFee || 20}</span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500 block">Payout Status:</span>
+                    <span className={`font-bold ${selectedRequest.riderPayoutProcessed ? 'text-green-600' : 'text-neutral-500'}`}>
+                      {selectedRequest.riderPayoutProcessed ? '✅ Settled (Debited from Seller, Credited to Rider)' : '⏳ Awaiting Final Completion'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Refund Destination Info */}
+              {selectedRequest.refundMethod && (
+                <div className="bg-blue-50 border border-blue-200/60 p-4 rounded-xl text-left">
+                  <span className="text-xs text-blue-700 font-bold uppercase block mb-1 tracking-wider">Refund Method</span>
+                  <div className="text-sm font-bold text-neutral-800 flex items-center gap-1.5">
+                    {selectedRequest.refundMethod === 'Wallet' ? '⚡ Instant Refund to Wallet' : selectedRequest.refundMethod === 'Bank' ? '🏦 Direct Bank Transfer' : selectedRequest.refundMethod === 'UPI' ? '📱 UPI payout' : '🏦 Original Payment Source'}
+                  </div>
+                </div>
+              )}
+
+              {/* Customer Bank/UPI Details (Only visible to Admin) */}
+              {selectedRequest.bankDetails && ['UPI', 'Bank', 'Bank Account'].includes(selectedRequest.refundMethod) && (
+                <div className="bg-teal-50/50 border border-teal-200 p-4 rounded-xl text-left space-y-3">
+                  <span className="text-xs text-teal-800 font-bold uppercase block tracking-wider">🏦 Refund Payment Instructions</span>
+                  <div className="text-xs text-teal-700/80 leading-relaxed">
+                    The customer has requested a refund via <strong>{selectedRequest.refundMethod}</strong>. Below are their registered payout details:
+                  </div>
+                  {selectedRequest.refundMethod === 'UPI' ? (
+                    <div className="text-xs font-mono bg-white p-3 rounded-lg border border-teal-100 text-neutral-800">
+                      <span className="text-neutral-400 block font-medium mb-1">UPI ID</span>
+                      <span className="text-teal-700 font-bold text-sm tracking-wide">{selectedRequest.bankDetails.upiId || 'N/A'}</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white p-3.5 rounded-lg border border-teal-100">
+                      <div>
+                        <span className="text-neutral-400 block font-medium">Account Name</span>
+                        <span className="text-neutral-800 font-bold">{selectedRequest.bankDetails.accountName || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-400 block font-medium">Account Number</span>
+                        <span className="text-neutral-800 font-bold tracking-wider font-mono">{selectedRequest.bankDetails.accountNumber || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-400 block font-medium">Bank Name</span>
+                        <span className="text-neutral-800 font-bold">{selectedRequest.bankDetails.bankName || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-400 block font-medium">IFSC Code</span>
+                        <span className="text-neutral-800 font-bold uppercase tracking-wider font-mono">{selectedRequest.bankDetails.ifscCode || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Status Info */}
+              <div className="flex items-center gap-3 bg-neutral-50 p-3.5 rounded-xl border border-neutral-100 text-left">
+                <span className="text-sm font-semibold text-neutral-500">Current Status:</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                  selectedRequest.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                  selectedRequest.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                  selectedRequest.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
+                  selectedRequest.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {selectedRequest.status}
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-neutral-200 px-6 py-4 flex justify-between items-center bg-neutral-50">
+              <button
+                onClick={() => { setIsModalOpen(false); setSelectedRequest(null); }}
+                className="px-4 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-sm font-semibold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              
+              {selectedRequest.status === 'Pending' && (
+                <div className="flex gap-2">
+                  <button
+                    disabled={updating === selectedRequest._id}
+                    onClick={async () => {
+                      await handleRejectReturn(selectedRequest._id);
+                      setIsModalOpen(false);
+                      setSelectedRequest(null);
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    disabled={updating === selectedRequest._id}
+                    onClick={async () => {
+                      await handleApproveReturn(selectedRequest._id);
+                      setIsModalOpen(false);
+                      setSelectedRequest(null);
+                    }}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    Approve
+                  </button>
+                </div>
+              )}
+
+              {selectedRequest.status === 'Approved' && (
+                <div className="flex gap-2">
+                  <button
+                    disabled={updating === selectedRequest._id}
+                    onClick={async () => {
+                      await handleRejectReturn(selectedRequest._id);
+                      setIsModalOpen(false);
+                      setSelectedRequest(null);
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    Reject & Close
+                  </button>
+                  <button
+                    disabled={updating === selectedRequest._id}
+                    onClick={async () => {
+                      await handleCompleteReturn(selectedRequest._id);
+                      setIsModalOpen(false);
+                      setSelectedRequest(null);
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    Mark Completed & Refund
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">

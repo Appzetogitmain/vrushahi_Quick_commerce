@@ -19,27 +19,57 @@ export default function Cart() {
 
   if (cart.items.length === 0) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-16 text-center bg-white/50 backdrop-blur-sm rounded-3xl mx-4 my-8 border border-white">
-        <div className="relative mb-8 group">
-          <div className="absolute inset-0 bg-pink-200 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity" />
-          <img 
-            src="/assets/empty-cart.png" 
-            alt="Empty Cart" 
-            className="w-48 h-48 md:w-64 md:h-64 object-contain relative transition-transform duration-700 hover:scale-110"
-          />
+      <div className="min-h-screen bg-neutral-50/50 pb-20">
+        {/* Header */}
+        <div className="bg-white/80 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-1.5 hover:bg-neutral-50 rounded-lg transition-colors flex items-center justify-center text-neutral-600 hover:text-neutral-900"
+                title="Go back"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="text-lg md:text-xl font-bold text-neutral-800 tracking-tight">Your Basket</h1>
+                <p className="hidden xs:flex text-[10px] md:text-xs font-medium text-neutral-500 items-center gap-2 mt-0.5">
+                  <svg className="w-3 h-3 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Safe & Secure Delivery
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <h2 className="text-2xl md:text-4xl font-black text-neutral-900 mb-4 tracking-tight">Your basket feels light</h2>
-        <p className="text-neutral-500 mb-10 max-w-sm mx-auto font-medium text-sm md:text-lg">
-          It looks like you haven't added anything to your cart yet. Let's find some amazing products for you!
-        </p>
-        <Link to="/">
-          <Button 
-            variant="pinkOutline"
-            className="h-11 md:h-13 px-8 md:px-10 text-sm md:text-base font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg hover:shadow-pink-100 border-2"
-          >
-            Start Shopping
-          </Button>
-        </Link>
+
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-col items-center justify-start pt-6 pb-8 px-4 text-center bg-white/50 backdrop-blur-sm rounded-3xl border border-white max-w-2xl mx-auto shadow-sm">
+            <div className="relative mb-4 group">
+              <div className="absolute inset-0 bg-pink-200 rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity" />
+              <img 
+                src="/assets/empty-cart.png" 
+                alt="Empty Cart" 
+                className="w-32 h-32 md:w-52 md:h-52 object-contain relative transition-transform duration-700 hover:scale-110"
+              />
+            </div>
+            <h2 className="text-xl md:text-3xl font-black text-neutral-900 mb-2 tracking-tight">Your basket feels light</h2>
+            <p className="text-neutral-500 mb-4 max-w-sm mx-auto font-medium text-xs md:text-base px-2">
+              It looks like you haven't added anything to your cart yet. Let's find some amazing products for you!
+            </p>
+            <Link to="/">
+              <Button 
+                variant="pinkOutline"
+                className="h-10 md:h-12 px-6 md:px-8 text-xs md:text-sm font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg hover:shadow-pink-100 border-2"
+              >
+                Start Shopping
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -48,10 +78,19 @@ export default function Cart() {
     <div className="min-h-screen bg-neutral-50/50 pb-20">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b border-neutral-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 hover:bg-neutral-50 rounded-lg transition-colors flex items-center justify-center text-neutral-600 hover:text-neutral-900"
+              title="Go back"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-neutral-800 tracking-tight">Your Basket</h1>
+              <h1 className="text-lg md:text-xl font-bold text-neutral-800 tracking-tight">Your Basket</h1>
               <p className="text-xs md:text-sm font-medium text-neutral-500 mt-1 flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -59,15 +98,15 @@ export default function Cart() {
                 Safe & Secure Delivery • in {appConfig.estimatedDeliveryTime}
               </p>
             </div>
-            {cart.items.length > 0 && (
-              <button
-                onClick={clearCart}
-                className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors bg-red-50 px-4 py-2 rounded-xl"
-              >
-                Clear All
-              </button>
-            )}
           </div>
+          {cart.items.length > 0 && (
+            <button
+              onClick={clearCart}
+              className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors bg-red-50 px-4 py-2 rounded-xl"
+            >
+              Clear All
+            </button>
+          )}
         </div>
       </div>
 

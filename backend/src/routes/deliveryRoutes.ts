@@ -47,6 +47,15 @@ router.post("/orders/:id/check-customer-proximity", deliveryOrderController.chec
 router.post("/orders/:id/create-qr-payment", deliveryOrderController.createQrPayment);
 router.post("/orders/:id/mark-cash-paid", deliveryOrderController.markCashPaid);
 
+// Return Pickup Routes
+router.post("/orders/return-pickup/:id/accept", deliveryOrderController.acceptReturnPickup);
+router.post("/orders/return-pickup/:id/reject", deliveryOrderController.rejectReturnPickup);
+router.get("/orders/return-pickup/:id", deliveryOrderController.getReturnPickupDetails);
+router.post("/orders/return-pickup/:id/send-customer-otp", deliveryOrderController.sendCustomerReturnOtp);
+router.post("/orders/return-pickup/:id/verify-customer-otp", deliveryOrderController.verifyCustomerReturnOtp);
+router.post("/orders/return-pickup/:id/send-seller-otp", deliveryOrderController.sendSellerReturnOtp);
+router.post("/orders/return-pickup/:id/verify-seller-otp", deliveryOrderController.verifySellerReturnOtp);
+
 // Earnings
 router.get("/earnings", deliveryEarningController.getEarningsHistory);
 

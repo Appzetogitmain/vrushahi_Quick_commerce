@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../services/jwtService';
+import Customer from '../models/Customer';
 
 export type AuthUserType = 'Admin' | 'Seller' | 'Customer' | 'Delivery';
 
@@ -17,7 +18,7 @@ declare global {
 /**
  * Authenticate user by verifying JWT token
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -34,6 +35,19 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     try {
       const decoded = verifyToken(token);
       req.user = decoded;
+
+      // Invalidate deleted customer accounts securely
+      if (decoded.userType === 'Customer') {
+        const customer = await Customer.findById(decoded.userId).select('status');
+        if (!customer || customer.status === 'Deleted') {
+          res.status(401).json({
+            success: false,
+            message: 'Your account has been deleted or deactivated',
+          });
+          return;
+        }
+      }
+
       next();
     } catch (error: any) {
       res.status(401).json({

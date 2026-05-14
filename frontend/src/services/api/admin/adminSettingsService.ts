@@ -78,6 +78,8 @@ export interface AppSettings {
   freeDeliveryThreshold?: number;
   riderCashLimit?: number;
   riderPoliceVerificationDays?: number;
+  riderMaxConcurrentOrders?: number;
+  returnPickupFee?: number;
 
   deliveryConfig?: {
     isDistanceBased: boolean;

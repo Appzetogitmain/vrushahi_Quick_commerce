@@ -298,6 +298,8 @@ export const createPendingCommissions = async (orderId: string) => {
                 commissionAmount,
                 status: isCOD ? "Pending" : "Paid",
                 paidAt: isCOD ? null : new Date(),
+                releaseStatus: "Locked",
+                paymentType: order.paymentMethod,
             });
 
             // Credit Wallet Immediately only for non-COD
@@ -309,6 +311,13 @@ export const createPendingCommissions = async (orderId: string) => {
                     `Sale proceeds from Order #${order.orderNumber}`,
                     item.order.toString(),
                     commission._id.toString(),
+                    undefined,
+                    undefined,
+                    true, // isLocked
+                    undefined, // lockExpiresAt (set on delivery)
+                    "Order",
+                    item.order.toString(),
+                    order.paymentMethod
                 );
             }
         }
@@ -489,6 +498,9 @@ export const distributeCommissions = async (orderId: string) => {
             console.error("Error updating platform wallet admin earnings in distributeCommissions:", pwError);
         }
 
+        // Activate return window for the prepaid order items
+        await activateReturnWindow(orderId, order.deliveredAt || new Date(), session);
+
         await session.commitTransaction();
 
         return {
@@ -566,6 +578,8 @@ export const processPendingCODPayouts = async (
             if (remainingAmount >= orderAdminPayoutPart - 0.01) {
                 comm.status = "Paid";
                 comm.paidAt = new Date();
+                comm.releaseStatus = "Locked";
+                comm.paymentType = "COD";
                 await comm.save({ session });
 
                 // Credit Seller Wallet
@@ -579,7 +593,16 @@ export const processPendingCODPayouts = async (
                         order._id.toString(),
                         comm._id.toString(),
                         session,
+                        undefined,
+                        true, // isLocked
+                        undefined, // lockExpiresAt (set by activateReturnWindow)
+                        "Order",
+                        order._id.toString(),
+                        "COD"
                     );
+
+                    // Re-calculate / activate return window since order is delivered
+                    await activateReturnWindow(order._id.toString(), order.deliveredAt || new Date(), session);
 
                     // Update platform wallet counters for this specifically processed order
                     if (platformWallet) {
@@ -1006,6 +1029,8 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
                     commissionAmount: itemCommission,
                     status: isOnlineQR ? "Paid" : "Pending",
                     paidAt: isOnlineQR ? new Date() : null,
+                    releaseStatus: "Locked",
+                    paymentType: "COD",
                 });
 
                 // For Online QR, credit seller wallet immediately
@@ -1016,8 +1041,18 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
                         netEarning,
                         `Sale proceeds from COD Order ${order.orderNumber} (Paid via QR)`,
                         orderId,
-                        commission._id.toString()
+                        commission._id.toString(),
+                        undefined,
+                        undefined,
+                        true, // isLocked
+                        undefined, // lockExpiresAt (set below)
+                        "Order",
+                        orderId,
+                        "COD"
                     );
+
+                    // Re-calculate / activate return window since order is delivered
+                    await activateReturnWindow(orderId, order.deliveredAt || new Date());
                 }
             }
         }
@@ -1026,6 +1061,59 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
     } catch (error: any) {
         console.error("Error processing COD order delivery:", error);
         throw error;
+    }
+};
+
+/**
+ * Activate Return Window for Order Items
+ * Calculates lock expiration time based on product-level maxReturnDays and stamps commission + transactions.
+ */
+export const activateReturnWindow = async (
+    orderId: string,
+    deliveredAt: Date,
+    session?: mongoose.ClientSession
+): Promise<void> => {
+    try {
+        console.log(`[activateReturnWindow] Activating return window locks for Order ${orderId} delivered at ${deliveredAt}`);
+        const order = await Order.findById(orderId).session(session || null);
+        if (!order) {
+            console.error(`[activateReturnWindow] Order ${orderId} not found`);
+            return;
+        }
+
+        const commissions = await Commission.find({ order: orderId, type: "SELLER" }).session(session || null);
+        console.log(`[activateReturnWindow] Found ${commissions.length} seller commissions for Order ${orderId}`);
+
+        for (const comm of commissions) {
+            let maxReturnDays = 7; // standard default fallback
+
+            if (comm.orderItem) {
+                const item = await OrderItem.findById(comm.orderItem).session(session || null);
+                if (item && item.product) {
+                    const product = await Product.findById(item.product).session(session || null);
+                    if (product && typeof product.maxReturnDays === 'number') {
+                        maxReturnDays = product.maxReturnDays;
+                        console.log(`[activateReturnWindow] Item ${item._id} uses custom product maxReturnDays of ${maxReturnDays}`);
+                    }
+                }
+            }
+
+            const lockExpiresAt = new Date(deliveredAt.getTime() + maxReturnDays * 24 * 60 * 60 * 1000);
+            comm.lockExpiresAt = lockExpiresAt;
+            comm.releaseStatus = "Locked";
+            comm.paymentType = order.paymentMethod;
+            await comm.save({ session });
+
+            // Update matching wallet transaction so the seller sees lockExpiresAt in dashboard
+            await WalletTransaction.findOneAndUpdate(
+                { relatedCommission: comm._id },
+                { $set: { lockExpiresAt, isLocked: true } }
+            ).session(session || null);
+
+            console.log(`[activateReturnWindow] Locked commission ${comm._id} until ${lockExpiresAt.toISOString()}`);
+        }
+    } catch (error) {
+        console.error(`[activateReturnWindow] Error activating return window for Order ${orderId}:`, error);
     }
 };
 

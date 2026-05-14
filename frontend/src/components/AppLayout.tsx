@@ -176,12 +176,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
 
 
-              {/* Floating Navigation Dock */}
+              {/* Floating/Fixed Navigation Dock */}
               {showFooter && (
-                <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1001] transition-all duration-500 active:scale-[0.98]">
+                <nav className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-[1001] w-full md:w-auto transition-all duration-500 active:scale-[0.98]">
                   <div 
-                    className="relative bg-white/80 backdrop-blur-3xl border border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-[2.5rem] md:rounded-[3rem] px-3 md:px-10 py-2 md:py-3 flex items-center justify-center gap-1 md:gap-8 transition-all duration-300" 
-                    style={{ minWidth: location.pathname === '/checkout' ? 'auto' : 'min(92vw, 420px)' }}
+                    className="relative bg-white md:bg-white/80 backdrop-blur-none md:backdrop-blur-3xl border-t border-neutral-100 md:border md:border-white/40 shadow-[0_-2px_12px_rgba(0,0,0,0.05)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-none md:rounded-[3rem] px-3 md:px-10 py-1.5 pb-[calc(env(safe-area-inset-bottom)+8px)] md:py-3 flex items-center justify-center gap-1 md:gap-8 transition-all duration-300 w-full md:min-w-[420px]"
                   >
                      <style dangerouslySetInnerHTML={{ __html: `
                         @media (min-width: 768px) {

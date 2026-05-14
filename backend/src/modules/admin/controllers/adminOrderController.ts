@@ -1,12 +1,20 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
 import Delivery from "../../../models/Delivery";
 import DeliveryAssignment from "../../../models/DeliveryAssignment";
 import Return from "../../../models/Return";
+import Commission from "../../../models/Commission";
+import { debitWallet, creditWallet } from "../../../services/walletManagementService";
+import { processCustomerWalletTransaction } from "../../../services/walletService";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
+import { notifyDeliveryBoysOfReturnPickup } from "../../../services/returnNotificationService";
+import AppSettings from "../../../models/AppSettings";
 import { Server as SocketIOServer } from "socket.io";
+
+import { decrypt } from "../../../utils/encryptionUtils";
 
 /**
  * Get all orders with filters
@@ -174,6 +182,16 @@ export const updateOrderStatus = asyncHandler(
         success: false,
         message: "Order not found",
       });
+    }
+
+    if (status === "Delivered") {
+      try {
+        const { distributeCommissions } = require("../../../services/commissionService");
+        await distributeCommissions(order._id.toString());
+        console.log(`[Admin Order Update] Manual delivery triggered commission and return-window lock distribution for Order ${order._id}`);
+      } catch (commErr) {
+        console.error("Error distributing commissions on admin manual delivery:", commErr);
+      }
     }
 
     // Trigger notification if status is "Processed" (Confirmed) or if paymentStatus changed to "Paid"
@@ -383,12 +401,13 @@ export const getReturnRequests = asyncHandler(
     const [requests, total] = await Promise.all([
       Return.find(query)
         .populate("order", "orderNumber")
-        .populate("customer", "name email phone")
+        .populate("customer", "name email phone bankDetails")
+        .populate("deliveryBoy", "firstName lastName phone")
         .populate({
           path: "orderItem",
           populate: {
             path: "product",
-            select: "productName mainImage",
+            select: "productName mainImage variations",
           },
         })
         .sort(sort)
@@ -403,25 +422,68 @@ export const getReturnRequests = asyncHandler(
     // The frontend uses "request.orderItemId", "request.userName", "request.productName" etc.
     // This implies a flattened structure.
 
-    const transformedRequests = requests.map((req: any) => ({
-      _id: req._id,
-      orderId: req.order?._id,
-      orderNumber: req.order?.orderNumber,
-      orderItemId: req.orderItem?._id, // Frontend displays this
-      userId: req.customer?._id,
-      userName: req.customer?.name || "Unknown",
-      // product info from orderItem
-      productId: req.orderItem?.product?._id,
-      productName: req.orderItem?.productName || "Unknown Product",
-      variant: req.orderItem?.variation,
-      price: req.orderItem?.unitPrice || 0,
-      quantity: req.quantity,
-      total: req.quantity * (req.orderItem?.unitPrice || 0),
-      reason: req.reason,
-      status: req.status,
-      requestedAt: req.createdAt,
-      processedAt: req.processedAt,
-    }));
+    const transformedRequests = requests.map((req: any) => {
+      const custObj = req.customer && typeof req.customer.toObject === "function" ? req.customer.toObject({ getters: true }) : req.customer;
+      const bankDetails = custObj?.bankDetails ? {
+        accountName: decrypt(custObj.bankDetails.accountName || ""),
+        accountNumber: decrypt(custObj.bankDetails.accountNumber || ""),
+        bankName: decrypt(custObj.bankDetails.bankName || ""),
+        ifscCode: decrypt(custObj.bankDetails.ifscCode || ""),
+        upiId: decrypt(custObj.bankDetails.upiId || ""),
+      } : null;
+
+      const orderItem = req.orderItem;
+      const product = orderItem?.product;
+      let productImage = orderItem?.productImage || product?.mainImage || "";
+      let variantText = orderItem?.variation || "-";
+
+      if (product && product.variations && Array.isArray(product.variations)) {
+        const matchingVar = product.variations.find((v: any) => v._id?.toString() === orderItem?.variation || v.id === orderItem?.variation);
+        if (matchingVar) {
+          variantText = `${matchingVar.name ? matchingVar.name + ': ' : ''}${matchingVar.value || matchingVar.name || orderItem?.variation}`;
+          if (matchingVar.image && matchingVar.image.trim() !== "") {
+            productImage = matchingVar.image;
+          }
+        }
+      }
+
+      return {
+        _id: req._id,
+        orderId: req.order?._id,
+        orderNumber: req.order?.orderNumber,
+        orderItemId: req.orderItem?._id, // Frontend displays this
+        userId: req.customer?._id,
+        userName: req.customer?.name || "Unknown",
+        // product info from orderItem
+        productId: req.orderItem?.product?._id,
+        productName: req.orderItem?.productName || "Unknown Product",
+        variant: variantText,
+        productImage,
+        price: req.orderItem?.unitPrice || 0,
+        quantity: req.quantity,
+        total: req.quantity * (req.orderItem?.unitPrice || 0),
+        reason: req.reason,
+        status: req.status,
+        requestedAt: req.createdAt,
+        processedAt: req.processedAt,
+        description: req.description || "",
+        images: req.images || [],
+        refundMethod: req.refundMethod || "Wallet",
+        customerEmail: req.customer?.email || "Unknown Email",
+        customerPhone: req.customer?.phone || req.order?.customerPhone || "Unknown Phone",
+        bankDetails,
+        productCustody: req.productCustody || "With Customer",
+        pickupStatus: req.pickupStatus || "Pending",
+        qcStatus: req.qcStatus || "Pending",
+        qcNotes: req.qcNotes || "",
+        riderImages: req.riderImages || [],
+        customerOtpVerified: req.customerOtpVerified || false,
+        sellerOtpVerified: req.sellerOtpVerified || false,
+        deliveryBoyName: req.deliveryBoy ? `${req.deliveryBoy.firstName} ${req.deliveryBoy.lastName}` : "Not Assigned",
+        returnPickupFee: req.returnPickupFee || 0,
+        riderPayoutProcessed: req.riderPayoutProcessed || false,
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -446,7 +508,7 @@ export const getReturnRequestById = asyncHandler(
 
     const returnRequest = await Return.findById(id)
       .populate("order")
-      .populate("customer", "name email phone")
+      .populate("customer", "name email phone bankDetails")
       .populate({
         path: "orderItem",
         populate: [
@@ -463,10 +525,22 @@ export const getReturnRequestById = asyncHandler(
       });
     }
 
+    const retObj = returnRequest.toObject({ getters: true });
+    const customer = retObj.customer as any;
+    if (customer?.bankDetails) {
+      customer.bankDetails = {
+        accountName: decrypt(customer.bankDetails.accountName || ""),
+        accountNumber: decrypt(customer.bankDetails.accountNumber || ""),
+        bankName: decrypt(customer.bankDetails.bankName || ""),
+        ifscCode: decrypt(customer.bankDetails.ifscCode || ""),
+        upiId: decrypt(customer.bankDetails.upiId || ""),
+      };
+    }
+
     return res.status(200).json({
       success: true,
       message: "Return request details fetched successfully",
-      data: returnRequest,
+      data: retObj,
     });
   }
 );
@@ -519,6 +593,135 @@ export const processReturnRequest = asyncHandler(
       .populate("order")
       .populate("orderItem")
       .populate("customer", "name email phone");
+
+    if (status === "Approved" || status === "Completed") {
+      await OrderItem.findByIdAndUpdate(returnRequest.orderItem, { status: "Returned" });
+
+      if (status === "Approved") {
+        try {
+          const io: SocketIOServer = req.app.get("io");
+          if (io) {
+            notifyDeliveryBoysOfReturnPickup(io, updatedReturn);
+          }
+        } catch (ioErr) {
+          console.error("Error triggering return pickup broadcast:", ioErr);
+        }
+      }
+
+      // Perform transactional wallet reversal and user refund when return is Completed
+      if (status === "Completed") {
+        const commission = await Commission.findOne({ orderItem: returnRequest.orderItem, type: "SELLER" });
+        if (commission && commission.releaseStatus !== "Reversed") {
+          const dbSession = await mongoose.startSession();
+          dbSession.startTransaction();
+
+          try {
+            if (!commission.seller) {
+              throw new Error("Commission has no associated seller");
+            }
+            const sellerId = commission.seller.toString();
+            const netEarning = Math.round((commission.orderAmount - commission.commissionAmount) * 100) / 100;
+
+            console.log(`[processReturnRequest] Reversing Commission ${commission._id} of ₹${netEarning} for Seller ${sellerId}. Release status: ${commission.releaseStatus}`);
+
+            const isLocked = commission.releaseStatus === "Locked";
+
+            // Debit the seller's wallet with the correct parameters (using our updated debitWallet which supports locked balances!)
+            await debitWallet(
+              sellerId,
+              "SELLER",
+              netEarning,
+              `Reversal for returned order item ${returnRequest.orderItem} in Order ${returnRequest.order}`,
+              returnRequest.order.toString(),
+              dbSession,
+              isLocked,
+              true,
+              "Return",
+              commission._id.toString()
+            );
+
+            // Set commission status to Reversed
+            commission.releaseStatus = "Reversed";
+            await commission.save({ session: dbSession });
+
+            // If customer refund method is Wallet, credit customer's wallet using the dedicated service
+            const refundMethod = returnRequest.refundMethod || "Wallet";
+            if (refundMethod === "Wallet") {
+              const customerId = returnRequest.customer.toString();
+              const finalRefundAmount = refundAmount || commission.orderAmount;
+
+              await processCustomerWalletTransaction(
+                customerId,
+                finalRefundAmount,
+                "credit",
+                `Refund for returned item in Order #${returnRequest.order}`
+              );
+              console.log(`[processReturnRequest] Refunded ₹${finalRefundAmount} to Customer ${customerId}'s wallet.`);
+            }
+
+            await dbSession.commitTransaction();
+            console.log(`[processReturnRequest] Reversal and refund completed successfully for Return ${id}`);
+          } catch (err) {
+            await dbSession.abortTransaction();
+            console.error(`[processReturnRequest] Error during transactional wallet reversal/refund:`, err);
+            throw err;
+          } finally {
+            dbSession.endSession();
+          }
+        }
+      }
+    } else if (status === "Rejected") {
+      await OrderItem.findByIdAndUpdate(returnRequest.orderItem, { status: "Delivered" });
+    }
+
+    if ((status === "Completed" || status === "Rejected") && updatedReturn?.deliveryBoy && !updatedReturn.riderPayoutProcessed) {
+      try {
+        const settings = await AppSettings.getSettings();
+        const pickupFee = settings.returnPickupFee || 20;
+        const commission = await Commission.findOne({ orderItem: returnRequest.orderItem, type: "SELLER" });
+        if (commission && commission.seller) {
+          const sellerIdStr = commission.seller.toString();
+          const deliveryBoyIdStr = updatedReturn.deliveryBoy.toString();
+
+          // Debit Seller
+          await debitWallet(
+            sellerIdStr,
+            "SELLER",
+            pickupFee,
+            `Return Pickup Fee for Order #${(updatedReturn.order as any)?.orderNumber || updatedReturn.order}`,
+            (updatedReturn.order as any)?._id?.toString() || updatedReturn.order.toString(),
+            undefined,
+            false,
+            true,
+            "Return",
+            updatedReturn._id.toString()
+          );
+
+          // Credit Rider
+          await creditWallet(
+            deliveryBoyIdStr,
+            "DELIVERY_BOY",
+            pickupFee,
+            `Return Pickup Payout for Order #${(updatedReturn.order as any)?.orderNumber || updatedReturn.order}`,
+            (updatedReturn.order as any)?._id?.toString() || updatedReturn.order.toString(),
+            undefined,
+            undefined,
+            false,
+            false,
+            undefined,
+            "Return",
+            updatedReturn._id.toString()
+          );
+
+          updatedReturn.returnPickupFee = pickupFee;
+          updatedReturn.riderPayoutProcessed = true;
+          await updatedReturn.save();
+          console.log(`[processReturnRequest] Processed Return Pickup Fee of ₹${pickupFee} (Debited Seller ${sellerIdStr}, Credited Rider ${deliveryBoyIdStr})`);
+        }
+      } catch (feeErr) {
+        console.error("[processReturnRequest] Error processing return pickup fee:", feeErr);
+      }
+    }
 
     return res.status(200).json({
       success: true,

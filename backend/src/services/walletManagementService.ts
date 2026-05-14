@@ -17,7 +17,12 @@ export const creditWallet = async (
     relatedOrderId?: string,
     relatedCommissionId?: string,
     session?: mongoose.ClientSession,
-    skipBalanceUpdate?: boolean
+    skipBalanceUpdate?: boolean,
+    isLocked?: boolean,
+    lockExpiresAt?: Date,
+    referenceType?: 'Order' | 'Return' | 'Refund' | 'CommissionRelease',
+    referenceId?: string,
+    paymentMethod?: string
 ) => {
     try {
         // Generate unique reference
@@ -34,6 +39,11 @@ export const creditWallet = async (
             reference,
             relatedOrder: relatedOrderId,
             relatedCommission: relatedCommissionId,
+            isLocked: isLocked || false,
+            lockExpiresAt,
+            referenceType,
+            referenceId,
+            paymentMethod,
         });
 
         if (session) {
@@ -45,7 +55,17 @@ export const creditWallet = async (
         // Update user balance
         if (!skipBalanceUpdate) {
             const Model: any = userType === 'SELLER' ? Seller : Delivery;
-            const updateQuery = { $inc: { balance: amount } };
+            let updateQuery: any;
+
+            if (userType === 'SELLER') {
+                if (isLocked) {
+                    updateQuery = { $inc: { lockedBalance: amount, lifetimeEarnings: amount } };
+                } else {
+                    updateQuery = { $inc: { balance: amount, lifetimeEarnings: amount } };
+                }
+            } else {
+                updateQuery = { $inc: { balance: amount } };
+            }
 
             if (session) {
                 await Model.findByIdAndUpdate(userId, updateQuery, { session });
@@ -97,13 +117,26 @@ export const debitWallet = async (
     amount: number,
     description: string,
     relatedOrderId?: string,
-    session?: mongoose.ClientSession
+    session?: mongoose.ClientSession,
+    fromLocked?: boolean,
+    allowNegative?: boolean,
+    referenceType?: 'Order' | 'Return' | 'Refund' | 'CommissionRelease',
+    referenceId?: string
 ) => {
     try {
-        // Check balance
-        const currentBalance = await getWalletBalance(userId, userType);
-        if (currentBalance < amount) {
-            throw new Error('Insufficient wallet balance');
+        // Check balance if negative is not allowed
+        if (!allowNegative) {
+            let currentBalance = 0;
+            if (userType === 'SELLER') {
+                const seller = await Seller.findById(userId).session(session || null as any);
+                if (!seller) throw new Error('Seller not found');
+                currentBalance = fromLocked ? (seller.lockedBalance || 0) : (seller.balance || 0);
+            } else {
+                currentBalance = await getWalletBalance(userId, userType);
+            }
+            if (currentBalance < amount) {
+                throw new Error('Insufficient wallet balance');
+            }
         }
 
         // Generate unique reference
@@ -119,6 +152,8 @@ export const debitWallet = async (
             status: 'Completed',
             reference,
             relatedOrder: relatedOrderId,
+            referenceType,
+            referenceId,
         });
 
         if (session) {
@@ -129,7 +164,24 @@ export const debitWallet = async (
 
         // Update user balance
         const Model: any = userType === 'SELLER' ? Seller : Delivery;
-        const updateQuery = { $inc: { balance: -amount } };
+        let updateQuery: any;
+
+        if (userType === 'SELLER' && fromLocked) {
+            const seller = await Seller.findById(userId).session(session || null as any);
+            if (!seller) throw new Error('Seller not found');
+            const lockedBal = seller.lockedBalance || 0;
+            if (lockedBal >= amount) {
+                updateQuery = { $inc: { lockedBalance: -amount } };
+            } else {
+                const remainder = amount - lockedBal;
+                updateQuery = {
+                    $set: { lockedBalance: 0 },
+                    $inc: { balance: -remainder }
+                };
+            }
+        } else {
+            updateQuery = { $inc: { balance: -amount } };
+        }
 
         if (session) {
             await Model.findByIdAndUpdate(userId, updateQuery, { session });

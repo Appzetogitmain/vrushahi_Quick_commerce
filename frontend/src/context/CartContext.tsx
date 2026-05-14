@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           mrp: item.product.mrp,
           discPrice: item.product.discPrice,
           variations: item.product.variations,
-          imageUrl: item.product.mainImage || item.product.imageUrl,
+          imageUrl: item.product.mainImage || item.product.imageUrl || item.product.variations?.find((v: any) => !!v.image)?.image,
           pack: item.product.pack || '1 unit',
           categoryId: item.product.category || '',
           description: item.product.description,
@@ -175,7 +175,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ...product,
       id: productId,
       name: product.name || product.productName || 'Product',
-      imageUrl: product.imageUrl || product.mainImage,
+      imageUrl: product.imageUrl || product.mainImage || product.variations?.find((v: any) => !!v.image)?.image,
     };
 
     // Trigger fly-to-cart animation

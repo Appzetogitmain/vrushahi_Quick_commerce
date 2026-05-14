@@ -109,7 +109,7 @@ router.use(authenticate);
  */
 router.post(
   "/image",
-  requireUserType("Admin", "Seller"),
+  requireUserType("Admin", "Seller", "Customer"),
   uploadSingleImage.single("image"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -143,7 +143,7 @@ router.post(
  */
 router.post(
   "/images",
-  requireUserType("Admin", "Seller"),
+  requireUserType("Admin", "Seller", "Customer"),
   uploadMultipleImages.array("images", 10), // Max 10 images
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -179,7 +179,7 @@ router.post(
  */
 router.post(
   "/document",
-  requireUserType("Admin", "Seller", "Delivery"),
+  requireUserType("Admin", "Seller", "Delivery", "Customer"),
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -198,6 +198,8 @@ router.post(
       folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
     } else if (userType === "Seller") {
       folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    } else if (userType === "Customer") {
+      folder = CLOUDINARY_FOLDERS.PRODUCTS;
     }
 
     // Check if it's an image or PDF
@@ -222,7 +224,7 @@ router.post(
  */
 router.post(
   "/documents",
-  requireUserType("Admin", "Seller", "Delivery"),
+  requireUserType("Admin", "Seller", "Delivery", "Customer"),
   uploadMultipleDocuments.array("documents", 5), // Max 5 documents
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -241,6 +243,8 @@ router.post(
       folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
     } else if (userType === "Seller") {
       folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    } else if (userType === "Customer") {
+      folder = CLOUDINARY_FOLDERS.PRODUCTS;
     }
 
     const files = (req as any).files as any[];

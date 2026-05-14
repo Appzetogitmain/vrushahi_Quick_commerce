@@ -97,7 +97,7 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
 
   const populated = await PromoStrip.findById(promoStrip._id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage variations price mrp");
 
   // Invalidate cache for this header category slug
   cache.delete(`promoStrip-${headerCategorySlug.toLowerCase()}`);
@@ -135,7 +135,7 @@ export const getAllPromoStrips = asyncHandler(async (req: Request, res: Response
 
   const promoStrips = await PromoStrip.find(query)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp")
+    .populate("featuredProducts", "productName mainImage variations price mrp")
     .sort(sort);
 
   return res.status(200).json({
@@ -153,7 +153,7 @@ export const getPromoStripById = asyncHandler(async (req: Request, res: Response
 
   const promoStrip = await PromoStrip.findById(id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage variations price mrp");
 
   if (!promoStrip) {
     return res.status(404).json({
@@ -261,7 +261,7 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
 
   const populated = await PromoStrip.findById(promoStrip._id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage variations price mrp");
 
   // Invalidate cache for this header category slug
   cache.delete(`promoStrip-${promoStrip.headerCategorySlug.toLowerCase()}`);

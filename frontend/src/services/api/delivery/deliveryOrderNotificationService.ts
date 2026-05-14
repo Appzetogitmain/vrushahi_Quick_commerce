@@ -17,6 +17,29 @@ export interface OrderNotificationData {
     shipping: number;
     expectedEarning?: number;
     createdAt: string;
+    type?: 'ORDER' | 'RETURN';
+}
+
+export interface ReturnNotificationData {
+    returnId: string;
+    orderNumber: string;
+    customerName: string;
+    customerPhone: string;
+    deliveryAddress: {
+        address: string;
+        city: string;
+        state?: string;
+        pincode: string;
+    };
+    productName: string;
+    variation: string;
+    quantity: number;
+    reason: string;
+    description: string;
+    images: string[];
+    expectedEarning: number;
+    createdAt: string;
+    type?: 'RETURN';
 }
 
 export interface AcceptOrderResponse {
@@ -75,6 +98,57 @@ export const rejectOrder = (
         socket.emit('reject-order', { orderId, deliveryBoyId });
 
         socket.once('reject-order-response', (response: RejectOrderResponse) => {
+            clearTimeout(timeout);
+            resolve(response);
+        });
+    });
+};
+
+/**
+ * Accept a return pickup via WebSocket
+ */
+export const acceptReturnPickupSocket = (
+    socket: Socket,
+    returnId: string,
+    deliveryBoyId: string
+): Promise<AcceptOrderResponse> => {
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            resolve({
+                success: false,
+                message: 'Request timeout',
+            });
+        }, 10000);
+
+        socket.emit('accept-return-pickup', { returnId, deliveryBoyId });
+
+        socket.once('accept-return-pickup-response', (response: AcceptOrderResponse) => {
+            clearTimeout(timeout);
+            resolve(response);
+        });
+    });
+};
+
+/**
+ * Reject a return pickup via WebSocket
+ */
+export const rejectReturnPickupSocket = (
+    socket: Socket,
+    returnId: string,
+    deliveryBoyId: string
+): Promise<RejectOrderResponse> => {
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            resolve({
+                success: false,
+                message: 'Request timeout',
+                allRejected: false,
+            });
+        }, 10000);
+
+        socket.emit('reject-return-pickup', { returnId, deliveryBoyId });
+
+        socket.once('reject-return-pickup-response', (response: RejectOrderResponse) => {
             clearTimeout(timeout);
             resolve(response);
         });

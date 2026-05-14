@@ -8,6 +8,7 @@ import Inventory from "../../../models/Inventory";
 import Seller from "../../../models/Seller";
 import HeaderCategory from "../../../models/HeaderCategory";
 import { cache } from "../../../utils/cache";
+import { populateProductsSubcategory } from "../../../utils/productHelper";
 
 // ==================== Category Controllers ====================
 
@@ -964,14 +965,16 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const [products, total] = await Promise.all([
     Product.find(query)
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate("seller", "sellerName storeName")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit as string)),
+      .limit(parseInt(limit as string))
+      .lean(),
     Product.countDocuments(query),
   ]);
+
+  await populateProductsSubcategory(products);
 
   return res.status(200).json({
     success: true,
@@ -995,10 +998,10 @@ export const getProductById = asyncHandler(
 
     const product = await Product.findById(id)
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate("seller", "sellerName storeName")
-      .populate("approvedBy", "firstName lastName");
+      .populate("approvedBy", "firstName lastName")
+      .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -1006,6 +1009,8 @@ export const getProductById = asyncHandler(
         message: "Product not found",
       });
     }
+
+    await populateProductsSubcategory(product);
 
     return res.status(200).json({
       success: true,
@@ -1028,9 +1033,9 @@ export const updateProduct = asyncHandler(
       runValidators: true,
     })
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
-      .populate("seller", "sellerName storeName");
+      .populate("seller", "sellerName storeName")
+      .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -1038,6 +1043,8 @@ export const updateProduct = asyncHandler(
         message: "Product not found",
       });
     }
+
+    await populateProductsSubcategory(product);
 
     // Update inventory if stock changed
     if (updateData.stock !== undefined) {

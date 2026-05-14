@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Product from "../../../models/Product";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import { populateProductsSubcategory } from "../../../utils/productHelper";
 
 /**
  * Create a new product
@@ -63,6 +64,16 @@ export const createProduct = asyncHandler(
       return res.status(400).json({
         success: false,
         message: "Product price is required (add at least one variation)",
+      });
+    }
+
+    // Validate minimum one image uploaded (either cover image or in variation)
+    const hasCoverImage = !!newProductData.mainImage;
+    const hasVariationImage = newProductData.variations?.some((v: any) => !!v.image);
+    if (!hasCoverImage && !hasVariationImage) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one image is required! Please upload a Cover Image or add an image for at least one variation.",
       });
     }
 
@@ -208,12 +219,14 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 
   const products = await Product.find(query)
     .populate("category", "name")
-    .populate("subcategory", "name")
     .populate("brand", "name")
     .populate("tax", "name rate")
     .sort(sort)
     .skip(skip)
-    .limit(limitNum);
+    .limit(limitNum)
+    .lean();
+
+  await populateProductsSubcategory(products);
 
   const total = await Product.countDocuments(query);
 
@@ -249,10 +262,10 @@ export const getProductById = asyncHandler(
 
     const product = await Product.findOne({ _id: id, seller: sellerId })
       .populate("category", "name")
-      .populate("subcategory", "subcategoryName")
       .populate("headerCategoryId", "name slug")
       .populate("brand", "name")
-      .populate("tax", "name rate");
+      .populate("tax", "name rate")
+      .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -260,6 +273,8 @@ export const getProductById = asyncHandler(
         message: "Product not found",
       });
     }
+
+    await populateProductsSubcategory(product);
 
     return res.status(200).json({
       success: true,
@@ -394,6 +409,21 @@ export const updateProduct = asyncHandler(
         success: false,
         message: "Product not found",
       });
+    }
+
+    // Validate minimum one image uploaded if variations or main image are being updated
+    if (updateData.variations !== undefined || updateData.mainImage !== undefined) {
+      const hasCoverImage = updateData.mainImage !== undefined ? !!updateData.mainImage : !!product.mainImage;
+      const hasVariationImage = updateData.variations !== undefined 
+        ? updateData.variations.some((v: any) => !!v.image) 
+        : (product.variations || []).some((v: any) => !!v.image);
+      
+      if (!hasCoverImage && !hasVariationImage) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one image is required! Please upload a Cover Image or add an image for at least one variation.",
+        });
+      }
     }
 
     // Apply updates

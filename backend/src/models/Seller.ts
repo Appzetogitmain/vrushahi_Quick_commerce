@@ -68,6 +68,8 @@ export interface ISeller extends Document {
   // Status
   status: 'Approved' | 'Pending' | 'Rejected';
   balance: number;
+  lockedBalance: number;
+  lifetimeEarnings: number;
   categories: string[];
   logo?: string;
   isShopOpen: boolean;
@@ -292,7 +294,16 @@ const SellerSchema = new Schema<ISeller>(
     balance: {
       type: Number,
       default: 0,
-      min: [0, 'Balance cannot be negative'],
+    },
+    lockedBalance: {
+      type: Number,
+      default: 0,
+      min: [0, 'Locked balance cannot be negative'],
+    },
+    lifetimeEarnings: {
+      type: Number,
+      default: 0,
+      min: [0, 'Lifetime earnings cannot be negative'],
     },
     categories: {
       type: [String],

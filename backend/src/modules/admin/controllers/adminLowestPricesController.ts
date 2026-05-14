@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 export const getLowestPricesProducts = async (_req: Request, res: Response) => {
     try {
         const products = await LowestPricesProduct.find()
-            .populate("product", "productName mainImage price mrp discount status publish")
+            .populate("product", "productName mainImage variations price mrp discount status publish")
             .sort({ order: 1 })
             .lean();
 
@@ -37,7 +37,7 @@ export const getLowestPricesProductById = async (req: Request, res: Response) =>
         }
 
         const lowestPricesProduct = await LowestPricesProduct.findById(id)
-            .populate("product", "productName mainImage price mrp discount status publish")
+            .populate("product", "productName mainImage variations price mrp discount status publish")
             .lean();
 
         if (!lowestPricesProduct) {
@@ -115,7 +115,7 @@ export const createLowestPricesProduct = async (req: Request, res: Response) => 
         await newLowestPricesProduct.save();
 
         const populatedProduct = await LowestPricesProduct.findById(newLowestPricesProduct._id)
-            .populate("product", "productName mainImage price mrp discount status publish")
+            .populate("product", "productName mainImage variations price mrp discount status publish")
             .lean();
 
         return res.status(201).json({
@@ -167,7 +167,7 @@ export const updateLowestPricesProduct = async (req: Request, res: Response) => 
         await lowestPricesProduct.save();
 
         const updatedProduct = await LowestPricesProduct.findById(id)
-            .populate("product", "productName mainImage price mrp discount status publish")
+            .populate("product", "productName mainImage variations price mrp discount status publish")
             .lean();
 
         return res.status(200).json({
@@ -240,7 +240,7 @@ export const reorderLowestPricesProducts = async (req: Request, res: Response) =
         await Promise.all(updatePromises);
 
         const updatedProducts = await LowestPricesProduct.find()
-            .populate("product", "productName mainImage price mrp discount status publish")
+            .populate("product", "productName mainImage variations price mrp discount status publish")
             .sort({ order: 1 })
             .lean();
 

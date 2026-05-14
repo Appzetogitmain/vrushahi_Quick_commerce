@@ -42,6 +42,7 @@ import {
   getOrderById,
   cancelOrder,
   updateOrderNotes,
+  createReturnRequest,
 } from "../modules/customer/controllers/customerOrderController";
 
 import policyRoutes from "./policyRoutes";
@@ -112,6 +113,7 @@ router.get("/customer/orders", authenticate, requireUserType("Customer"), getMyO
 router.get("/customer/orders/:id", authenticate, requireUserType("Customer"), getOrderById);
 router.post("/customer/orders/:id/cancel", authenticate, requireUserType("Customer"), cancelOrder);
 router.patch("/customer/orders/:id/notes", authenticate, requireUserType("Customer"), updateOrderNotes);
+router.post("/customer/orders/:id/items/:itemId/return", authenticate, requireUserType("Customer"), createReturnRequest);
 
 // Tracking routes
 router.use("/customer", customerTrackingRoutes);

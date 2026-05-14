@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Seller from "../../../models/Seller";
 import Product from "../../../models/Product";
 import mongoose from "mongoose";
+import { populateProductsSubcategory } from "../../../utils/productHelper";
 
 // Get seller details and their products
 export const getSellerStoreDetails = async (req: Request, res: Response) => {
@@ -57,10 +58,11 @@ export const getSellerStoreDetails = async (req: Request, res: Response) => {
     // Fetch products belonging to this seller
     const products = await Product.find(filterQuery)
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .sort(sortOptions)
       .lean();
+
+    await populateProductsSubcategory(products);
 
     // Group products by category for a better "Menu" experience
     const categoriesMap: { [key: string]: any } = {};

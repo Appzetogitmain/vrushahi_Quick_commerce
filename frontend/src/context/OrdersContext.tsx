@@ -116,7 +116,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
             id: item.product.id || (item.product as { _id?: string })._id || '',
           },
           quantity: item.quantity,
-          variant: item.variant, // Pass variant if available
+          variant: typeof item.variant === 'object' ? (item.variant?._id || item.variant?.value || item.variant?.title) : item.variant, // Pass variant as string identifier if available
         })),
         fees: {
           deliveryFee: order.fees?.deliveryFee || 0,

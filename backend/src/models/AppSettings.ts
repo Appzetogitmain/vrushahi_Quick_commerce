@@ -59,6 +59,8 @@ export interface IAppSettings extends Document {
   freeDeliveryThreshold?: number;
   riderCashLimit?: number;
   riderPoliceVerificationDays?: number;
+  riderMaxConcurrentOrders?: number;
+  returnPickupFee?: number;
 
   deliveryConfig?: {
     isDistanceBased: boolean;
@@ -285,6 +287,16 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       type: Number,
       default: 30,
       min: [1, "Police verification days must be at least 1"],
+    },
+    riderMaxConcurrentOrders: {
+      type: Number,
+      default: 1,
+      min: [1, "Max concurrent orders must be at least 1"],
+    },
+    returnPickupFee: {
+      type: Number,
+      default: 20,
+      min: [0, "Return pickup fee cannot be negative"],
     },
 
     deliveryConfig: {

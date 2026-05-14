@@ -38,7 +38,16 @@ export default function SellerProductList() {
     pages: number;
   } | null>(null);
   const [allCategories, setAllCategories] = useState<apiCategory[]>([]);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const { user } = useAuth();
+
+  // Close export dropdown when clicking anywhere else
+  useEffect(() => {
+    if (!showExportDropdown) return;
+    const handleClose = () => setShowExportDropdown(false);
+    window.addEventListener("click", handleClose);
+    return () => window.removeEventListener("click", handleClose);
+  }, [showExportDropdown]);
 
   // Fetch categories
   useEffect(() => {
@@ -67,8 +76,9 @@ export default function SellerProductList() {
         sortOrder: sortDirection,
       };
 
-      if (searchTerm) {
-        params.search = searchTerm;
+      const cleanSearch = searchTerm.trim().replace(/\s+/g, " ");
+      if (cleanSearch) {
+        params.search = cleanSearch;
       }
       if (categoryFilter !== "All Category") {
         params.category = categoryFilter;
@@ -194,11 +204,13 @@ export default function SellerProductList() {
   });
 
   // Filter variations
+  const cleanSearch = searchTerm.trim().toLowerCase().replace(/\s+/g, " ");
   let filteredVariations = allVariations.filter((variation) => {
     const matchesSearch =
-      variation.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      variation.sellerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      variation.brandName.toLowerCase().includes(searchTerm.toLowerCase());
+      !cleanSearch ||
+      variation.productName.toLowerCase().includes(cleanSearch) ||
+      variation.sellerName.toLowerCase().includes(cleanSearch) ||
+      variation.brandName.toLowerCase().includes(cleanSearch);
     
     const matchesCategory =
       categoryFilter === "All Category" ||
@@ -369,88 +381,221 @@ export default function SellerProductList() {
                 <option value={100}>100</option>
               </select>
             </div>
-            <button
-              onClick={() => {
-                const headers = [
-                  "Product Id",
-                  "Variation Id",
-                  "Product Name",
-                  "Seller Name",
-                  "Brand Name",
-                  "Category",
-                  "Price",
-                  "Disc Price",
-                  "Variation",
-                ];
-                const csvContent = [
-                  headers.join(","),
-                  ...filteredVariations.map((v) =>
-                    [
-                      v.productId,
-                      v.variationId,
-                      `"${v.productName}"`,
-                      `"${v.sellerName}"`,
-                      `"${v.brandName}"`,
-                      `"${v.category}"`,
-                      v.price,
-                      v.discPrice,
-                      `"${v.variation}"`,
-                    ].join(",")
-                  ),
-                ].join("\n");
-                const blob = new Blob([csvContent], {
-                  type: "text/csv;charset=utf-8;",
-                });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute(
-                  "download",
-                  `products_${new Date().toISOString().split("T")[0]}.csv`
-                );
-                link.style.visibility = "hidden";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Export
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="ml-1">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
             <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
-                Search:
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowExportDropdown(!showExportDropdown);
+                }}
+                className="bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all shadow-sm select-none cursor-pointer">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Export</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-transform duration-200 ${showExportDropdown ? "rotate-180" : ""}`}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              {showExportDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-neutral-200 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">
+                    Export Options
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const headers = [
+                        "Product Id",
+                        "Variation Id",
+                        "Product Name",
+                        "Seller Name",
+                        "Brand Name",
+                        "Category",
+                        "Price",
+                        "Disc Price",
+                        "Variation",
+                      ];
+                      const csvContent = [
+                        headers.join(","),
+                        ...filteredVariations.map((v) =>
+                          [
+                            v.productId,
+                            v.variationId,
+                            `"${v.productName.replace(/"/g, '""')}"`,
+                            `"${v.sellerName.replace(/"/g, '""')}"`,
+                            `"${v.brandName.replace(/"/g, '""')}"`,
+                            `"${v.category.replace(/"/g, '""')}"`,
+                            v.price,
+                            v.discPrice,
+                            `"${v.variation.replace(/"/g, '""')}"`,
+                          ].join(",")
+                        ),
+                      ].join("\n");
+                      const blob = new Blob([csvContent], {
+                        type: "text/csv;charset=utf-8;",
+                      });
+                      const link = document.createElement("a");
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute("href", url);
+                      link.setAttribute(
+                        "download",
+                        `products_csv_${new Date().toISOString().split("T")[0]}.csv`
+                      );
+                      link.style.visibility = "hidden";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      setShowExportDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-teal-600">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Export as CSV</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const headers = [
+                        "Product Id",
+                        "Variation Id",
+                        "Product Name",
+                        "Seller Name",
+                        "Brand Name",
+                        "Category",
+                        "Price",
+                        "Disc Price",
+                        "Variation",
+                      ];
+                      const BOM = "\uFEFF";
+                      const csvContent = [
+                        headers.join(","),
+                        ...filteredVariations.map((v) =>
+                          [
+                            v.productId,
+                            v.variationId,
+                            `"${v.productName.replace(/"/g, '""')}"`,
+                            `"${v.sellerName.replace(/"/g, '""')}"`,
+                            `"${v.brandName.replace(/"/g, '""')}"`,
+                            `"${v.category.replace(/"/g, '""')}"`,
+                            v.price,
+                            v.discPrice,
+                            `"${v.variation.replace(/"/g, '""')}"`,
+                          ].join(",")
+                        ),
+                      ].join("\n");
+                      const blob = new Blob([BOM + csvContent], {
+                        type: "text/csv;charset=utf-8;",
+                      });
+                      const link = document.createElement("a");
+                      const url = URL.createObjectURL(blob);
+                      link.setAttribute("href", url);
+                      link.setAttribute(
+                        "download",
+                        `products_excel_${new Date().toISOString().split("T")[0]}.csv`
+                      );
+                      link.style.visibility = "hidden";
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      setShowExportDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-green-600">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                    </svg>
+                    <span>Export for Excel</span>
+                  </button>
+
+                  <div className="border-t border-neutral-100 my-1"></div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.print();
+                      setShowExportDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2.5 transition-colors font-medium cursor-pointer">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-neutral-500">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>Print Table</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
               </span>
               <input
                 type="text"
-                className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
+                className="pl-9 pr-3 py-1.5 bg-neutral-100 hover:bg-neutral-200/60 focus:bg-white border border-transparent focus:border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500/20 focus:outline-none w-56 transition-all font-medium text-neutral-800 placeholder-neutral-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder=""
+                placeholder="Search products..."
               />
             </div>
           </div>

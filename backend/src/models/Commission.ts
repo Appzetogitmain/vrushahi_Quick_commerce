@@ -18,6 +18,10 @@ export interface ICommission extends Document {
 
   // Status
   status: "Pending" | "Paid" | "Cancelled";
+  releaseStatus?: "Locked" | "Released" | "Reversed";
+  lockExpiresAt?: Date;
+  releasedAt?: Date;
+  paymentType?: string;
 
   // Payment
   paidAt?: Date;
@@ -85,6 +89,21 @@ const CommissionSchema = new Schema<ICommission>(
       type: String,
       enum: ["Pending", "Paid", "Cancelled"],
       default: "Pending",
+    },
+    releaseStatus: {
+      type: String,
+      enum: ["Locked", "Released", "Reversed"],
+      default: "Locked",
+    },
+    lockExpiresAt: {
+      type: Date,
+    },
+    releasedAt: {
+      type: Date,
+    },
+    paymentType: {
+      type: String,
+      trim: true,
     },
 
     // Payment

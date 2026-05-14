@@ -227,9 +227,11 @@ export default function OrderNotificationCard({
     };
 
     const formatAddress = () => {
-        const { address, city, state, pincode, landmark } = notification.deliveryAddress;
-        return `${address}${landmark ? `, Near ${landmark}` : ''}, ${city}${state ? `, ${state}` : ''} - ${pincode}`;
+        const { address, city, state, pincode, landmark } = notification.deliveryAddress || {};
+        return `${address || ''}${landmark ? `, Near ${landmark}` : ''}, ${city || ''}${state ? `, ${state}` : ''} - ${pincode || ''}`;
     };
+
+    const isReturn = notification.type === 'RETURN';
 
     return (
         <motion.div
@@ -246,7 +248,7 @@ export default function OrderNotificationCard({
                 paddingTop: 'env(safe-area-inset-top, 0)',
             }}
         >
-            <div className="bg-white rounded-xl shadow-2xl border-2 border-teal-500 p-4 sm:p-6">
+            <div className={`bg-white rounded-xl shadow-2xl border-2 ${isReturn ? 'border-amber-500' : 'border-teal-500'} p-4 sm:p-6`}>
                 {/* Header with pulsing indicator */}
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <div className="flex items-center gap-3">
@@ -254,7 +256,9 @@ export default function OrderNotificationCard({
                             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                             <div className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></div>
                         </div>
-                        <h3 className="text-base sm:text-lg font-bold text-neutral-900">New Order!</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-neutral-900">
+                            {isReturn ? 'New Return Pickup!' : 'New Order!'}
+                        </h3>
                     </div>
                     {(audioError || !hasUserInteracted) && (
                         <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-full animate-bounce">
@@ -267,10 +271,10 @@ export default function OrderNotificationCard({
                     )}
                 </div>
 
-                {/* Order Information */}
-                <div className="space-y-3 mb-4">
+                {/* Order/Return Information */}
+                <div className="space-y-3 mb-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div>
-                        <p className="text-xs sm:text-sm text-neutral-600">Order Number</p>
+                        <p className="text-xs sm:text-sm text-neutral-600">{isReturn ? 'Return Request ID' : 'Order Number'}</p>
                         <p className="text-base sm:text-lg font-semibold text-neutral-900 break-all">{notification.orderNumber}</p>
                     </div>
 
@@ -281,18 +285,54 @@ export default function OrderNotificationCard({
                     </div>
 
                     <div>
-                        <p className="text-xs sm:text-sm text-neutral-600">Delivery Address</p>
+                        <p className="text-xs sm:text-sm text-neutral-600">Pickup Address</p>
                         <p className="text-xs sm:text-sm text-neutral-900 break-words leading-relaxed">{formatAddress()}</p>
                     </div>
 
-                    <div className="flex justify-between items-center bg-teal-50 p-3 rounded-lg border border-teal-100">
+                    {isReturn && (
+                        <>
+                            <div>
+                                <p className="text-xs sm:text-sm text-neutral-600">Product to Pickup</p>
+                                <p className="text-sm sm:text-base font-medium text-neutral-900 break-words">
+                                    {(notification as any).productName} ({(notification as any).variation}) x{(notification as any).quantity}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs sm:text-sm text-neutral-600">Return Reason</p>
+                                <p className="text-xs sm:text-sm text-red-600 font-medium break-words">{(notification as any).reason}</p>
+                                {(notification as any).description && (
+                                    <p className="text-xs text-neutral-500 italic mt-0.5">{(notification as any).description}</p>
+                                )}
+                            </div>
+
+                            {(notification as any).images && (notification as any).images.length > 0 && (
+                                <div>
+                                    <p className="text-xs sm:text-sm text-neutral-600 mb-1">Customer Uploaded Images</p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1">
+                                        {(notification as any).images.map((img: string, idx: number) => (
+                                            <img key={idx} src={img} alt="Return" className="w-12 h-12 rounded object-cover border border-neutral-200" />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    <div className={`flex justify-between items-center ${isReturn ? 'bg-amber-50 border-amber-100' : 'bg-teal-50 border-teal-100'} p-3 rounded-lg border`}>
                         <div>
-                            <p className="text-xs text-teal-700 font-bold uppercase tracking-wider">Order Amount</p>
-                            <p className="text-lg font-bold text-neutral-900">₹{notification.total.toFixed(2)}</p>
+                            <p className={`text-xs ${isReturn ? 'text-amber-700' : 'text-teal-700'} font-bold uppercase tracking-wider`}>
+                                {isReturn ? 'Pickup Earning' : 'Order Amount'}
+                            </p>
+                            <p className="text-lg font-bold text-neutral-900">
+                                ₹{notification.total ? notification.total.toFixed(2) : '20.00'}
+                            </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-xs text-teal-700 font-bold uppercase tracking-wider">Your Earning</p>
-                            <p className="text-2xl font-black text-teal-600">₹{notification.expectedEarning?.toFixed(2) || "---"}</p>
+                            <p className={`text-xs ${isReturn ? 'text-amber-700' : 'text-teal-700'} font-bold uppercase tracking-wider`}>Your Earning</p>
+                            <p className={`text-2xl font-black ${isReturn ? 'text-amber-600' : 'text-teal-600'}`}>
+                                ₹{notification.expectedEarning ? notification.expectedEarning.toFixed(2) : "20.00"}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -310,7 +350,7 @@ export default function OrderNotificationCard({
                     <button
                         onClick={handleAccept}
                         disabled={isProcessing}
-                        className="flex-1 px-4 py-3 sm:py-3 bg-teal-600 active:bg-teal-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                        className={`flex-1 px-4 py-3 sm:py-3 ${isReturn ? 'bg-amber-600 active:bg-amber-700' : 'bg-teal-600 active:bg-teal-700'} text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation`}
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                         {isProcessing ? 'Processing...' : 'Accept'}

@@ -419,10 +419,16 @@ export default function SellerStockManagement() {
                                                 defaultValue={item.stock}
                                                 className="w-20 px-2 py-1 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 outline-none"
                                                 onKeyDown={(e) => {
+                                                    if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                                                        e.preventDefault();
+                                                        return;
+                                                    }
                                                     if (e.key === 'Enter') {
                                                         const val = parseInt((e.target as HTMLInputElement).value);
-                                                        if (!isNaN(val)) {
+                                                        if (!isNaN(val) && val >= 0) {
                                                             handleStockUpdate(item.productId, item.variationId, val);
+                                                        } else if (val < 0) {
+                                                            alert("Stock cannot be negative");
                                                         }
                                                     }
                                                 }}
@@ -432,8 +438,10 @@ export default function SellerStockManagement() {
                                                 onClick={(e) => {
                                                     const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
                                                     const val = parseInt(input.value);
-                                                    if (!isNaN(val)) {
+                                                    if (!isNaN(val) && val >= 0) {
                                                         handleStockUpdate(item.productId, item.variationId, val);
+                                                    } else if (val < 0) {
+                                                        alert("Stock cannot be negative");
                                                     }
                                                 }}
                                                 className="p-1.5 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors disabled:bg-neutral-300"

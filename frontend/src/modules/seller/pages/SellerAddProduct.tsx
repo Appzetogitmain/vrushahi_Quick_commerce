@@ -85,7 +85,9 @@ export default function SellerAddProduct() {
     price: "",
     discPrice: "0",
     stock: "0",
-    status: "Available" as "Available" | "Sold out",
+    status: "Available" as "Available" | "Sold out" | "In stock",
+    imageFile: null as File | null,
+    imagePreview: "",
   });
 
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -215,8 +217,16 @@ export default function SellerAddProduct() {
   }, [formData.subcategory]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    let finalValue = value;
+    if (type === 'number') {
+      if (/^0+$/.test(value)) {
+        finalValue = '0';
+      } else if (/^0\d/.test(value)) {
+        finalValue = value.replace(/^0+/, '');
+      }
+    }
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
   const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,6 +280,15 @@ export default function SellerAddProduct() {
     }));
   };
 
+  const handleRemoveMainImage = () => {
+    setMainImageFile(null);
+    setMainImagePreview("");
+    setFormData(prev => ({
+      ...prev,
+      mainImageUrl: "",
+    }));
+  };
+
   const addVariation = () => {
     const price = parseFloat(variationForm.price);
     const stock = parseInt(variationForm.stock);
@@ -297,9 +316,19 @@ export default function SellerAddProduct() {
       discPrice: parseFloat(variationForm.discPrice || "0"),
       stock: parseInt(variationForm.stock || "0"),
       status: variationForm.status,
+      imageFile: variationForm.imageFile,
+      imagePreview: variationForm.imagePreview,
     };
     setVariations([...variations, newVar]);
-    setVariationForm({ title: "", price: "", discPrice: "0", stock: "0", status: "Available" });
+    setVariationForm({
+      title: "",
+      price: "",
+      discPrice: "0",
+      stock: "0",
+      status: "Available",
+      imageFile: null,
+      imagePreview: "",
+    });
   };
 
   const removeVariation = (index: number) => {
@@ -314,6 +343,14 @@ export default function SellerAddProduct() {
     }
     if (variations.length === 0) {
       showToast("Add at least one variation", "error");
+      return;
+    }
+
+    // Validate minimum one image is uploaded (either cover image or in variations)
+    const hasCoverImage = !!mainImageFile || !!formData.mainImageUrl;
+    const hasVariationImage = variations.some((v) => !!v.imageFile || !!v.image);
+    if (!hasCoverImage && !hasVariationImage) {
+      showToast("At least one product image is required (either a Cover Image or on at least one Variation)!", "error");
       return;
     }
 
@@ -332,15 +369,37 @@ export default function SellerAddProduct() {
         galleryImageUrls = [...galleryImageUrls, ...res.map(r => r.secureUrl)];
       }
 
+      // Parallel upload of variation images and sanitization
+      const updatedVariations = await Promise.all(
+        variations.map(async (v) => {
+          let imageUrl = v.image || "";
+          if (v.imageFile) {
+            const res = await uploadImage(v.imageFile, "products/variations");
+            imageUrl = res.secureUrl;
+          }
+          return {
+            title: v.title,
+            color: v.color || "",
+            size: v.size || "",
+            price: v.price,
+            discPrice: v.discPrice,
+            stock: v.stock,
+            status: v.status,
+            sku: v.sku,
+            image: imageUrl, // Save variation image URL
+          };
+        })
+      );
+
       const productData = {
         productName: formData.productName,
         tags: formData.tags.split(",").map(t => t.trim()).filter(Boolean),
         publish: formData.publish === "Yes",
         popular: formData.popular === "Yes",
         dealOfDay: formData.dealOfDay === "Yes",
-        price: variations[0].price,
-        discPrice: variations[0].discPrice,
-        stock: variations.reduce((acc, curr) => acc + (curr.stock || 0), 0),
+        price: updatedVariations[0].price,
+        discPrice: updatedVariations[0].discPrice,
+        stock: updatedVariations.reduce((acc, curr) => acc + (curr.stock || 0), 0),
         taxId: formData.tax || undefined,
         headerCategoryId: formData.headerCategory || undefined,
         categoryId: formData.category || undefined,
@@ -352,7 +411,7 @@ export default function SellerAddProduct() {
         totalAllowedQuantity: parseInt(formData.totalAllowedQuantity || "10"),
         mainImageUrl,
         galleryImageUrls,
-        variations,
+        variations: updatedVariations,
         // Description and extra fields
         smallDescription: formData.smallDescription || undefined,
         description: formData.description || undefined,
@@ -416,6 +475,7 @@ export default function SellerAddProduct() {
         setVariationForm={setVariationForm}
         addVariation={addVariation}
         removeVariation={removeVariation}
+        handleRemoveMainImage={handleRemoveMainImage}
         isEdit={!!id}
       />
     </div>

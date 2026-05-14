@@ -4,12 +4,17 @@ export interface IWalletTransaction extends Document {
     userId: mongoose.Types.ObjectId; // Generic user reference (seller or delivery boy)
     userType: 'SELLER' | 'DELIVERY_BOY'; // Type of user
     amount: number;
-    type: 'Credit' | 'Debit' | 'Settlement';
+    type: 'Credit' | 'Debit' | 'Settlement' | 'Transfer';
     description: string;
     status: 'Completed' | 'Pending' | 'Failed';
     reference: string;
     relatedOrder?: mongoose.Types.ObjectId; // Reference to order (for commission credits)
     relatedCommission?: mongoose.Types.ObjectId; // Reference to commission record
+    isLocked?: boolean;
+    lockExpiresAt?: Date;
+    referenceType?: string;
+    referenceId?: mongoose.Types.ObjectId;
+    paymentMethod?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -33,7 +38,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
         },
         type: {
             type: String,
-            enum: ['Credit', 'Debit', 'Settlement'],
+            enum: ['Credit', 'Debit', 'Settlement', 'Transfer'],
             required: [true, 'Transaction type is required'],
         },
         description: {
@@ -58,6 +63,24 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
         relatedCommission: {
             type: Schema.Types.ObjectId,
             ref: 'Commission',
+        },
+        isLocked: {
+            type: Boolean,
+            default: false,
+        },
+        lockExpiresAt: {
+            type: Date,
+        },
+        referenceType: {
+            type: String,
+            enum: ['Order', 'Return', 'Refund', 'CommissionRelease'],
+        },
+        referenceId: {
+            type: Schema.Types.ObjectId,
+        },
+        paymentMethod: {
+            type: String,
+            trim: true,
         },
     },
     {

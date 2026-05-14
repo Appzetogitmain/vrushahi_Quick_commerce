@@ -15,6 +15,7 @@ import { notFound } from "./middleware/notFound";
 import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
+import { startEarningsReleaseWorker } from "./services/earningsReleaseService";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -128,6 +129,9 @@ async function startServer() {
   await connectDB();
   await ensureDefaultAdmin();
   await seedHeaderCategories();
+
+  // Start background earnings release scheduler
+  startEarningsReleaseWorker();
 
   httpServer.listen(PORT, () => {
     console.log("\n\x1b[32m✓\x1b[0m \x1b[1mvrushahi Server Started\x1b[0m");

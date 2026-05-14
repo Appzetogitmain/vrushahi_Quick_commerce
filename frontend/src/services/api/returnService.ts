@@ -20,6 +20,12 @@ export interface ReturnRequest {
   customerName?: string;
   customerPhone?: string;
   orderId?: string;
+  returnReason?: string;
+  description?: string;
+  image?: string;
+  refundMethod?: string;
+  images?: string[];
+  bankDetails?: any;
 }
 
 export interface ReturnRequestDetail {

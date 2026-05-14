@@ -4,9 +4,19 @@ interface OTPInputProps {
   length?: number;
   onComplete: (otp: string) => void;
   disabled?: boolean;
+  focusBorderClass?: string;
+  focusRingClass?: string;
+  hoverBorderClass?: string;
 }
 
-export default function OTPInput({ length = 4, onComplete, disabled = false }: OTPInputProps) {
+export default function OTPInput({
+  length = 4,
+  onComplete,
+  disabled = false,
+  focusBorderClass = 'focus:border-green-500',
+  focusRingClass = 'focus:ring-green-100',
+  hoverBorderClass = 'hover:border-green-300',
+}: OTPInputProps) {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -79,7 +89,7 @@ export default function OTPInput({ length = 4, onComplete, disabled = false }: O
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
           disabled={disabled}
-          className="w-14 h-14 text-center text-xl font-bold border-2 border-neutral-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 hover:border-green-300 outline-none transition-all disabled:bg-neutral-50 disabled:cursor-not-allowed"
+          className={`w-14 h-14 text-center text-xl font-bold border-2 border-neutral-200 rounded-xl focus:ring-4 outline-none transition-all disabled:bg-neutral-50 disabled:cursor-not-allowed ${focusBorderClass} ${focusRingClass} ${hoverBorderClass}`}
         />
       ))}
     </div>

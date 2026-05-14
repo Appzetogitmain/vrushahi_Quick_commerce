@@ -20,7 +20,7 @@ export default function CheckoutAddress() {
 
   // Get address from navigation state if editing
   const editAddress = (location.state as any)?.editAddress as OrderAddress | undefined;
-  const isNew = (location.state as any)?.isNew as boolean | undefined;
+  const isNew = (location.state as any)?.isNew !== false && !editAddress;
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [address, setAddress] = useState<OrderAddress>({
@@ -87,41 +87,8 @@ export default function CheckoutAddress() {
     }
   }, [isAuthenticated, editAddress]);
 
-  // Update address when addressType changes
-  useEffect(() => {
-    if (!editAddress && !isNew && savedAddresses.length > 0) {
-      const typeLabel = addressType.charAt(0).toUpperCase() + addressType.slice(1) as any;
-      const existingAddr = savedAddresses.find(a => a.type === typeLabel);
+  // Removed useEffect on addressType change to prevent auto-loading or clearing address fields on tag selection
 
-      if (existingAddr) {
-        const parts = existingAddr.address.split(', ');
-        setAddress({
-          name: existingAddr.fullName,
-          phone: existingAddr.phone,
-          flat: parts[0] || '',
-          street: parts[1] || '',
-          city: existingAddr.city,
-          state: existingAddr.state || '',
-          pincode: existingAddr.pincode,
-          landmark: existingAddr.landmark || '',
-          id: existingAddr._id,
-        });
-      } else {
-        // Clear or reset to defaults if no address of this type
-        setAddress(prev => ({
-          ...prev,
-          flat: '',
-          street: '',
-          city: '',
-          state: '',
-          pincode: '',
-          landmark: '',
-          id: undefined,
-          _id: undefined,
-        }));
-      }
-    }
-  }, [addressType, savedAddresses, editAddress]);
 
   // Update address when editAddress changes
   useEffect(() => {
@@ -144,10 +111,6 @@ export default function CheckoutAddress() {
     }
   }, [editAddress]);
 
-  const platformFee = appConfig.platformFee;
-  const deliveryFee = cart.total >= appConfig.freeDeliveryThreshold ? 0 : appConfig.deliveryFee;
-  const totalAmount = cart.total + platformFee + deliveryFee;
-
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof OrderAddress, string>> = {};
 
@@ -158,9 +121,6 @@ export default function CheckoutAddress() {
       newErrors.phone = 'Phone is required';
     } else if (address.phone.length < 10) {
       newErrors.phone = 'Phone must be at least 10 digits';
-    }
-    if (!address.flat.trim()) {
-      newErrors.flat = 'Flat/House No. is required';
     }
     if (!address.street.trim()) {
       newErrors.street = 'Street/Area is required';
@@ -241,7 +201,7 @@ export default function CheckoutAddress() {
         landmark: address.landmark,
         type: addressType.charAt(0).toUpperCase() + addressType.slice(1) as 'Home' | 'Work' | 'Hotel' | 'Other', // Capitalize
         isDefault: true, // Auto set as default for now
-        address: `${address.flat}, ${address.street}`, // Fallback combined string
+        address: address.flat ? `${address.flat}, ${address.street}` : address.street, // Fallback combined string
         latitude: finalLat,
         longitude: finalLng,
       };
@@ -268,7 +228,6 @@ export default function CheckoutAddress() {
 
   const isFormValid = address.name.trim() !== '' &&
     address.phone.trim().length >= 10 &&
-    address.flat.trim() !== '' &&
     address.street.trim() !== '' &&
     address.city.trim() !== '' &&
     (address.state?.trim() || '') !== '' &&
@@ -418,7 +377,7 @@ export default function CheckoutAddress() {
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Flat / House No. <span className="text-red-500">*</span>
+            Flat / House No. <span className="text-neutral-400 font-normal">(Optional)</span>
           </label>
           <input
             type="text"
@@ -493,54 +452,7 @@ export default function CheckoutAddress() {
         </div>
       </div>
 
-      {/* Order Summary */}
-      <div className="px-4 mb-4">
-        <h2 className="text-sm font-bold text-neutral-900 mb-2.5">Order Summary</h2>
-        <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
-          {/* Cart Items */}
-          <div className="space-y-2 mb-3">
-            {cart.items.map((item) => {
-              const { displayPrice } = calculateProductPrice(item.product);
-              return (
-                <div key={item.product.id} className="flex items-center justify-between text-xs">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-neutral-900 truncate">{item.product.name}</div>
-                    <div className="text-[10px] text-neutral-500">
-                      {item.product.pack} × {item.quantity}
-                    </div>
-                  </div>
-                  <div className="font-semibold text-neutral-900 ml-2 flex-shrink-0">
-                    ₹{(displayPrice * item.quantity).toFixed(0)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
 
-          <div className="border-t border-neutral-200 pt-2.5 space-y-1.5">
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Subtotal</span>
-              <span className="font-medium">₹{cart.total.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Platform Fee</span>
-              <span className="font-medium">₹{platformFee}</span>
-            </div>
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Delivery Charges</span>
-              <span className={`font-black ${deliveryFee === 0 ? 'text-[#ff3269]' : 'text-neutral-900'}`}>
-                {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
-              </span>
-            </div>
-            <div className="border-t border-neutral-200 pt-2 mt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-bold text-neutral-900">Total</span>
-                <span className="text-base font-bold text-neutral-900">₹{totalAmount.toFixed(0)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Save Address Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">

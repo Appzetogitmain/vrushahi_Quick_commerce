@@ -24,6 +24,9 @@ export interface ProductVariation {
   stock: number;
   status: "Available" | "Sold out" | "In stock"; // Added In stock
   sku?: string;
+  image?: string;
+  imageFile?: File | null;
+  imagePreview?: string;
 }
 
 export interface Product {

@@ -60,7 +60,7 @@ export function Sheet({ open, onOpenChange, children }: SheetProps) {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50" onClick={handleBackdropClick}>
+        <div className="fixed inset-0 z-[100]" onClick={handleBackdropClick}>
           {children}
         </div>
       )}

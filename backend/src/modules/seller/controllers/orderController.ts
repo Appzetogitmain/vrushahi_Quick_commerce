@@ -153,39 +153,47 @@ export const getOrderById = asyncHandler(
     // Format order items for frontend
     // Format order items for frontend
     const formattedItems = orderItems.map(item => {
-      let unit = item.variation || 'N/A';
+      let variationVal = item.variation && item.variation !== 'undefined' ? item.variation : null;
+      let unit = variationVal || 'N/A';
       let variationMatched = false;
 
       // Try to resolve variation value from product if it exists
-      // item.product is populated now
       const product = item.product as any;
-      if (product && product.variations && Array.isArray(product.variations)) {
+      if (product && product.variations && Array.isArray(product.variations) && product.variations.length > 0) {
         // 1. Try to match by ID or Value if validation is present
-        if (item.variation) {
-            const variationById = product.variations.find((v: any) => v._id.toString() === item.variation);
+        if (variationVal) {
+            const variationById = product.variations.find((v: any) => v._id.toString() === variationVal);
             if (variationById) {
-              unit = variationById.value;
+              unit = variationById.value || variationById.title || variationById.pack || variationById.name || variationVal;
               variationMatched = true;
             } else {
-                const variationByValue = product.variations.find((v: any) => v.value === item.variation);
+                const variationByValue = product.variations.find((v: any) => 
+                  v.value === variationVal || v.title === variationVal || v.name === variationVal || v.pack === variationVal
+                );
                 if (variationByValue) {
-                    unit = variationByValue.value;
+                    unit = variationByValue.value || variationByValue.title || variationByValue.pack || variationByValue.name || variationVal;
                     variationMatched = true;
                 }
             }
         }
 
-        // 2. Fallback: If not matched yet (even if we have a value like '250'), try to recover
+        // 2. Fallback: If not matched yet, try to recover
         if (!variationMatched) {
              const variationByPrice = product.variations.find((v: any) => v.price === item.unitPrice || v.discPrice === item.unitPrice);
              if (variationByPrice) {
-                 unit = variationByPrice.value;
+                 unit = variationByPrice.value || variationByPrice.title || variationByPrice.pack || variationByPrice.name;
                  variationMatched = true;
              } else if (product.variations.length === 1) {
                  // 3. Last Resort: If there is only one variation, assume it's that one
-                 unit = product.variations[0].value;
+                 const v = product.variations[0];
+                 unit = v.value || v.title || v.pack || v.name;
              }
         }
+      } else if (product) {
+         // No variations array, use top-level product pack/weight/size, otherwise "1 Pc"
+         if (!variationVal) {
+             unit = product.pack || product.weight || product.size || '1 Pc';
+         }
       }
 
       return {

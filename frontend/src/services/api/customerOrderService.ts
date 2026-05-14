@@ -103,3 +103,36 @@ export const updateOrderNotes = async (id: string, data: { deliveryInstructions?
     const response = await api.patch<OrderResponse>(`/customer/orders/${id}/notes`, data);
     return response.data;
 };
+
+/**
+ * Request return for a specific order item
+ */
+export const requestItemReturn = async (
+    orderId: string,
+    itemId: string,
+    data: {
+        reason: string;
+        description?: string;
+        images?: string[];
+        refundMethod: string;
+        quantity: number;
+        bankDetails?: {
+            accountNumber: string;
+            ifscCode: string;
+            accountName: string;
+            bankName: string;
+        };
+        upiId?: string;
+    }
+): Promise<OrderResponse> => {
+    const response = await api.post<OrderResponse>(`/customer/orders/${orderId}/items/${itemId}/return`, data);
+    return response.data;
+};
+
+/**
+ * Cancel return request for a specific order item
+ */
+export const cancelItemReturn = async (orderId: string, itemId: string): Promise<OrderResponse> => {
+    const response = await api.delete<OrderResponse>(`/customer/orders/${orderId}/items/${itemId}/return`);
+    return response.data;
+};

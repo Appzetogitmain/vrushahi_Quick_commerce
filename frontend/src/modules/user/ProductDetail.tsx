@@ -19,7 +19,7 @@ import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import ProductCard from "./components/ProductCard";
-import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package, Home, Store, Star, DoorOpen, RotateCcw, Banknote, ShieldCheck, X } from "lucide-react";
+import { Search, ShoppingCart, ArrowLeft, Heart, Truck, MapPin, ChevronRight, Share2, Info, Package, Home, Store, Star, DoorOpen, RotateCcw, Banknote, ShieldCheck, X, Check } from "lucide-react";
 import CartIconButton from "../../components/CartIconButton";
 
 
@@ -76,13 +76,20 @@ export default function ProductDetail() {
           // Set location availability flag
           setIsAvailableAtLocation(productData.isAvailableAtLocation !== false);
 
-          // Get all images (main + gallery)
-          const allImages = [
-            productData.mainImage || productData.imageUrl || "",
-            ...(productData.galleryImages ||
-              productData.galleryImageUrls ||
-              []),
-          ].filter(Boolean);
+          // Get all images (main + variations + gallery)
+          const varImages = (productData.variations || [])
+            .map((v: any) => v.image)
+            .filter(Boolean);
+          
+          const mainImg = productData.mainImage || productData.imageUrl || varImages[0] || "";
+
+          const allImages = Array.from(
+            new Set([
+              mainImg,
+              ...varImages,
+              ...(productData.galleryImages || productData.galleryImageUrls || []),
+            ])
+          ).filter(Boolean);
 
           setProduct({
             ...productData,
@@ -325,6 +332,30 @@ export default function ProductDetail() {
       ? { name: product.category.name, id: product.category._id }
       : null;
 
+  const handleShare = async () => {
+    const productUrl = window.location.href;
+    const shareData = {
+      title: product?.name || product?.productName || 'Check out this product!',
+      text: `Check out ${product?.name || product?.productName} on Quick Commerce!`,
+      url: productUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(productUrl);
+        alert('Product link copied to clipboard!');
+      } catch (err) {
+        alert('Failed to copy link.');
+      }
+    }
+  };
+
   const handleAddToCart = () => {
     if (!isAvailableAtLocation) {
       // Show alert if trying to add item outside delivery area
@@ -377,6 +408,13 @@ export default function ProductDetail() {
 
           {/* Action icons */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              title="Share Product"
+              className="w-10 h-10 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-700 transition-colors"
+            >
+              <Share2 size={18} />
+            </button>
             <CartIconButton 
               className="bg-neutral-100/80 hover:bg-neutral-200 transition-colors"
               iconColor="#171717"
@@ -678,7 +716,15 @@ export default function ProductDetail() {
                         <button
                           key={index}
                           disabled={isOutOfStock}
-                          onClick={() => setSelectedVariantIndex(index)}
+                          onClick={() => {
+                            setSelectedVariantIndex(index);
+                            if (variant.image) {
+                              const imgIndex = allImages.findIndex((img: any) => img === variant.image);
+                              if (imgIndex !== -1) {
+                                setSelectedImageIndex(imgIndex);
+                              }
+                            }
+                          }}
                           className={`px-4 h-10 flex items-center justify-center rounded-lg text-xs font-bold transition-all border-2 ${
                             isSelected
                               ? "bg-pink-500 border-pink-500 text-white shadow-md scale-[1.02]"
@@ -761,13 +807,27 @@ export default function ProductDetail() {
                   </div>
 
                   <div className="flex flex-col items-center text-center group">
-                    <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 relative border border-neutral-100 group-hover:bg-red-50 transition-colors">
-                       <RotateCcw size={20} className="text-neutral-500 group-hover:text-red-500 transition-colors" />
-                       <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-neutral-100 shadow-sm">
-                         <X size={10} className="text-red-500 font-bold" strokeWidth={3} />
-                       </div>
-                    </div>
-                    <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">No<br/>returns</span>
+                    {product.isReturnable ? (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 relative border border-neutral-100 group-hover:bg-green-50 transition-colors">
+                           <RotateCcw size={20} className="text-neutral-500 group-hover:text-green-600 transition-colors" />
+                           <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-neutral-100 shadow-sm">
+                             <Check size={10} className="text-green-500 font-bold" strokeWidth={3} />
+                           </div>
+                        </div>
+                        <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">{product.maxReturnDays || 7} Days<br/>returns</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center mb-1.5 relative border border-neutral-100 group-hover:bg-red-50 transition-colors">
+                           <RotateCcw size={20} className="text-neutral-500 group-hover:text-red-500 transition-colors" />
+                           <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-neutral-100 shadow-sm">
+                             <X size={10} className="text-red-500 font-bold" strokeWidth={3} />
+                           </div>
+                        </div>
+                        <span className="text-[9px] font-bold text-neutral-500 leading-tight uppercase tracking-tighter">No<br/>returns</span>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-center text-center group">
@@ -1051,17 +1111,25 @@ export default function ProductDetail() {
           {/* Buy Now Button */}
           <button
             onClick={() => {
+              if (!isAvailableAtLocation) {
+                alert("This product is not available for delivery at your location.");
+                return;
+              }
               // Prepare item for direct checkout (Buy Now)
               const buyNowItem = {
                 product: product,
                 quantity: 1,
-                variant: selectedVariant
+                variant: selectedVariant ? (selectedVariant._id || selectedVariant.value || selectedVariant.title) : undefined
               };
               navigate('/checkout', { state: { buyNowItem } });
             }}
-            disabled={!isVariantAvailable && variantStock !== 0}
-            className="flex-1 h-11 bg-pink-500 text-white rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-pink-600 active:scale-95 transition-all shadow-md shadow-pink-100 disabled:opacity-50 disabled:cursor-not-allowed">
-            Buy Now
+            disabled={!isAvailableAtLocation || (!isVariantAvailable && variantStock !== 0)}
+            className={`flex-1 h-11 rounded-xl text-sm font-bold uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 ${
+              !isAvailableAtLocation || (!isVariantAvailable && variantStock !== 0)
+                ? "bg-neutral-50 text-neutral-300 border border-neutral-100 cursor-not-allowed uppercase tracking-wider"
+                : "bg-pink-500 text-white hover:bg-pink-600 active:scale-95 shadow-md shadow-pink-100"
+            }`}>
+            {!isAvailableAtLocation ? "Unavailable" : "Buy Now"}
           </button>
         </div>
       </div>

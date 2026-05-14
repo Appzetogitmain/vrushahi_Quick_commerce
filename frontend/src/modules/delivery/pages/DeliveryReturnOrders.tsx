@@ -79,8 +79,9 @@ export default function DeliveryReturnOrders() {
           <div className="space-y-3">
             {returnOrders.map((order) => (
               <div
-                key={order.id}
-                className="bg-white rounded-xl p-4 shadow-sm border border-neutral-200"
+                key={order.id || order._id}
+                onClick={() => navigate(`/delivery/orders/return-pickup/${order.returnId || order.id || order._id}`)}
+                className="bg-white rounded-xl p-4 shadow-sm border border-neutral-200 cursor-pointer hover:border-amber-500 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">

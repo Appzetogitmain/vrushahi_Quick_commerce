@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { encrypt, decrypt } from '../utils/encryptionUtils';
 
 export interface ICustomer extends Document {
   name: string;
@@ -6,7 +7,8 @@ export interface ICustomer extends Document {
   phone: string;
   dateOfBirth?: Date;
   registrationDate: Date;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Inactive' | 'Deleted';
+  deletedAt?: Date;
   refCode: string;
   deliveryOtp: string; // Permanent 4-digit OTP for delivery verification
   totalOrders: number;
@@ -36,10 +38,18 @@ export interface ICustomer extends Document {
   accountPrivacy?: {
     hideSensitiveItems: boolean;
   };
+  bankDetails?: {
+    accountName?: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    upiId?: string;
+  };
 }
 
 
 const CustomerSchema = new Schema<ICustomer>(
+
   {
     name: {
       type: String,
@@ -83,7 +93,7 @@ const CustomerSchema = new Schema<ICustomer>(
     },
     status: {
       type: String,
-      enum: ['Active', 'Inactive'],
+      enum: ['Active', 'Inactive', 'Deleted'],
       default: 'Active',
     },
     refCode: {
@@ -132,6 +142,9 @@ const CustomerSchema = new Schema<ICustomer>(
     locationUpdatedAt: {
       type: Date,
     },
+    deletedAt: {
+      type: Date,
+    },
     notificationPreferences: {
       email: { type: Boolean, default: true },
       sms: { type: Boolean, default: true },
@@ -153,10 +166,19 @@ const CustomerSchema = new Schema<ICustomer>(
     accountPrivacy: {
       hideSensitiveItems: { type: Boolean, default: false },
     },
+    bankDetails: {
+      accountName: { type: String, trim: true, set: encrypt, get: decrypt },
+      bankName: { type: String, trim: true, set: encrypt, get: decrypt },
+      accountNumber: { type: String, trim: true, set: encrypt, get: decrypt },
+      ifscCode: { type: String, trim: true, set: encrypt, get: decrypt },
+      upiId: { type: String, trim: true, set: encrypt, get: decrypt },
+    },
   },
 
   {
     timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true },
   }
 );
 

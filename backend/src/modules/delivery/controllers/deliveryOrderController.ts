@@ -11,6 +11,8 @@ import {
     verifySellerPickupOtp 
 } from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
+import Return from "../../../models/Return";
+import { handleReturnPickupAcceptance, handleReturnPickupRejection } from "../../../services/returnNotificationService";
 
 /**
  * Helper to map order items for response
@@ -931,5 +933,208 @@ export const markCashPaid = asyncHandler(async (req: Request, res: Response) => 
         success: true,
         message: "Order marked as Paid via Cash",
         data: order
+    });
+});
+
+/**
+ * Accept Return Pickup Request
+ */
+export const acceptReturnPickup = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+
+    if (!deliveryId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const io = (req.app as any).get("io");
+    const result = await handleReturnPickupAcceptance(io, id, deliveryId);
+
+    if (!result.success) {
+        return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+});
+
+/**
+ * Reject Return Pickup Request
+ */
+export const rejectReturnPickup = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+
+    if (!deliveryId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const io = (req.app as any).get("io");
+    const result = await handleReturnPickupRejection(io, id, deliveryId);
+
+    if (!result.success) {
+        return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+});
+
+/**
+ * Get Return Pickup Details for Rider
+ */
+export const getReturnPickupDetails = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const returnReq = await Return.findById(id)
+        .populate({
+            path: 'order',
+            select: 'orderNumber customerName customerPhone deliveryAddress'
+        })
+        .populate({
+            path: 'orderItem',
+            select: 'productName variation quantity price productImage'
+        })
+        .populate({
+            path: 'customer',
+            select: 'name phone email'
+        });
+
+    if (!returnReq) {
+        return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+
+    return res.status(200).json({
+        success: true,
+        data: returnReq
+    });
+});
+
+/**
+ * Generate Customer OTP for Return Pickup
+ */
+export const sendCustomerReturnOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const returnReq = await Return.findById(id).populate('customer').populate('order');
+
+    if (!returnReq) {
+        return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    returnReq.customerOtp = otp;
+    returnReq.customerOtpVerified = false;
+    await returnReq.save();
+
+    // In a real app, send SMS. We also emit socket or return in API for testing/demo.
+    const io = (req.app as any).get("io");
+    if (io) {
+        io.to(`order-${returnReq.order?._id}`).emit('return-otp-sent', {
+            returnId: id,
+            otp,
+            message: 'OTP sent for return pickup'
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Customer OTP generated successfully",
+        data: { otp }
+    });
+});
+
+/**
+ * Verify Customer OTP & Capture QC Image
+ */
+export const verifyCustomerReturnOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { otp, qcStatus, qcNotes, riderImages } = req.body;
+
+    const returnReq = await Return.findById(id);
+
+    if (!returnReq) {
+        return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+
+    if (returnReq.customerOtp !== otp) {
+        return res.status(400).json({ success: false, message: "Invalid Customer OTP" });
+    }
+
+    returnReq.customerOtpVerified = true;
+    returnReq.productCustody = 'With Rider';
+    returnReq.pickupStatus = 'Picked Up';
+    if (qcStatus) returnReq.qcStatus = qcStatus;
+    if (qcNotes) returnReq.qcNotes = qcNotes;
+    if (riderImages && Array.isArray(riderImages)) {
+        returnReq.riderImages = riderImages;
+    }
+
+    await returnReq.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Customer OTP verified successfully. Product is now With Rider.",
+        data: returnReq
+    });
+});
+
+/**
+ * Generate Seller Handover OTP
+ */
+export const sendSellerReturnOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const returnReq = await Return.findById(id).populate('orderItem');
+
+    if (!returnReq) {
+        return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    returnReq.sellerOtp = otp;
+    returnReq.sellerOtpVerified = false;
+    await returnReq.save();
+
+    const sellerId = (returnReq.orderItem as any)?.seller;
+    const io = (req.app as any).get("io");
+    if (io && sellerId) {
+        io.to(`seller-${sellerId}`).emit('return-handover-otp-sent', {
+            returnId: id,
+            otp,
+            message: 'Rider is requesting OTP for returning product handover'
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Seller Handover OTP generated successfully",
+        data: { otp }
+    });
+});
+
+/**
+ * Verify Seller Handover OTP & Complete Return Handover
+ */
+export const verifySellerReturnOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { otp } = req.body;
+
+    const returnReq = await Return.findById(id);
+
+    if (!returnReq) {
+        return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+
+    if (returnReq.sellerOtp !== otp) {
+        return res.status(400).json({ success: false, message: "Invalid Seller OTP" });
+    }
+
+    returnReq.sellerOtpVerified = true;
+    returnReq.productCustody = 'With Seller';
+    returnReq.pickupStatus = 'Returned to Seller';
+    await returnReq.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Seller Handover OTP verified successfully. Product is now With Seller.",
+        data: returnReq
     });
 });

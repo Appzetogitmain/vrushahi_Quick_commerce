@@ -58,6 +58,56 @@ export const getReturnOrders = async () => {
     return response.data.data;
 };
 
+export const getReturnPickupDetails = async (id: string) => {
+    try {
+        const response = await api.get(`${BASE_URL}/orders/return-pickup/${id}`);
+        return response.data.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const sendCustomerReturnOtp = async (id: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/return-pickup/${id}/send-customer-otp`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const verifyCustomerReturnOtp = async (id: string, otp: string, qcStatus?: string, qcNotes?: string, riderImages?: string[]) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/return-pickup/${id}/verify-customer-otp`, {
+            otp,
+            qcStatus,
+            qcNotes,
+            riderImages
+        });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const sendSellerReturnOtp = async (id: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/return-pickup/${id}/send-seller-otp`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const verifySellerReturnOtp = async (id: string, otp: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/orders/return-pickup/${id}/verify-seller-otp`, { otp });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
 export const getPendingOrders = async () => {
     const response = await api.get('/delivery/orders/pending');
     return response.data.data;

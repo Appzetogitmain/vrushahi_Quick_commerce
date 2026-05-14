@@ -424,7 +424,7 @@ export default function SellerOrderDetail() {
       if (!isNaN(val)) {
         const total = val * qty;
         // Format to remove trailing zeros if integer (e.g. 1.0 -> 1)
-        return `${parseFloat(total.toFixed(2))}${u}`;
+        return `${parseFloat(total.toFixed(2))} ${u}`;
       }
     }
     return `${unit} x ${qty}`;

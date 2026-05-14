@@ -132,7 +132,7 @@ async function fetchSectionData(
         .sort({ createdAt: -1 }) // Show newest items first
         .limit(limit || 8)
         .select(
-          "productName mainImage price mrp discount rating reviewsCount pack seller",
+          "productName mainImage variations price mrp discount rating reviewsCount pack seller",
         )
         .lean();
 
@@ -146,13 +146,15 @@ async function fetchSectionData(
             )
             : true; // Default to available when no location is provided
 
+        const fallbackImage = p.mainImage || p.variations?.find((v: any) => !!v.image)?.image || "";
+
         return {
           id: p._id.toString(),
           productId: p._id.toString(),
           name: p.productName,
           productName: p.productName,
-          image: p.mainImage,
-          mainImage: p.mainImage,
+          image: fallbackImage,
+          mainImage: fallbackImage,
           price: p.price,
           discount:
             p.discount ||
@@ -248,7 +250,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         // Fetch 4 active products from the category for preview images
         // We fetch these irrespective of location radius to show category preview
         const categoryProducts = await Product.find(productQuery)
-          .select("productName mainImage galleryImages")
+          .select("productName mainImage variations galleryImages")
           .sort({ createdAt: -1 })
           .limit(4)
           .lean();
@@ -256,8 +258,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
         // Extract exactly 4 product images (prefer mainImage, fallback to galleryImages[0])
         const productImages: string[] = [];
         categoryProducts.forEach((product: any) => {
-          if (productImages.length < 4 && product.mainImage) {
-            productImages.push(product.mainImage);
+          const img = product.mainImage || product.variations?.find((v: any) => !!v.image)?.image;
+          if (productImages.length < 4 && img) {
+            productImages.push(img);
           }
         });
 
@@ -301,7 +304,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .populate({
         path: "product",
         select:
-          "productName mainImage price mrp discount status publish category subcategory seller",
+          "productName mainImage variations price mrp discount status publish category subcategory seller",
         match: {
           status: "Active",
           publish: true,
@@ -326,13 +329,15 @@ export const getHomeContent = async (req: Request, res: Response) => {
             )
             : true; // Default available when no location sent
 
+        const fallbackImage = product.mainImage || product.variations?.find((v: any) => !!v.image)?.image || "";
+
         return {
           id: product._id.toString(),
           _id: product._id.toString(),
           productName: product.productName,
           name: product.productName,
-          mainImage: product.mainImage,
-          imageUrl: product.mainImage,
+          mainImage: fallbackImage,
+          imageUrl: fallbackImage,
           price: product.price,
           mrp: product.mrp || product.price,
           discount:
@@ -624,7 +629,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         .populate("categoryCards.categoryId", "name slug image")
         .populate(
           "featuredProducts",
-          "productName mainImage mainImageUrl galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
+          "productName mainImage mainImageUrl variations galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
         )
         .sort({ order: 1 })
         .lean();
@@ -642,7 +647,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
                 (id) => id.toString() === p.seller.toString(),
               )
               : true; // Default available when no location
-          return { ...p, isAvailable };
+          const fallbackImage = p.mainImage || p.variations?.find((v: any) => !!v.image)?.image || "";
+          return { ...p, isAvailable, mainImage: fallbackImage };
         });
       }
 

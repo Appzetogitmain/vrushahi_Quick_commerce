@@ -40,6 +40,7 @@ export interface IProduct extends Document {
     stock?: number;
     sku?: string;
     status?: string;
+    image?: string;
   }>;
 
   // Status Flags
@@ -217,6 +218,7 @@ const ProductSchema = new Schema<IProduct>(
             default: "Available",
           },
           sku: String,
+          image: { type: String, default: "" },
         },
       ],
       default: [],
@@ -409,6 +411,14 @@ ProductSchema.pre("save", function (next) {
       (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
       0
     );
+
+    // Fallback mainImage to first variation image if mainImage is empty
+    if (!this.mainImage || this.mainImage.trim() === "") {
+      const firstVarWithImg = this.variations.find((v: any) => !!v.image && v.image.trim() !== "");
+      if (firstVarWithImg) {
+        this.mainImage = firstVarWithImg.image;
+      }
+    }
   }
 
   // Calculate discount

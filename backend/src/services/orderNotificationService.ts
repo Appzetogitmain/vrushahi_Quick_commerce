@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
 import { sendPushNotification } from './firebaseAdmin';
 import { calculateDeliveryBoyEarning } from './commissionService';
+import AppSettings from '../models/AppSettings';
 
 // Track order notification state
 export interface OrderNotificationState {
@@ -352,25 +353,42 @@ export async function notifyDeliveryBoysOfNewOrder(
         }
 
         // --- FILTER BUSY DELIVERY BOYS ---
-        // Check if any of these delivery boys already have an active order
-        // Active = deliveryBoyStatus is Assigned, Picked Up, or In Transit
-        const busyDeliveryBoys = await Order.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            // Double check status to be sure we don't count completed/cancelled ones just in case statuses are out of sync
-            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
-        }).distinct('deliveryBoy');
+        // Get max concurrent orders limit from AppSettings
+        const appSettings = await AppSettings.findOne();
+        const maxConcurrentOrders = appSettings?.riderMaxConcurrentOrders || 1;
 
-        if (busyDeliveryBoys.length > 0) {
-            const busyIdsSet = new Set(busyDeliveryBoys.map(id => id.toString()));
+        // Find which delivery boys have reached or exceeded maxConcurrentOrders
+        const busyAgg = await Order.aggregate([
+            {
+                $match: {
+                    deliveryBoy: { $in: nearbyDeliveryBoyIds },
+                    deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
+                    status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
+                }
+            },
+            {
+                $group: {
+                    _id: "$deliveryBoy",
+                    activeCount: { $sum: 1 }
+                }
+            },
+            {
+                $match: {
+                    activeCount: { $gte: maxConcurrentOrders }
+                }
+            }
+        ]);
+
+        if (busyAgg.length > 0) {
+            const busyIdsSet = new Set(busyAgg.map(b => b._id.toString()));
 
             const originalCount = nearbyDeliveryBoyIds.length;
             nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
 
-            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
+            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys (>= ${maxConcurrentOrders} orders). Active: ${nearbyDeliveryBoyIds.length}`);
 
             if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders.');
+                console.log('⚠️ All nearby delivery boys are currently busy at max capacity.');
                 // Optionally: could emit to admin or retry later
                 return;
             }

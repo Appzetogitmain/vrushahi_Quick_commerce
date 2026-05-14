@@ -8,10 +8,13 @@ import GoogleMapsTracking from "../../components/GoogleMapsTracking";
 import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
 import DeliveryPartnerCard from "../../components/DeliveryPartnerCard";
 import RatingStars from "../../components/RatingStars";
+import FileUpload from "../../components/FileUpload";
 import {
   cancelOrder,
   updateOrderNotes,
   getSellerLocationsForOrder,
+  requestItemReturn,
+  cancelItemReturn,
 } from "../../services/api/customerOrderService";
 import api from "../../services/api/config";
 
@@ -226,8 +229,40 @@ const SectionItem = ({
   </motion.button>
 );
 
+const getDisplayVariation = (variation: any, product?: any) => {
+  if (!variation) return null;
+  if (typeof variation === 'object') {
+    return variation.title || variation.name || variation.value || product?.pack || "1 Unit";
+  }
+  if (typeof variation === 'string' && /^[0-9a-fA-F]{24}$/.test(variation)) {
+    return product?.pack || "1 Unit";
+  }
+  return variation;
+};
+
 // Helper Component for Order Summary (Products + Billing)
-const OrderSummaryCard = ({ order }: { order: any }) => {
+const OrderSummaryCard = ({ 
+  order, 
+  onReturnClick,
+  onCancelReturnClick 
+}: { 
+  order: any; 
+  onReturnClick?: (item: any) => void;
+  onCancelReturnClick?: (item: any) => void;
+}) => {
+  const isEligibleForReturn = (item: any) => {
+    if (order.status !== "Delivered") return false;
+    const product = item.product;
+    if (!product || !product.isReturnable) return false;
+    
+    const deliveredAtDate = order.deliveredAt ? new Date(order.deliveredAt) : new Date(order.updatedAt);
+    const maxReturnDays = product.maxReturnDays || 7;
+    const timeDiff = Date.now() - deliveredAtDate.getTime();
+    const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+    
+    return daysDiff <= maxReturnDays;
+  };
+
   return (
     <motion.div
       className="bg-white rounded-2xl shadow-sm border border-violet-100 overflow-hidden"
@@ -242,47 +277,85 @@ const OrderSummaryCard = ({ order }: { order: any }) => {
       </div>
       <div className="p-4 space-y-4">
         {/* Products List */}
-        <div className="space-y-3">
-          {order.items?.map((item: any, index: number) => (
-            <div key={index} className="flex gap-3 items-center">
-              <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                {item.product?.mainImage || item.productImage ? (
-                  <img
-                    src={item.product?.mainImage || item.productImage}
-                    alt={item.productName || "Product"}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xl">
-                    📦
+        <div className="space-y-4">
+          {order.items?.map((item: any, index: number) => {
+            const isEligible = isEligibleForReturn(item);
+            return (
+               <div key={index} className="flex flex-col gap-2 p-3 rounded-2xl border border-gray-50 bg-neutral-50/30 hover:bg-neutral-50/70 transition-all">
+                <div className="flex gap-3 items-center">
+                  <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                    {item.product?.mainImage || item.productImage ? (
+                      <img
+                        src={item.product?.mainImage || item.productImage}
+                        alt={item.productName || "Product"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xl">
+                        📦
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate text-sm">
+                      {item.productName || item.product?.productName}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                      <span>Qty: {item.quantity}</span>
+                      {getDisplayVariation(item.variation, item.product) && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-gray-300" />
+                          <span>
+                            {getDisplayVariation(item.variation, item.product)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900 text-sm">
+                      ₹{item.total?.toFixed(0) || (item.unitPrice * item.quantity).toFixed(0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Return actions and status badge */}
+                {isEligible && !item.returnInfo && (
+                  <div className="flex justify-end border-t border-dashed border-gray-200 pt-3 mt-1">
+                    <button 
+                      onClick={() => onReturnClick?.(item)} 
+                      className="text-[10px] font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-all"
+                    >
+                      ↩️ Return Item
+                    </button>
+                  </div>
+                )}
+
+                {item.returnInfo && (
+                  <div className="flex flex-col gap-3 border-t border-dashed border-gray-200 pt-3 mt-1">
+                    <div className="flex justify-between items-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        item.returnInfo.status === 'Pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                        item.returnInfo.status === 'Approved' || item.returnInfo.status === 'Processing' ? 'bg-violet-50 text-violet-700 border border-violet-200' :
+                        item.returnInfo.status === 'Completed' ? 'bg-green-50 text-green-700 border border-green-200' :
+                        'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {item.returnInfo.status === 'Pending' && '⏳ Return Pending'}
+                        {(item.returnInfo.status === 'Approved' || item.returnInfo.status === 'Processing') && '⚙️ Return Approved'}
+                        {item.returnInfo.status === 'Completed' && '✅ Return Completed'}
+                        {item.returnInfo.status === 'Rejected' && '❌ Return Rejected'}
+                      </span>
+                      {item.returnInfo.refundMethod && (
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                          Refund: {item.returnInfo.refundMethod}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 truncate text-sm">
-                  {item.productName || item.product?.productName}
-                </p>
-                <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                  <span>Qty: {item.quantity}</span>
-                  {item.variation && (
-                    <>
-                      <span className="w-1 h-1 rounded-full bg-gray-300" />
-                      <span>
-                        {typeof item.variation === 'object' ? 
-                          ((item.variation as any).title || (item.variation as any).name || (item.variation as any).value) : 
-                          item.variation}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900 text-sm">
-                  ₹{item.total?.toFixed(0) || (item.unitPrice * item.quantity).toFixed(0)}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="h-px bg-dashed bg-gray-200 my-4" style={{ backgroundImage: 'linear-gradient(to right, #e5e7eb 50%, transparent 50%)', backgroundSize: '10px 1px', backgroundRepeat: 'repeat-x', height: '1px' }} />
@@ -603,7 +676,7 @@ const RatingOverlay = ({
                        </div>
                        <div className="flex-1">
                           <p className="font-bold text-sm text-gray-900 line-clamp-2">{item.productName || item.product?.productName}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{item.variation || "Regular"}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{getDisplayVariation(item.variation, item.product) || "Regular"}</p>
                        </div>
                     </div>
                     <div className="flex items-center justify-between bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
@@ -677,6 +750,117 @@ export default function OrderDetail() {
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+
+  // Return States
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedItemForReturn, setSelectedItemForReturn] = useState<any>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnDescription, setReturnDescription] = useState("");
+  const [returnImages, setReturnImages] = useState<string[]>([]);
+  const [returnRefundMethod, setReturnRefundMethod] = useState<"Bank Account" | "UPI">("Bank Account");
+  const [bankDetails, setBankDetails] = useState({
+    accountNumber: "",
+    ifscCode: "",
+    accountName: "",
+    bankName: "",
+  });
+  const [upiId, setUpiId] = useState("");
+  const [returnQuantity, setReturnQuantity] = useState(1);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState("");
+  const [returnSuccess, setReturnSuccess] = useState(false);
+
+  const handleReturnSubmit = async () => {
+    if (!id || !selectedItemForReturn) return;
+    if (!returnReason) {
+      setReturnError("Please select a reason for the return");
+      return;
+    }
+
+    if (returnRefundMethod === "UPI") {
+      const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+      if (!upiId || !upiRegex.test(upiId)) {
+        setReturnError("Please enter a valid UPI ID (e.g. yourname@upi)");
+        return;
+      }
+    } else if (returnRefundMethod === "Bank Account") {
+      const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+      if (!bankDetails.accountNumber || bankDetails.accountNumber.length < 8) {
+        setReturnError("Please enter a valid Bank Account Number (min 8 digits)");
+        return;
+      }
+      if (!bankDetails.ifscCode || !ifscRegex.test(bankDetails.ifscCode.toUpperCase())) {
+        setReturnError("Please enter a valid IFSC Code (e.g. SBIN0001234)");
+        return;
+      }
+      if (!bankDetails.accountName) {
+        setReturnError("Please enter the Account Holder's Name");
+        return;
+      }
+      if (!bankDetails.bankName) {
+        setReturnError("Please enter the Bank Name");
+        return;
+      }
+    }
+
+    setSubmittingReturn(true);
+    setReturnError("");
+    try {
+      await requestItemReturn(id, selectedItemForReturn._id, {
+        reason: returnReason,
+        description: returnDescription,
+        images: returnImages,
+        refundMethod: returnRefundMethod,
+        quantity: returnQuantity,
+        bankDetails: returnRefundMethod === "Bank Account" ? {
+          ...bankDetails,
+          ifscCode: bankDetails.ifscCode.toUpperCase()
+        } : undefined,
+        upiId: returnRefundMethod === "UPI" ? upiId : undefined
+      });
+      setReturnSuccess(true);
+      // Reload order details
+      const fetchedOrder = await fetchOrderById(id);
+      if (fetchedOrder) {
+        setOrder(fetchedOrder);
+      }
+      setTimeout(() => {
+        setShowReturnModal(false);
+        setSelectedItemForReturn(null);
+        setReturnReason("");
+        setReturnDescription("");
+        setReturnImages([]);
+        setReturnRefundMethod("Bank Account");
+        setUpiId("");
+        setBankDetails({ accountNumber: "", ifscCode: "", accountName: "", bankName: "" });
+        setReturnQuantity(1);
+        setReturnSuccess(false);
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      setReturnError(err.response?.data?.message || "Failed to submit return request");
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
+
+  const handleCancelReturn = async (item: any) => {
+    if (!id || !item) return;
+    if (!window.confirm("Are you sure you want to cancel this return request?")) return;
+
+    try {
+      await cancelItemReturn(id, item._id);
+      alert("Return request cancelled successfully");
+      // Refresh order data
+      const fetchedOrder = await fetchOrderById(id);
+      if (fetchedOrder) {
+        setOrder(fetchedOrder);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to cancel return request");
+    }
+  };
 
   // Real-time delivery tracking via WebSocket
   const {
@@ -1065,7 +1249,48 @@ export default function OrderDetail() {
     },
   };
 
-  const currentStatus = statusConfig[orderStatus] || statusConfig["Received"];
+  // Check if any item has an active return request
+  const activeReturnItem = order?.items?.find((item: any) => item.returnInfo);
+
+  const getReturnStatusConfig = (returnInfo: any) => {
+    switch (returnInfo.status) {
+      case 'Pending':
+        return {
+          title: "Return Pending",
+          subtitle: "Waiting for approval",
+          color: "bg-amber-600",
+        };
+      case 'Approved':
+      case 'Processing':
+        return {
+          title: "Return Approved",
+          subtitle: "Return is being processed",
+          color: "bg-[#8b5cf6]",
+        };
+      case 'Completed':
+        return {
+          title: "Return Completed",
+          subtitle: "Refund has been processed",
+          color: "bg-green-600",
+        };
+      case 'Rejected':
+        return {
+          title: "Return Rejected",
+          subtitle: "Seller rejected return request",
+          color: "bg-red-600",
+        };
+      default:
+        return {
+          title: "Return Requested",
+          subtitle: "Processing return",
+          color: "bg-gray-600",
+        };
+    }
+  };
+
+  const currentStatus = activeReturnItem 
+    ? getReturnStatusConfig(activeReturnItem.returnInfo) 
+    : statusConfig[orderStatus] || statusConfig["Received"];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1218,7 +1443,15 @@ export default function OrderDetail() {
           )}
 
           {/* New Section 1: Order Summary (Products & Billing) */}
-          <OrderSummaryCard order={order} />
+          <OrderSummaryCard 
+            order={order} 
+            onReturnClick={(item) => {
+              setSelectedItemForReturn(item);
+              setReturnQuantity(item.quantity);
+              setShowReturnModal(true);
+            }}
+            onCancelReturnClick={handleCancelReturn}
+          />
 
           {/* New Section: Rating Prompt (Only after delivery) */}
           {orderStatus === 'Delivered' && (
@@ -1228,6 +1461,22 @@ export default function OrderDetail() {
                 isRated={existingReviews.length > 0}
               />
             </>
+          )}
+
+          {/* Cancel Return Request Button placed below Rating/Review Section */}
+          {activeReturnItem?.returnInfo?.status === 'Pending' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Button 
+                variant="outline"
+                onClick={() => handleCancelReturn(activeReturnItem)} 
+                className="w-full border-red-200 bg-red-50 hover:bg-red-100 py-4 font-medium uppercase text-xs tracking-wider rounded-2xl text-red-600 transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                ✕ Cancel Return Request
+              </Button>
+            </motion.div>
           )}
 
           {/* New Section 2: Order Details (Metadata) */}
@@ -1311,6 +1560,297 @@ export default function OrderDetail() {
             onSubmit={handleSubmitAllRatings}
             existingReviews={existingReviews}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Return Product Slide-over / Modal */}
+      <AnimatePresence>
+        {showReturnModal && selectedItemForReturn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-end justify-center p-4">
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="bg-white rounded-t-[2.5rem] w-full max-w-2xl max-h-[92dvh] overflow-y-auto flex flex-col shadow-2xl pb-[calc(2rem+env(safe-area-inset-bottom))]">
+              
+              {/* Drag Handle & Close */}
+              <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100 flex-shrink-0">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Return Request</h2>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Itemized Product Return</p>
+                </div>
+                <button 
+                  onClick={() => setShowReturnModal(false)}
+                  className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-gray-500 hover:bg-neutral-200 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 flex-1">
+                {returnSuccess ? (
+                  <div className="text-center py-12 space-y-4">
+                    <AnimatedCheckmark delay={0.1} />
+                    <h3 className="text-xl font-black text-green-600 uppercase tracking-tight">Return Requested!</h3>
+                    <p className="text-xs text-neutral-400 font-bold uppercase tracking-widest">
+                      Your return request has been submitted to the seller
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* 1. Item Snapshot */}
+                    <div className="flex gap-4 p-4 rounded-2xl bg-neutral-50/50 border border-neutral-100/55">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-neutral-200 flex-shrink-0">
+                        <img 
+                          src={selectedItemForReturn.product?.mainImage || selectedItemForReturn.productImage} 
+                          alt="Return item"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <h4 className="font-bold text-neutral-900 text-sm truncate">
+                          {selectedItemForReturn.productName || selectedItemForReturn.product?.productName}
+                        </h4>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Unit Price: ₹{selectedItemForReturn.unitPrice}
+                        </p>
+                        {selectedItemForReturn.variation && (
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-wide mt-0.5">
+                            Variant: {typeof selectedItemForReturn.variation === 'object' ? 
+                              ((selectedItemForReturn.variation as any).title || (selectedItemForReturn.variation as any).name || (selectedItemForReturn.variation as any).value) : 
+                              selectedItemForReturn.variation}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Return Quantity */}
+                    {selectedItemForReturn.quantity > 1 && (
+                      <div className="space-y-2 text-left">
+                        <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                          Select Return Quantity
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setReturnQuantity(Math.max(1, returnQuantity - 1))}
+                            className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center font-bold text-lg hover:bg-neutral-200 transition-colors"
+                          >
+                            -
+                          </button>
+                          <span className="font-bold text-lg text-neutral-900 w-8 text-center">{returnQuantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => setReturnQuantity(Math.min(selectedItemForReturn.quantity, returnQuantity + 1))}
+                            className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center font-bold text-lg hover:bg-neutral-200 transition-colors"
+                          >
+                            +
+                          </button>
+                          <span className="text-xs text-neutral-400 font-bold uppercase tracking-wide">
+                            (Max: {selectedItemForReturn.quantity})
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Reason for Return (Dropdown) */}
+                    <div className="space-y-2 text-left">
+                      <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                        Reason for Return <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={returnReason}
+                        onChange={(e) => setReturnReason(e.target.value)}
+                        className="w-full bg-white border border-neutral-200 rounded-2xl p-4 text-xs font-bold uppercase tracking-wider text-neutral-800 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all shadow-sm"
+                      >
+                        <option value="">-- Select a Reason --</option>
+                        <option value="Defective / Damaged">Defective / Damaged</option>
+                        <option value="Wrong Item Sent">Wrong Item Sent</option>
+                        <option value="Expired Product">Expired Product</option>
+                        <option value="Quality Not as Expected">Quality Not as Expected</option>
+                        <option value="Incorrect Quantity">Incorrect Quantity</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {/* 4. Refund Destination (Bank / UPI) */}
+                    <div className="space-y-3 text-left">
+                      <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                        How should we refund you? <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setReturnRefundMethod("Bank Account")}
+                          className={`p-4 rounded-2xl border text-left transition-all ${
+                            returnRefundMethod === "Bank Account"
+                              ? 'bg-violet-50 border-violet-500 shadow-md shadow-violet-100/50'
+                              : 'bg-white border-neutral-100 hover:border-neutral-300'
+                          }`}
+                        >
+                          <p className={`text-xs font-black uppercase tracking-wider ${returnRefundMethod === "Bank Account" ? "text-violet-700" : "text-neutral-700"}`}>
+                            🏦 Bank Account
+                          </p>
+                          <p className="text-[10px] text-neutral-400 mt-1 font-medium">
+                            Direct refund to your bank account.
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReturnRefundMethod("UPI")}
+                          className={`p-4 rounded-2xl border text-left transition-all ${
+                            returnRefundMethod === "UPI"
+                              ? 'bg-violet-50 border-violet-500 shadow-md shadow-violet-100/50'
+                              : 'bg-white border-neutral-100 hover:border-neutral-300'
+                          }`}
+                        >
+                          <p className={`text-xs font-black uppercase tracking-wider ${returnRefundMethod === "UPI" ? "text-violet-700" : "text-neutral-700"}`}>
+                            📱 UPI ID
+                          </p>
+                          <p className="text-[10px] text-neutral-400 mt-1 font-medium">
+                            Instant transfer via GPay / PhonePe / Paytm.
+                          </p>
+                        </button>
+                      </div>
+
+                      {/* Payment Mode Input Fields */}
+                      {returnRefundMethod === "UPI" ? (
+                        <div className="space-y-2 pt-2">
+                          <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider ml-1">
+                            UPI ID <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. username@upi"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                            className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-4 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                          />
+                          <p className="text-[10px] text-neutral-400 ml-1">Format: yourname@bankname</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 pt-2">
+                          <div>
+                            <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider ml-1 mb-1">
+                              Account Number <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 123456789012"
+                              value={bankDetails.accountNumber}
+                              onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                              className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider ml-1 mb-1">
+                              IFSC Code <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. SBIN0001234"
+                              value={bankDetails.ifscCode}
+                              onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value.toUpperCase() })}
+                              className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all uppercase"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider ml-1 mb-1">
+                              Account Holder Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Rahul Sharma"
+                              value={bankDetails.accountName}
+                              onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                              className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider ml-1 mb-1">
+                              Bank Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. State Bank of India"
+                              value={bankDetails.bankName}
+                              onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                              className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 5. Additional Details */}
+                    <div className="space-y-2 text-left">
+                      <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">
+                        Describe the issue
+                      </label>
+                      <textarea
+                        className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-4 text-sm text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all min-h-[100px]"
+                        placeholder="Please provide any additional details that help us understand the issue..."
+                        value={returnDescription}
+                        onChange={(e) => setReturnDescription(e.target.value)}
+                      />
+                    </div>
+
+                    {/* 6. Photo Upload */}
+                    <div className="space-y-2 text-left">
+                      <FileUpload
+                        label="Upload Condition Photos"
+                        accept="image/*"
+                        onUploadSuccess={(url) => {
+                          setReturnImages((prev) => [...prev, url]);
+                        }}
+                        onUploadError={(err) => {
+                          setReturnError(err);
+                        }}
+                      />
+                      
+                      {/* Photo Previews List */}
+                      {returnImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {returnImages.map((img, i) => (
+                            <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200">
+                              <img src={img} alt="Condition snapshot" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setReturnImages((prev) => prev.filter((_, idx) => idx !== i))}
+                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-[10px]"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {returnError && (
+                      <p className="text-xs text-red-500 font-bold bg-red-50/50 p-3 rounded-xl border border-red-100 text-left">
+                        ⚠️ {returnError}
+                      </p>
+                    )}
+
+                    {/* Submit Button */}
+                    <Button
+                      disabled={submittingReturn}
+                      onClick={handleReturnSubmit}
+                      className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white py-4 font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-violet-100 border-none transition-all mt-4"
+                    >
+                      {submittingReturn ? "Submitting Request..." : "Submit Return Request"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

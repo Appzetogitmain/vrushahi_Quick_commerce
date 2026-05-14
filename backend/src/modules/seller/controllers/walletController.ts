@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 export const getWalletStats = asyncHandler(async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
 
-    const seller = await Seller.findById(sellerId).select('balance');
+    const seller = await Seller.findById(sellerId).select('balance lockedBalance');
     if (!seller) {
         return res.status(404).json({ success: false, message: 'Seller not found' });
     }
@@ -42,10 +42,23 @@ export const getWalletStats = asyncHandler(async (req: Request, res: Response) =
         { $group: { _id: null, total: { $sum: '$subtotal' } } }
     ]);
 
+    // Fetch locked transactions to determine pendingReleaseAmount and nextReleaseDate
+    const lockedTransactions = await WalletTransaction.find({
+        sellerId: new mongoose.Types.ObjectId(sellerId),
+        isLocked: true,
+        type: 'Credit'
+    }).sort({ lockExpiresAt: 1 });
+
+    const pendingReleaseAmount = Math.round(lockedTransactions.reduce((acc, tx) => acc + (tx.amount || 0), 0) * 100) / 100;
+    const nextReleaseDate = lockedTransactions.length > 0 ? lockedTransactions[0].lockExpiresAt : null;
+
     return res.status(200).json({
         success: true,
         data: {
             availableBalance: seller.balance || 0,
+            lockedBalance: seller.lockedBalance || 0,
+            pendingReleaseAmount,
+            nextReleaseDate,
             totalEarnings: earningsData[0]?.total || 0,
             pendingSettlement: pendingData[0]?.total || 0,
             totalWithdrawn: withdrawnData[0]?.total || 0,

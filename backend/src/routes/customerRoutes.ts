@@ -14,6 +14,12 @@ router.get("/profile", authenticate, customerController.getProfile);
 // Update customer profile (protected route)
 router.put("/profile", authenticate, customerController.updateProfile);
 
+// Request delete OTP (protected route)
+router.post("/profile/delete-otp", authenticate, customerController.sendDeleteOtp);
+
+// Delete customer profile (protected route)
+router.delete("/profile", authenticate, customerController.deleteAccount);
+
 // Update customer location (protected route)
 router.post("/location", authenticate, customerController.updateLocation);
 

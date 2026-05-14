@@ -4,6 +4,7 @@ import Product from "../../../models/Product";
 import OrderItem from "../../../models/OrderItem";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
+import Return from "../../../models/Return";
 import mongoose from "mongoose";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
@@ -165,7 +166,10 @@ export const createOrder = async (req: Request, res: Response) => {
             let product;
             // The frontend sends variation info as 'variant' or 'variation'
             // In the product model, it's stored in 'variations' array
-            const variationValue = item.variant || item.variation;
+            let variationValue = item.variant || item.variation;
+            if (variationValue && typeof variationValue === 'object') {
+                variationValue = variationValue._id || variationValue.value || variationValue.title || variationValue.pack;
+            }
 
             if (variationValue) {
                 // Try to decrement stock for the specific variation first
@@ -509,7 +513,7 @@ export const getOrderById = async (req: Request, res: Response) => {
             .populate({
                 path: 'items',
                 populate: [
-                    { path: 'product', select: 'productName mainImage pack manufacturer price' },
+                    { path: 'product', select: 'productName mainImage pack manufacturer price isReturnable maxReturnDays' },
                     { path: 'seller', select: 'storeName city phone fssaiLicNo' }
                 ]
             })
@@ -522,6 +526,21 @@ export const getOrderById = async (req: Request, res: Response) => {
             });
         }
 
+        // Fetch associated return requests for this order
+        const returns = await Return.find({ order: id, customer: userId });
+        const returnMap = returns.reduce((acc: any, ret: any) => {
+            acc[ret.orderItem.toString()] = {
+                id: ret._id,
+                status: ret.status,
+                reason: ret.reason,
+                description: ret.description,
+                refundMethod: ret.refundMethod,
+                images: ret.images,
+                createdAt: ret.createdAt
+            };
+            return acc;
+        }, {});
+
         // Get customer's permanent delivery OTP - only if sent and not COD
         const customer = await Customer.findById(userId).select('deliveryOtp');
         // OTP should only show if:
@@ -533,8 +552,19 @@ export const getOrderById = async (req: Request, res: Response) => {
 
         // Transform order to match frontend Order type
         const orderObj = order.toObject();
+
+        // Map items to include returnInfo
+        const itemsWithReturn = (orderObj.items || []).map((item: any) => {
+            const returnInfo = returnMap[item._id.toString()];
+            return {
+                ...item,
+                returnInfo: returnInfo || null
+            };
+        });
+
         const transformedOrder = {
             ...orderObj,
+            items: itemsWithReturn,
             id: orderObj._id.toString(),
             totalItems: Array.isArray(orderObj.items) ? orderObj.items.length : 0,
             totalAmount: orderObj.total,
@@ -799,6 +829,206 @@ export const updateOrderNotes = async (req: Request, res: Response) => {
         return res.status(500).json({
             success: false,
             message: "Failed to update order notes",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Create a Return Request for an order item
+ */
+export const createReturnRequest = async (req: Request, res: Response) => {
+    try {
+        const { id, itemId } = req.params;
+        const { reason, description, images, refundMethod, quantity, bankDetails, upiId } = req.body;
+        const userId = req.user!.userId;
+
+        // 1. Locate order belonging to this customer
+        const order = await Order.findOne({ _id: id, customer: userId })
+            .populate({
+                path: 'items',
+                populate: { path: 'product' }
+            });
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found"
+            });
+        }
+
+        // 2. Verify order status is Delivered
+        if (order.status !== 'Delivered') {
+            return res.status(400).json({
+                success: false,
+                message: "Returns can only be requested for delivered orders"
+            });
+        }
+
+        // 3. Find the specific order item
+        const itemObj = (order.items as any[]).find(item => item._id.toString() === itemId);
+        if (!itemObj) {
+            return res.status(404).json({
+                success: false,
+                message: "Order item not found in this order"
+            });
+        }
+
+        const product = itemObj.product;
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: "Associated product not found"
+            });
+        }
+
+        // 4. Verify return policy eligibility
+        if (!product.isReturnable) {
+            return res.status(400).json({
+                success: false,
+                message: "This product is not eligible for returns"
+            });
+        }
+
+        // Calculate return window
+        const deliveredAtDate = order.deliveredAt ? new Date(order.deliveredAt) : new Date(order.updatedAt);
+        const maxReturnDays = product.maxReturnDays || 7;
+        const timeDiff = Date.now() - deliveredAtDate.getTime();
+        const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+
+        if (daysDiff > maxReturnDays) {
+            return res.status(400).json({
+                success: false,
+                message: `The return eligibility window of ${maxReturnDays} days for this product has expired`
+            });
+        }
+
+        // 5. Verify no existing return request exists
+        const existingReturn = await Return.findOne({ orderItem: itemId });
+        if (existingReturn) {
+            return res.status(400).json({
+                success: false,
+                message: "A return request has already been submitted for this item"
+            });
+        }
+
+        // 6. Verify quantity
+        const returnQuantity = quantity || itemObj.quantity;
+        if (returnQuantity > itemObj.quantity || returnQuantity < 1) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid return quantity. Maximum allowed is ${itemObj.quantity}`
+            });
+        }
+
+        // Load customer to check bank details if requesting offline refund
+        const customer = await Customer.findById(userId);
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found"
+            });
+        }
+
+        if (refundMethod === "Bank Account" || refundMethod === "Bank") {
+            if (bankDetails && bankDetails.accountNumber) {
+                customer.bankDetails = {
+                    ...(customer.bankDetails || {}),
+                    ...bankDetails
+                };
+                await customer.save();
+            }
+            const details = customer.bankDetails;
+            if (!details || !details.accountNumber || !details.ifscCode || !details.accountName || !details.bankName) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter complete bank account details (Account Number, IFSC Code, Account Holder Name, Bank Name)."
+                });
+            }
+        } else if (refundMethod === "UPI") {
+            if (upiId) {
+                customer.bankDetails = {
+                    ...(customer.bankDetails || {}),
+                    upiId
+                };
+                await customer.save();
+            }
+            const details = customer.bankDetails;
+            if (!details || !details.upiId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter a valid UPI ID."
+                });
+            }
+        }
+
+        // 7. Create Return Request
+        const newReturn = new Return({
+            order: id,
+            orderItem: itemId,
+            customer: userId,
+            reason,
+            description,
+            images: images || [],
+            refundMethod: refundMethod || "UPI",
+            quantity: returnQuantity,
+            status: "Pending"
+        });
+
+        await newReturn.save();
+
+        return res.status(201).json({
+            success: true,
+            message: "Return request submitted successfully",
+            data: newReturn
+        });
+
+    } catch (error: any) {
+        console.error("Error creating return request:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to submit return request",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Cancel a Return Request for an order item
+ */
+export const cancelReturnRequest = async (req: Request, res: Response) => {
+    try {
+        const { id, itemId } = req.params;
+        const userId = req.user!.userId;
+
+        // Find the pending return request
+        const returnRequest = await Return.findOne({
+            order: id,
+            orderItem: itemId,
+            customer: userId,
+            status: "Pending"
+        });
+
+        if (!returnRequest) {
+            return res.status(404).json({
+                success: false,
+                message: "Return request not found or cannot be cancelled as it is already processed"
+            });
+        }
+
+        // Delete the return request
+        await Return.findByIdAndDelete(returnRequest._id);
+
+        return res.status(200).json({
+            success: true,
+            message: "Return request cancelled successfully"
+        });
+
+    } catch (error: any) {
+        console.error("Error cancelling return request:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to cancel return request",
             error: error.message
         });
     }

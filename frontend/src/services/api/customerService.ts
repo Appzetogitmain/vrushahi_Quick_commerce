@@ -48,3 +48,19 @@ export const updateProfile = async (data: UpdateProfileData): Promise<UpdateProf
   return response.data;
 };
 
+/**
+ * Send OTP for account deletion
+ */
+export const sendDeleteOtp = async (): Promise<{ success: boolean; message: string; sessionId?: string }> => {
+  const response = await api.post<{ success: boolean; message: string; sessionId?: string }>('/customer/profile/delete-otp');
+  return response.data;
+};
+
+/**
+ * Delete customer account securely
+ */
+export const deleteAccount = async (data: { otp: string; confirmText: string }): Promise<{ success: boolean; message: string }> => {
+  const response = await api.delete<{ success: boolean; message: string }>('/customer/profile', { data });
+  return response.data;
+};
+

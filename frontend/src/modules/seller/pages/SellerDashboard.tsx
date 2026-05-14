@@ -400,6 +400,11 @@ export default function SellerDashboard() {
                 setEntriesPerPage(Math.max(1, Math.min(100, value)));
                 setCurrentPage(1);
               }}
+              onKeyDown={(e) => {
+                if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                  e.preventDefault();
+                }
+              }}
               className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
               min="1"
               max="100"

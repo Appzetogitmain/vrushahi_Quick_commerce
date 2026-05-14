@@ -17,7 +17,7 @@ export const getAllCustomers = asyncHandler(
       sortOrder = "desc",
     } = req.query;
 
-    const query: any = {};
+    const query: any = { status: { $ne: "Deleted" } };
 
     if (status) query.status = status;
     if (search) {
