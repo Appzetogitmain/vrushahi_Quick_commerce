@@ -75,6 +75,7 @@ export interface Order {
   cancelledBy?: string | { firstName: string; lastName: string };
   createdAt?: string;
   updatedAt?: string;
+  commissions?: any[];
 }
 
 export interface GetOrdersParams {

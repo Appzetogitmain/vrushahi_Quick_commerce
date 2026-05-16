@@ -13,6 +13,9 @@ import {
 import { processOrderStatusTransition } from "../../../services/orderService";
 import Return from "../../../models/Return";
 import { handleReturnPickupAcceptance, handleReturnPickupRejection } from "../../../services/returnNotificationService";
+import AppSettings from "../../../models/AppSettings";
+import Delivery from "../../../models/Delivery";
+import WalletTransaction from "../../../models/WalletTransaction";
 
 /**
  * Helper to map order items for response
@@ -984,6 +987,9 @@ export const rejectReturnPickup = asyncHandler(async (req: Request, res: Respons
 export const getReturnPickupDetails = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const settings = await AppSettings.getSettings();
+    const defaultPickupFee = settings?.returnPickupFee || 20;
+
     const returnReq = await Return.findById(id)
         .populate({
             path: 'order',
@@ -991,7 +997,11 @@ export const getReturnPickupDetails = asyncHandler(async (req: Request, res: Res
         })
         .populate({
             path: 'orderItem',
-            select: 'productName variation quantity price productImage'
+            select: 'productName variation quantity price productImage seller',
+            populate: {
+                path: 'seller',
+                select: 'sellerName storeName address mobile'
+            }
         })
         .populate({
             path: 'customer',
@@ -1002,9 +1012,14 @@ export const getReturnPickupDetails = asyncHandler(async (req: Request, res: Res
         return res.status(404).json({ success: false, message: "Return request not found" });
     }
 
+    const responseData = returnReq.toObject();
+    if (!responseData.returnPickupFee) {
+        responseData.returnPickupFee = defaultPickupFee;
+    }
+
     return res.status(200).json({
         success: true,
-        data: returnReq
+        data: responseData
     });
 });
 
@@ -1019,11 +1034,15 @@ export const sendCustomerReturnOtp = asyncHandler(async (req: Request, res: Resp
         return res.status(404).json({ success: false, message: "Return request not found" });
     }
 
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate 4-digit OTP (Use 1234 in dev mode)
+    const otp = process.env.NODE_ENV !== 'production' ? '1234' : Math.floor(1000 + Math.random() * 9000).toString();
     returnReq.customerOtp = otp;
     returnReq.customerOtpVerified = false;
     await returnReq.save();
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[OTP] Customer Return OTP for return ${id}: ${otp}`);
+    }
 
     // In a real app, send SMS. We also emit socket or return in API for testing/demo.
     const io = (req.app as any).get("io");
@@ -1037,8 +1056,8 @@ export const sendCustomerReturnOtp = asyncHandler(async (req: Request, res: Resp
 
     return res.status(200).json({
         success: true,
-        message: "Customer OTP generated successfully",
-        data: { otp }
+        message: "Customer OTP generated successfully. It has been sent to the customer.",
+        data: {}
     });
 });
 
@@ -1088,10 +1107,14 @@ export const sendSellerReturnOtp = asyncHandler(async (req: Request, res: Respon
         return res.status(404).json({ success: false, message: "Return request not found" });
     }
 
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const otp = process.env.NODE_ENV !== 'production' ? '1234' : Math.floor(1000 + Math.random() * 9000).toString();
     returnReq.sellerOtp = otp;
     returnReq.sellerOtpVerified = false;
     await returnReq.save();
+
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[OTP] Seller Return OTP for return ${id}: ${otp}`);
+    }
 
     const sellerId = (returnReq.orderItem as any)?.seller;
     const io = (req.app as any).get("io");
@@ -1105,8 +1128,8 @@ export const sendSellerReturnOtp = asyncHandler(async (req: Request, res: Respon
 
     return res.status(200).json({
         success: true,
-        message: "Seller Handover OTP generated successfully",
-        data: { otp }
+        message: "Seller Handover OTP generated successfully. It has been sent to the seller.",
+        data: {}
     });
 });
 
@@ -1117,7 +1140,7 @@ export const verifySellerReturnOtp = asyncHandler(async (req: Request, res: Resp
     const { id } = req.params;
     const { otp } = req.body;
 
-    const returnReq = await Return.findById(id);
+    const returnReq = await Return.findById(id).populate('orderItem');
 
     if (!returnReq) {
         return res.status(404).json({ success: false, message: "Return request not found" });
@@ -1130,6 +1153,63 @@ export const verifySellerReturnOtp = asyncHandler(async (req: Request, res: Resp
     returnReq.sellerOtpVerified = true;
     returnReq.productCustody = 'With Seller';
     returnReq.pickupStatus = 'Returned to Seller';
+    returnReq.status = 'Processing';
+
+    // Process immediate Rider Payout & Seller Deduction
+    if (!returnReq.riderPayoutProcessed) {
+        let pickupFee = returnReq.returnPickupFee;
+        if (!pickupFee || pickupFee <= 0) {
+            const settings = await AppSettings.getSettings();
+            pickupFee = settings?.returnPickupFee || 20; // Default fee if not set
+        }
+
+        const deliveryBoyId = returnReq.deliveryBoy;
+        const sellerId = (returnReq.orderItem as any)?.seller;
+
+        if (pickupFee > 0 && deliveryBoyId && sellerId) {
+            const [delivery, seller] = await Promise.all([
+                Delivery.findById(deliveryBoyId),
+                Seller.findById(sellerId)
+            ]);
+
+            if (delivery && seller) {
+                // 1. Credit Delivery Boy
+                delivery.balance += pickupFee;
+                await delivery.save();
+
+                await WalletTransaction.create({
+                    userId: deliveryBoyId,
+                    userType: 'DELIVERY_BOY',
+                    amount: pickupFee,
+                    type: 'Credit',
+                    description: `Return pickup fee for return ${returnReq._id}`,
+                    reference: `RET-DEL-${returnReq._id}-${Date.now()}`,
+                    referenceType: 'Return',
+                    referenceId: returnReq._id,
+                    status: 'Completed'
+                });
+
+                // 2. Debit Seller
+                seller.balance -= pickupFee;
+                await seller.save();
+
+                await WalletTransaction.create({
+                    userId: sellerId,
+                    userType: 'SELLER',
+                    amount: pickupFee,
+                    type: 'Debit',
+                    description: `Return pickup fee deducted for return ${returnReq._id}`,
+                    reference: `RET-SEL-${returnReq._id}-${Date.now()}`,
+                    referenceType: 'Return',
+                    referenceId: returnReq._id,
+                    status: 'Completed'
+                });
+
+                returnReq.riderPayoutProcessed = true;
+            }
+        }
+    }
+
     await returnReq.save();
 
     return res.status(200).json({

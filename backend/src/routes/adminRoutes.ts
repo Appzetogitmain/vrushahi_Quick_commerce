@@ -150,6 +150,9 @@ router.get("/orders/export/csv", orderController.exportOrders);
 router.get("/return-requests", orderController.getReturnRequests);
 router.get("/return-requests/:id", orderController.getReturnRequestById);
 router.put("/return-requests/:id", orderController.processReturnRequest);
+router.post("/return-requests/:id/assign-delivery", orderController.assignDeliveryBoyToReturn);
+router.post("/return-requests/:id/rebroadcast", orderController.rebroadcastReturnPickup);
+router.post("/return-requests/:id/reassign", orderController.reassignDeliveryBoyToReturn);
 // Legacy route support if needed, but frontend uses /return-requests
 router.patch("/returns/:id/process", orderController.processReturnRequest);
 

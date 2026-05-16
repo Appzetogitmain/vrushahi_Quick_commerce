@@ -11,7 +11,7 @@ export interface Category {
   isBestseller: boolean;
   hasWarning: boolean;
   groupCategory?: string;
-  commissionRate?: number;
+  commissionRate?: number | null;
   totalSubcategories?: number;
   status: "Active" | "Inactive";
   parentId?: string | null;
@@ -35,7 +35,7 @@ export interface CreateCategoryData {
   isBestseller?: boolean;
   hasWarning?: boolean;
   groupCategory?: string;
-  commissionRate?: number;
+  commissionRate?: number | null;
   parentId?: string | null;
   headerCategoryId?: string | null;
   status?: "Active" | "Inactive";

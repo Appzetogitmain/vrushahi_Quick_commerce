@@ -19,48 +19,78 @@ import PlatformWallet from "../models/PlatformWallet";
 export const getOrderItemCommissionRate = async (
     productId: string,
     sellerId?: string
-): Promise<number> => {
+): Promise<{
+    rate: number;
+    sourceType: string;
+    sourceId: string | null;
+    sourceLabel: string;
+}> => {
     try {
         const product = await Product.findById(productId);
-        if (!product) return 10; // Default fallback
+        if (!product) return { rate: 10, sourceType: "GLOBAL", sourceId: null, sourceLabel: "Default Fallback" };
 
         // 1. Check SubSubCategory
         if (product.subSubCategory) {
             const subSubCat = await Category.findById(product.subSubCategory);
-            if (subSubCat?.commissionRate && subSubCat.commissionRate > 0) {
-                return subSubCat.commissionRate;
+            if (subSubCat && subSubCat.commissionRate !== undefined && subSubCat.commissionRate !== null) {
+                return {
+                    rate: subSubCat.commissionRate,
+                    sourceType: "SUBSUBCATEGORY",
+                    sourceId: subSubCat._id.toString(),
+                    sourceLabel: `Sub-SubCategory: ${subSubCat.name}`
+                };
             }
         }
 
         // 2. Check SubCategory
         if (product.subcategory) {
             const subCat = await SubCategory.findById(product.subcategory);
-            if (subCat?.commissionRate && subCat.commissionRate > 0) {
-                return subCat.commissionRate;
+            if (subCat && subCat.commissionRate !== undefined && subCat.commissionRate !== null) {
+                return {
+                    rate: subCat.commissionRate,
+                    sourceType: "SUBCATEGORY",
+                    sourceId: subCat._id.toString(),
+                    sourceLabel: `SubCategory: ${subCat.name}`
+                };
             }
         }
 
         // 3. Check Category
         if (product.category) {
             const cat = await Category.findById(product.category);
-            if (cat?.commissionRate && cat.commissionRate > 0) {
-                return cat.commissionRate;
+            if (cat && cat.commissionRate !== undefined && cat.commissionRate !== null) {
+                return {
+                    rate: cat.commissionRate,
+                    sourceType: "CATEGORY",
+                    sourceId: cat._id.toString(),
+                    sourceLabel: `Category: ${cat.name}`
+                };
             }
         }
 
         // 4. Check Seller specific rate
         const finalSellerId = sellerId || product.seller.toString();
         const seller = await Seller.findById(finalSellerId);
-        if (seller?.commissionRate && seller.commissionRate > 0) {
-            return seller.commissionRate;
+        if (seller && seller.commissionRate !== undefined && seller.commissionRate !== null) {
+            return {
+                rate: seller.commissionRate,
+                sourceType: "SELLER",
+                sourceId: seller._id.toString(),
+                sourceLabel: `Seller Override: ${seller.storeName || seller.sellerName}`
+            };
         }
 
         // 5. Global Default
         const settings = await AppSettings.findOne();
-        return settings?.defaultCommission ?? 10;
+        return {
+            rate: settings?.defaultCommission ?? 10,
+            sourceType: "GLOBAL",
+            sourceId: settings?._id?.toString() || null,
+            sourceLabel: "Global Default"
+        };
     } catch (error) {
         console.error("Error calculating commission rate:", error);
-        return 10;
+        return { rate: 10, sourceType: "GLOBAL", sourceId: null, sourceLabel: "Error Fallback" };
     }
 };
 
@@ -198,7 +228,8 @@ export const calculateOrderCommissions = async (orderId: string) => {
             const itemTotal = orderItem.total;
 
             // Get commission rate for this item
-            const commissionRate = await getOrderItemCommissionRate(orderItem.product.toString(), sellerId);
+            const commissionInfo = await getOrderItemCommissionRate(orderItem.product.toString(), sellerId);
+            const commissionRate = commissionInfo.rate;
             const commissionAmount = (itemTotal * commissionRate) / 100;
 
             if (sellerCommissions.has(sellerId)) {
@@ -274,10 +305,11 @@ export const createPendingCommissions = async (orderId: string) => {
             const seller = await Seller.findById(item.seller);
             if (!seller) continue;
 
-            const commissionRate = await getOrderItemCommissionRate(
+            const commissionInfo = await getOrderItemCommissionRate(
                 item.product.toString(),
                 item.seller.toString()
             );
+            const commissionRate = commissionInfo.rate;
             const commissionAmount = (item.total * commissionRate) / 100;
             const netEarning = item.total - commissionAmount;
 
@@ -300,6 +332,9 @@ export const createPendingCommissions = async (orderId: string) => {
                 paidAt: isCOD ? null : new Date(),
                 releaseStatus: "Locked",
                 paymentType: order.paymentMethod,
+                commissionSourceType: commissionInfo.sourceType,
+                commissionSourceId: commissionInfo.sourceId ? new mongoose.Types.ObjectId(commissionInfo.sourceId) : undefined,
+                commissionSourceLabel: commissionInfo.sourceLabel,
             });
 
             // Credit Wallet Immediately only for non-COD
@@ -834,10 +869,11 @@ export const calculateOrderBreakdown = async (
             const product = await Product.findById(item.product).session(session || null);
             if (!product) continue;
 
-            const commissionRate = item.commissionRate || await getOrderItemCommissionRate(
+            const commissionInfo = await getOrderItemCommissionRate(
                 item.product.toString(),
                 item.seller.toString()
             );
+            const commissionRate = item.commissionRate || commissionInfo.rate;
 
             // Calculate commission and seller earning for this item
             const itemCommission = (item.total * commissionRate) / 100;
@@ -1015,7 +1051,8 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
         for (const [sellerId] of sellerEarningsArray) {
             const orderItems = await OrderItem.find({ order: orderId, seller: sellerId });
             for (const item of orderItems) {
-                const commRate = item.commissionRate || await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
+                const commissionInfo = await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
+                const commRate = item.commissionRate || commissionInfo.rate;
                 const itemCommission = (item.total * commRate) / 100;
                 const netEarning = item.total - itemCommission;
 
@@ -1031,6 +1068,9 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
                     paidAt: isOnlineQR ? new Date() : null,
                     releaseStatus: "Locked",
                     paymentType: "COD",
+                    commissionSourceType: commissionInfo.sourceType,
+                    commissionSourceId: commissionInfo.sourceId ? new mongoose.Types.ObjectId(commissionInfo.sourceId) : undefined,
+                    commissionSourceLabel: commissionInfo.sourceLabel,
                 });
 
                 // For Online QR, credit seller wallet immediately

@@ -9,6 +9,7 @@ import {
   sendSellerReturnOtp,
   verifySellerReturnOtp
 } from '../../../services/api/delivery/deliveryService';
+import { uploadImage } from '../../../services/api/uploadService';
 import { useDeliveryOrderNotifications } from '../../../hooks/useDeliveryOrderNotifications';
 
 export default function DeliveryReturnOrderDetail() {
@@ -23,12 +24,14 @@ export default function DeliveryReturnOrderDetail() {
   const [sellerOtpInput, setSellerOtpInput] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [customerOtpSent, setCustomerOtpSent] = useState(false);
+  const [sellerOtpSent, setSellerOtpSent] = useState(false);
 
   // QC state
   const [qcStatus, setQcStatus] = useState<'Passed' | 'Failed'>('Passed');
   const [qcNotes, setQcNotes] = useState('');
   const [riderImages, setRiderImages] = useState<string[]>([]);
-  const [imageInputUrl, setImageInputUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   // Socket for live OTP listening
   const { socket } = useDeliveryOrderNotifications();
@@ -60,13 +63,13 @@ export default function DeliveryReturnOrderDetail() {
 
     const handleCustOtp = (data: any) => {
       if (data.returnId === id) {
-        setSuccessMsg(`Customer OTP sent: ${data.otp}`);
+        setSuccessMsg(`Customer OTP sent successfully`);
       }
     };
 
     const handleSellOtp = (data: any) => {
       if (data.returnId === id) {
-        setSuccessMsg(`Seller OTP sent: ${data.otp}`);
+        setSuccessMsg(`Seller OTP sent successfully`);
       }
     };
 
@@ -79,10 +82,23 @@ export default function DeliveryReturnOrderDetail() {
     };
   }, [socket, returnReq, id]);
 
-  const addImage = () => {
-    if (imageInputUrl && !riderImages.includes(imageInputUrl)) {
-      setRiderImages([...riderImages, imageInputUrl]);
-      setImageInputUrl('');
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setError('');
+      const result = await uploadImage(file);
+      if (result.secureUrl || result.url) {
+        const url = result.secureUrl || result.url;
+        setRiderImages([...riderImages, url]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -92,9 +108,8 @@ export default function DeliveryReturnOrderDetail() {
       setError('');
       setSuccessMsg('');
       const res = await sendCustomerReturnOtp(id!);
-      if (res.data?.otp) {
-        setSuccessMsg(`Customer OTP generated: ${res.data.otp}`);
-      }
+      setSuccessMsg(res.message || 'Customer OTP generated successfully');
+      setCustomerOtpSent(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send Customer OTP');
     } finally {
@@ -131,9 +146,8 @@ export default function DeliveryReturnOrderDetail() {
       setError('');
       setSuccessMsg('');
       const res = await sendSellerReturnOtp(id!);
-      if (res.data?.otp) {
-        setSuccessMsg(`Seller Handover OTP generated: ${res.data.otp}`);
-      }
+      setSuccessMsg(res.message || 'Seller Handover OTP generated successfully');
+      setSellerOtpSent(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send Seller OTP');
     } finally {
@@ -261,6 +275,21 @@ export default function DeliveryReturnOrderDetail() {
           )}
         </div>
 
+        {/* Seller / Drop-off Info */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 space-y-3">
+          <h3 className="font-bold text-neutral-900 border-b pb-2">Drop-off Information</h3>
+          <div>
+            <p className="text-xs text-neutral-500">Seller / Store</p>
+            <p className="font-semibold text-neutral-900">{orderItem.seller?.storeName || 'N/A'}</p>
+            <p className="text-xs text-neutral-600">Phone: {orderItem.seller?.mobile || 'N/A'}</p>
+            <p className="text-xs text-neutral-600">Contact Person: {orderItem.seller?.sellerName || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-neutral-500">Drop-off Address</p>
+            <p className="text-sm text-neutral-800">{orderItem.seller?.address || 'N/A'}</p>
+          </div>
+        </div>
+
         {/* Stage 1: Customer Pickup & QC */}
         <div className={`bg-white p-4 rounded-xl shadow-sm border ${!returnReq.customerOtpVerified ? 'border-amber-500' : 'border-neutral-200'} space-y-4`}>
           <div className="flex items-center justify-between border-b pb-2">
@@ -302,15 +331,31 @@ export default function DeliveryReturnOrderDetail() {
                 <label className="block text-xs font-semibold text-neutral-600 mb-1">Upload Product Photos (Mandatory)</label>
                 <div className="flex gap-2 mb-2">
                   <input
-                    type="text"
-                    placeholder="Paste image URL..."
-                    value={imageInputUrl}
-                    onChange={(e) => setImageInputUrl(e.target.value)}
-                    className="flex-1 p-2 border rounded-lg text-sm text-neutral-800"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="qc-image-upload"
+                    disabled={isUploading}
                   />
-                  <button type="button" onClick={addImage} className="px-3 py-2 bg-neutral-800 text-white text-sm font-bold rounded-lg hover:bg-neutral-900">
-                    Add
-                  </button>
+                  <label
+                    htmlFor="qc-image-upload"
+                    className={`flex-1 p-3 border-2 border-dashed rounded-lg text-sm text-center cursor-pointer transition-colors ${
+                      isUploading ? 'bg-neutral-100 border-neutral-300 text-neutral-500' : 'border-neutral-300 hover:border-neutral-400 text-neutral-600'
+                    }`}
+                  >
+                    {isUploading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5 text-neutral-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </span>
+                    ) : (
+                      '📸 Click to Take Photo or Select from Gallery'
+                    )}
+                  </label>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {riderImages.map((img, idx) => (
@@ -330,36 +375,37 @@ export default function DeliveryReturnOrderDetail() {
               </div>
 
               {/* OTP Section */}
-              <div className="border-t pt-3 space-y-2">
+              <div className="border-t pt-3 space-y-3">
                 <p className="text-sm font-semibold text-neutral-800">2. Customer Handover OTP</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSendCustomerOtp}
-                    disabled={actionLoading}
-                    className="px-3 py-2 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 disabled:opacity-50"
-                  >
-                    Send OTP to Customer
-                  </button>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="Enter 4-digit Customer OTP"
-                    value={customerOtpInput}
-                    onChange={(e) => setCustomerOtpInput(e.target.value.replace(/\D/g, ''))}
-                    className="flex-1 p-2 border rounded-lg text-sm font-bold tracking-widest text-center text-neutral-900"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifyCustomerOtp}
-                    disabled={actionLoading}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 disabled:opacity-50"
-                  >
-                    Verify & Mark Picked Up
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSendCustomerOtp}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                >
+                  Send OTP to Customer
+                </button>
+                
+                {customerOtpSent && (
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      maxLength={4}
+                      placeholder="Enter OTP"
+                      value={customerOtpInput}
+                      onChange={(e) => setCustomerOtpInput(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 min-w-0 p-3 border rounded-lg text-lg font-bold tracking-widest text-center text-neutral-900 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyCustomerOtp}
+                      disabled={actionLoading}
+                      className="shrink-0 px-4 py-3 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -393,34 +439,35 @@ export default function DeliveryReturnOrderDetail() {
             {!returnReq.sellerOtpVerified ? (
               <div className="space-y-3">
                 <p className="text-xs text-neutral-600">Return the physical item to the seller store and collect their handover OTP.</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSendSellerOtp}
-                    disabled={actionLoading}
-                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Send OTP to Seller
-                  </button>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="Enter 4-digit Seller OTP"
-                    value={sellerOtpInput}
-                    onChange={(e) => setSellerOtpInput(e.target.value.replace(/\D/g, ''))}
-                    className="flex-1 p-2 border rounded-lg text-sm font-bold tracking-widest text-center text-neutral-900"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifySellerOtp}
-                    disabled={actionLoading}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 disabled:opacity-50"
-                  >
-                    Confirm Handover
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSendSellerOtp}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  Send OTP to Seller
+                </button>
+                
+                {sellerOtpSent && (
+                  <div className="flex gap-2 mt-2">
+                    <input
+                      type="text"
+                      maxLength={4}
+                      placeholder="Enter OTP"
+                      value={sellerOtpInput}
+                      onChange={(e) => setSellerOtpInput(e.target.value.replace(/\D/g, ''))}
+                      className="flex-1 min-w-0 p-3 border rounded-lg text-lg font-bold tracking-widest text-center text-neutral-900 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifySellerOtp}
+                      disabled={actionLoading}
+                      className="shrink-0 px-4 py-3 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-3 bg-teal-50 border border-teal-100 rounded-lg">

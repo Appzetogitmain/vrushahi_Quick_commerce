@@ -49,6 +49,7 @@ export interface ReturnRequestDetail {
 
 export interface UpdateReturnStatusData {
   status: 'Approved' | 'Rejected' | 'Completed';
+  rejectionReason?: string;
 }
 
 export interface GetReturnRequestsParams {

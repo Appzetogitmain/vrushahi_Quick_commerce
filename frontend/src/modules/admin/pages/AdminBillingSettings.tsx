@@ -15,6 +15,7 @@ export default function AdminBillingSettings() {
     const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(0);
     const [deliveryCharges, setDeliveryCharges] = useState<number>(0);
     const [returnPickupFee, setReturnPickupFee] = useState<number>(20);
+    const [defaultCommission, setDefaultCommission] = useState<number>(10);
 
     // Distance Based Config
     const [isDistanceBased, setIsDistanceBased] = useState(false);
@@ -49,6 +50,7 @@ export default function AdminBillingSettings() {
                 setFreeDeliveryThreshold(data.freeDeliveryThreshold || 0);
                 setDeliveryCharges(data.deliveryCharges || 0);
                 setReturnPickupFee(data.returnPickupFee ?? 20);
+                setDefaultCommission(data.defaultCommission ?? 10);
 
                 if (data.deliveryConfig) {
                     setIsDistanceBased(data.deliveryConfig.isDistanceBased || false);
@@ -100,7 +102,8 @@ export default function AdminBillingSettings() {
                 supportPhone,
                 riderCashLimit,
                 riderPoliceVerificationDays,
-                riderMaxConcurrentOrders
+                riderMaxConcurrentOrders,
+                defaultCommission
             };
 
             const response = await updateAppSettings(updatePayload);
@@ -210,6 +213,26 @@ export default function AdminBillingSettings() {
                                 />
                             </div>
                             <p className="mt-1 text-xs text-gray-500">Fee deducted from seller and credited to rider upon return completion/rejection.</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Global Default Commission (%)
+                            </label>
+                            <div className="relative">
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="0.01"
+                                    value={defaultCommission}
+                                    onChange={(e) => setDefaultCommission(Number(e.target.value))}
+                                    className="w-full pl-4 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    placeholder="e.g. 10"
+                                />
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">Fallback commission percentage for all sellers/categories.</p>
                         </div>
                     </div>
                 </div>

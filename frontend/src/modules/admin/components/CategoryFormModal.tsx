@@ -48,7 +48,7 @@ export default function CategoryFormModal({
     isBestseller: false,
     hasWarning: false,
     groupCategory: "",
-    commissionRate: 0,
+    commissionRate: null as number | null,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -113,7 +113,7 @@ export default function CategoryFormModal({
           isBestseller: category.isBestseller || false,
           hasWarning: category.hasWarning || false,
           groupCategory: category.groupCategory || "",
-          commissionRate: category.commissionRate || 0,
+          commissionRate: (category.commissionRate !== undefined && category.commissionRate !== null) ? category.commissionRate : null,
         });
         if (category.image) {
           setImagePreview(category.image);
@@ -155,7 +155,7 @@ export default function CategoryFormModal({
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: 0,
+          commissionRate: null as number | null,
         });
       } else {
         // Reset form for new category
@@ -169,7 +169,7 @@ export default function CategoryFormModal({
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: 0,
+          commissionRate: null as number | null,
         });
       }
       setImageFile(null);
@@ -178,6 +178,18 @@ export default function CategoryFormModal({
       setShowAdvanced(false);
     }
   }, [isOpen, mode, category, parentCategory]);
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -192,9 +204,11 @@ export default function CategoryFormModal({
       [name]:
         type === "checkbox"
           ? checked
-          : type === "number"
-            ? parseInt(value) || 0
-            : value,
+          : name === "commissionRate"
+            ? value === "" ? null : parseFloat(value)
+            : type === "number"
+              ? parseInt(value) || 0
+              : value,
     }));
 
     // Clear error for this field
@@ -726,70 +740,32 @@ export default function CategoryFormModal({
             </label>
           </div>
 
-          {/* Commission Rate - Only for SubSubCategories (Level 3) or when parent is selected */}
-          {(() => {
-            // Logic to determine if we should show commission rate (Level 3+ only)
-
-            // 1. If in subcategory creation mode
-            if (isSubcategoryMode && parentCategory) {
-              // Check if the parent ITSELF has a parent (meaning parent is L2, so new one is L3)
-              return parentCategory.parentId ? true : false;
-            }
-
-            // 2. If editing existing category
-            if (mode === "edit" && category) {
-              // We need to know if category is L3.
-              if (formData.parentId) {
-                const parent = flatCategories.find(
-                  (c) => c._id === formData.parentId
-                );
-                // If parent exists and parent also has a parentId, then current is L3+
-                if (parent && parent.parentId) {
-                  return true;
-                }
-              }
-              return false;
-            }
-
-            // 3. creating new category (not sub mode) but with parent selected
-            if (mode === "create" && formData.parentId) {
-              const parent = flatCategories.find(
-                (c) => c._id === formData.parentId
-              );
-              if (parent && parent.parentId) {
-                return true;
-              }
-            }
-
-            return false;
-          })() && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Commission Rate (%)
-                </label>
-                <input
-                  type="number"
-                  name="commissionRate"
-                  value={formData.commissionRate}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.commissionRate ? "border-red-300" : "border-neutral-300"
-                    }`}
-                  disabled={submitting}
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Override default commission rate for this category (0 = use
-                  default)
-                </p>
-                {errors.commissionRate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.commissionRate}
-                  </p>
-                )}
-              </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Commission Rate (%)
+            </label>
+            <input
+              type="number"
+              name="commissionRate"
+              value={formData.commissionRate ?? ""}
+              onChange={handleInputChange}
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="Inherit from Parent/Global"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.commissionRate ? "border-red-300" : "border-neutral-300"
+                }`}
+              disabled={submitting}
+            />
+            <p className="mt-1 text-xs text-neutral-500">
+              Override default commission rate. <strong>Leave empty</strong> to inherit from parent/global. Set to <strong>0</strong> for no commission.
+            </p>
+            {errors.commissionRate && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.commissionRate}
+              </p>
             )}
+          </div>
 
           {/* Advanced Fields (Collapsible) */}
           <div className="mb-4">

@@ -81,40 +81,44 @@ export async function findDeliveryBoysNearLocation(
         const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
 
         const now = new Date();
-        const deliveryBoysWithLocation = await Delivery.find({
-            isOnline: true,
-            status: 'Active',
-            paymentStatus: { $ne: 'Blocked' },
-            $or: [
-                { policeVerificationForm: { $exists: true, $ne: "" } },
-                { policeVerificationDeadline: { $gt: now } },
-                { policeVerificationDeadline: { $exists: false } }
-            ],
-            location: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [longitude, latitude]
-                    },
-                    $maxDistance: radiusKm * 1000 // Convert km to meters
+        try {
+            const deliveryBoysWithLocation = await Delivery.find({
+                isOnline: true,
+                status: 'Active',
+                paymentStatus: { $ne: 'Blocked' },
+                $or: [
+                    { policeVerificationForm: { $exists: true, $ne: "" } },
+                    { policeVerificationDeadline: { $gt: now } },
+                    { policeVerificationDeadline: { $exists: false } }
+                ],
+                location: {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: [longitude, latitude]
+                        },
+                        $maxDistance: radiusKm * 1000 // Convert km to meters
+                    }
                 }
-            }
-        }).select('_id location');
+            }).select('_id location');
 
-        if (deliveryBoysWithLocation.length > 0) {
-            for (const db of deliveryBoysWithLocation) {
-                if (db.location && db.location.coordinates) {
-                    const [dbLng, dbLat] = db.location.coordinates;
-                    const distance = calculateDistance(latitude, longitude, dbLat, dbLng);
-                    nearbyDeliveryBoys.push({
-                        deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                        distance
-                    });
+            if (deliveryBoysWithLocation.length > 0) {
+                for (const db of deliveryBoysWithLocation) {
+                    if (db.location && db.location.coordinates) {
+                        const [dbLng, dbLat] = db.location.coordinates;
+                        const distance = calculateDistance(latitude, longitude, dbLat, dbLng);
+                        nearbyDeliveryBoys.push({
+                            deliveryBoyId: db._id as mongoose.Types.ObjectId,
+                            distance
+                        });
+                    }
                 }
-            }
 
-            console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km of seller`);
-            return nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
+                console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km of seller`);
+                return nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
+            }
+        } catch (nearErr: any) {
+            console.log(`⚠️ GeoJSON $near query failed (${nearErr.message || nearErr.codeName}). Falling back to manual distance calculation...`);
         }
 
         console.log(`⚠️ No delivery boys found within ${radiusKm}km using live location. Checking fallback...`);

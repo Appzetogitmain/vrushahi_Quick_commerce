@@ -1,6 +1,7 @@
 import Seller from "../models/Seller";
 import Customer from "../models/Customer";
 import Commission from "../models/Commission";
+import mongoose from "mongoose";
 
 
 /**
@@ -124,9 +125,10 @@ export const processCustomerWalletTransaction = async (
   customerId: string,
   amount: number,
   type: "credit" | "debit",
-  reason: string
+  reason: string,
+  session?: mongoose.ClientSession
 ) => {
-  const customer = await Customer.findById(customerId);
+  const customer = await Customer.findById(customerId).session(session || null as any);
   if (!customer) {
     throw new Error("Customer not found");
   }
@@ -141,7 +143,11 @@ export const processCustomerWalletTransaction = async (
       ? customer.walletAmount + amount
       : customer.walletAmount - amount;
 
-  await customer.save();
+  if (session) {
+    await customer.save({ session });
+  } else {
+    await customer.save();
+  }
 
   return {
     customer,

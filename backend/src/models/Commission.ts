@@ -27,6 +27,11 @@ export interface ICommission extends Document {
   paidAt?: Date;
   paymentReference?: string;
 
+  // Commission Source Tracking
+  commissionSourceType?: string;
+  commissionSourceId?: mongoose.Types.ObjectId;
+  commissionSourceLabel?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +54,19 @@ const CommissionSchema = new Schema<ICommission>(
     deliveryBoy: {
       type: Schema.Types.ObjectId,
       ref: "Delivery",
+    },
+
+    // Commission Source Tracking
+    commissionSourceType: {
+      type: String,
+      trim: true,
+    },
+    commissionSourceId: {
+      type: Schema.Types.ObjectId,
+    },
+    commissionSourceLabel: {
+      type: String,
+      trim: true,
     },
 
     // Commission Type

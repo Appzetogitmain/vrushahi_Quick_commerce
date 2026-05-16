@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import {
   getReturnRequests,
   updateReturnRequest,
+  rebroadcastReturnRequest,
+  reassignRider,
   type MiscReturnRequest as ReturnRequest,
 } from "../../../services/api/admin/adminMiscService";
+import { getDeliveryBoys } from "../../../services/api/admin/adminDeliveryService";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function AdminReturnRequest() {
@@ -25,6 +28,17 @@ export default function AdminReturnRequest() {
   // Modal State for detailed inspection
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Reassign Modal State
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [availableRiders, setAvailableRiders] = useState<any[]>([]);
+  const [selectedRiderId, setSelectedRiderId] = useState("");
+  const [fetchingRiders, setFetchingRiders] = useState(false);
+
+  // Refund Modal State
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [refundTxId, setRefundTxId] = useState("");
+  const [returnToComplete, setReturnToComplete] = useState<string | null>(null);
 
   // Fetch return requests on component mount
   useEffect(() => {
@@ -164,31 +178,120 @@ export default function AdminReturnRequest() {
     }
   };
 
-  const handleCompleteReturn = async (requestId: string) => {
-    if (!confirm("Are you sure you want to mark this return as Completed and process refund & rider settlement?")) return;
+  const handleCompleteReturn = async () => {
+    if (!returnToComplete) return;
+    if (!refundTxId) {
+      alert("Transaction ID is required to complete the refund.");
+      return;
+    }
 
     try {
-      setUpdating(requestId);
-      const response = await updateReturnRequest(requestId, {
+      setUpdating(returnToComplete);
+      const response = await updateReturnRequest(returnToComplete, {
         status: "Completed",
+        refundReference: refundTxId,
       });
 
       if (response.success) {
         setReturnRequests((requests) =>
           requests.map((req) =>
-            req._id === requestId ? { ...req, status: "Completed", riderPayoutProcessed: true } : req
+            req._id === returnToComplete ? { ...req, status: "Completed", riderPayoutProcessed: true } : req
           )
         );
         alert("Return request completed successfully! Payout settled.");
-        if (selectedRequest && selectedRequest._id === requestId) {
+        if (selectedRequest && selectedRequest._id === returnToComplete) {
           setSelectedRequest((prev: any) => ({ ...prev, status: "Completed", riderPayoutProcessed: true }));
         }
+        setIsRefundModalOpen(false);
+        setIsModalOpen(false);
+        setSelectedRequest(null);
       } else {
         alert("Failed to complete return: " + (response.message || "Unknown error"));
       }
     } catch (err: any) {
       console.error("Error completing return request:", err);
       alert("Failed to complete return: " + (err.response?.data?.message || "Please try again."));
+    } finally {
+      setUpdating(null);
+      setReturnToComplete(null);
+    }
+  };
+
+  const handleRebroadcast = async (requestId: string) => {
+    if (!confirm("Are you sure you want to re-broadcast this return pickup? This will remove the current rider and broadcast it again.")) return;
+
+    try {
+      setUpdating(requestId);
+      const response = await rebroadcastReturnRequest(requestId);
+
+      if (response.success) {
+        setReturnRequests((requests) =>
+          requests.map((req) =>
+            req._id === requestId ? { ...req, pickupStatus: "Pending", deliveryBoyName: "Not Assigned" } : req
+          )
+        );
+        alert("Return pickup re-broadcasted successfully!");
+        if (selectedRequest && selectedRequest._id === requestId) {
+          setSelectedRequest((prev: any) => ({ ...prev, pickupStatus: "Pending", deliveryBoyName: "Not Assigned" }));
+        }
+      } else {
+        alert("Failed to re-broadcast: " + (response.message || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Error re-broadcasting return request:", err);
+      alert("Failed to re-broadcast: " + (err.response?.data?.message || "Please try again."));
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleOpenReassignModal = async (requestId: string) => {
+    setIsReassignModalOpen(true);
+    setFetchingRiders(true);
+    setSelectedRiderId("");
+    try {
+      const response = await getDeliveryBoys({ status: "Active" });
+      if (response.success) {
+        setAvailableRiders(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch riders:", err);
+      alert("Failed to load available riders.");
+    } finally {
+      setFetchingRiders(false);
+    }
+  };
+
+  const handleManualReassign = async (requestId: string) => {
+    if (!selectedRiderId) {
+      alert("Please select a rider first.");
+      return;
+    }
+    
+    if (!confirm("Are you sure you want to reassign this return to the selected rider? The previous rider will be removed.")) return;
+
+    try {
+      setUpdating(requestId);
+      const response = await reassignRider(requestId, selectedRiderId);
+
+      if (response.success) {
+        // Refresh the return requests
+        setReturnRequests((requests) =>
+          requests.map((req) =>
+            req._id === requestId ? response.data : req
+          )
+        );
+        alert("Rider reassigned successfully!");
+        if (selectedRequest && selectedRequest._id === requestId) {
+          setSelectedRequest(response.data);
+        }
+        setIsReassignModalOpen(false);
+      } else {
+        alert("Failed to reassign rider: " + (response.message || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Error reassigning rider:", err);
+      alert("Failed to reassign rider: " + (err.response?.data?.message || "Please try again."));
     } finally {
       setUpdating(null);
     }
@@ -929,7 +1032,28 @@ export default function AdminReturnRequest() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div>
                     <span className="text-neutral-500 block">Assigned Delivery Partner:</span>
-                    <span className="font-bold text-neutral-800">{selectedRequest.deliveryBoyName || 'Not Assigned'}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-neutral-800">{selectedRequest.deliveryBoyName || 'Not Assigned'}</span>
+                      {selectedRequest.status === 'Approved' && selectedRequest.pickupStatus === 'Assigned' && (
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleRebroadcast(selectedRequest._id)}
+                            className="text-[10px] bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded transition-colors font-semibold"
+                          >
+                            Re-broadcast
+                          </button>
+                          <button
+                            onClick={() => handleOpenReassignModal(selectedRequest._id)}
+                            className="text-[10px] bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-2 py-1 rounded transition-colors font-semibold"
+                          >
+                            Assign Manually
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {selectedRequest.assignedAt && (
+                      <span className="text-[10px] text-neutral-400 block mt-0.5">Since: {new Date(selectedRequest.assignedAt).toLocaleString('en-GB')}</span>
+                    )}
                   </div>
                   <div>
                     <span className="text-neutral-500 block">Product Custody Status:</span>
@@ -1003,7 +1127,7 @@ export default function AdminReturnRequest() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-neutral-500 block">Return Pickup Fee:</span>
-                    <span className="font-bold text-neutral-800">₹{selectedRequest.returnPickupFee || 20}</span>
+                    <span className="font-bold text-neutral-800">₹{selectedRequest.returnPickupFee ?? 20}</span>
                   </div>
                   <div>
                     <span className="text-neutral-500 block">Payout Status:</span>
@@ -1054,6 +1178,12 @@ export default function AdminReturnRequest() {
                         <span className="text-neutral-400 block font-medium">IFSC Code</span>
                         <span className="text-neutral-800 font-bold uppercase tracking-wider font-mono">{selectedRequest.bankDetails.ifscCode || 'N/A'}</span>
                       </div>
+                    </div>
+                  )}
+                  {selectedRequest.refundReference && (
+                    <div className="text-xs font-mono bg-white p-3 rounded-lg border border-teal-100 text-neutral-800 mt-2">
+                      <span className="text-neutral-400 block font-medium mb-1">Transaction ID</span>
+                      <span className="text-teal-700 font-bold text-sm tracking-wide">{selectedRequest.refundReference}</span>
                     </div>
                   )}
                 </div>
@@ -1125,10 +1255,10 @@ export default function AdminReturnRequest() {
                   </button>
                   <button
                     disabled={updating === selectedRequest._id}
-                    onClick={async () => {
-                      await handleCompleteReturn(selectedRequest._id);
-                      setIsModalOpen(false);
-                      setSelectedRequest(null);
+                    onClick={() => {
+                      setReturnToComplete(selectedRequest._id);
+                      setRefundTxId("");
+                      setIsRefundModalOpen(true);
                     }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors shadow-sm"
                   >
@@ -1136,6 +1266,108 @@ export default function AdminReturnRequest() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign Rider Modal */}
+      {isReassignModalOpen && selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-indigo-50/50">
+              <h3 className="text-lg font-bold text-neutral-800">Manually Reassign Rider</h3>
+              <button
+                onClick={() => setIsReassignModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-neutral-600 mb-4">
+                Select a new delivery partner for this return request. The current rider will be removed and will not receive any payout.
+              </p>
+              
+              {fetchingRiders ? (
+                <div className="py-8 text-center text-sm text-neutral-500 font-medium animate-pulse">
+                  Loading available riders...
+                </div>
+              ) : (
+                <select
+                  value={selectedRiderId}
+                  onChange={(e) => setSelectedRiderId(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-neutral-700"
+                >
+                  <option value="">-- Select Rider --</option>
+                  {availableRiders.map((rider) => (
+                    <option key={rider._id} value={rider._id}>
+                      {rider.name} ({rider.mobile}) - {rider.status}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-neutral-100 flex justify-end gap-3 bg-neutral-50">
+              <button
+                onClick={() => setIsReassignModalOpen(false)}
+                className="px-4 py-2 font-bold text-sm text-neutral-600 hover:text-neutral-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!selectedRiderId || updating === selectedRequest._id}
+                onClick={() => handleManualReassign(selectedRequest._id)}
+                className="px-6 py-2 font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm shadow-indigo-200"
+              >
+                {updating === selectedRequest._id ? "Assigning..." : "Assign Rider"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Transaction Modal */}
+      {isRefundModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-neutral-100 flex justify-between items-center bg-emerald-50/50">
+              <h3 className="text-lg font-bold text-neutral-800">Process Refund</h3>
+              <button
+                onClick={() => setIsRefundModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-neutral-600 mb-4">
+                Please enter the Refund Transaction ID (Required for customer reference).
+              </p>
+              
+              <input
+                type="text"
+                placeholder="Transaction ID"
+                value={refundTxId}
+                onChange={(e) => setRefundTxId(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-neutral-700"
+                autoFocus
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-neutral-100 flex justify-end gap-3 bg-neutral-50">
+              <button
+                onClick={() => setIsRefundModalOpen(false)}
+                className="px-4 py-2 font-bold text-sm text-neutral-600 hover:text-neutral-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!refundTxId || updating === returnToComplete}
+                onClick={handleCompleteReturn}
+                className="px-6 py-2 font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm shadow-emerald-200"
+              >
+                {updating === returnToComplete ? "Processing..." : "Complete & Refund"}
+              </button>
             </div>
           </div>
         </div>

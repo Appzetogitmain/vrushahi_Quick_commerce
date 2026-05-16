@@ -122,10 +122,16 @@ export const getOrderById = asyncHandler(
       });
     }
 
+    const commissions = await Commission.find({ order: id })
+      .populate("seller", "sellerName storeName");
+
     return res.status(200).json({
       success: true,
       message: "Order fetched successfully",
-      data: order,
+      data: {
+        ...order.toObject(),
+        commissions
+      },
     });
   }
 );
@@ -352,6 +358,9 @@ export const getReturnRequests = asyncHandler(
       sortOrder = "desc",
     } = req.query;
 
+    const settings = await AppSettings.getSettings();
+    const defaultPickupFee = settings?.returnPickupFee || 20;
+
     const query: any = {};
 
     // Status filter
@@ -396,13 +405,17 @@ export const getReturnRequests = asyncHandler(
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const sort: any = {};
-    sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+    if (sortBy && sortBy !== "undefined") {
+      sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+    } else {
+      sort.createdAt = -1;
+    }
 
     const [requests, total] = await Promise.all([
       Return.find(query)
         .populate("order", "orderNumber")
         .populate("customer", "name email phone bankDetails")
-        .populate("deliveryBoy", "firstName lastName phone")
+        .populate("deliveryBoy", "name phone")
         .populate({
           path: "orderItem",
           populate: {
@@ -444,8 +457,11 @@ export const getReturnRequests = asyncHandler(
           if (matchingVar.image && matchingVar.image.trim() !== "") {
             productImage = matchingVar.image;
           }
+        } else if ((!productImage || productImage.trim() === "") && product.variations.length > 0 && product.variations[0]?.image) {
+          productImage = product.variations[0].image;
         }
       }
+      if (!productImage) productImage = "https://via.placeholder.com/150?text=No+Image";
 
       return {
         _id: req._id,
@@ -479,8 +495,9 @@ export const getReturnRequests = asyncHandler(
         riderImages: req.riderImages || [],
         customerOtpVerified: req.customerOtpVerified || false,
         sellerOtpVerified: req.sellerOtpVerified || false,
-        deliveryBoyName: req.deliveryBoy ? `${req.deliveryBoy.firstName} ${req.deliveryBoy.lastName}` : "Not Assigned",
-        returnPickupFee: req.returnPickupFee || 0,
+        deliveryBoyName: req.deliveryBoy ? req.deliveryBoy.name : "Not Assigned",
+        assignedAt: req.assignedAt,
+        returnPickupFee: req.returnPickupFee || defaultPickupFee,
         riderPayoutProcessed: req.riderPayoutProcessed || false,
       };
     });
@@ -551,7 +568,7 @@ export const getReturnRequestById = asyncHandler(
 export const processReturnRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status, rejectionReason, refundAmount, adminNotes } = req.body;
+    const { status, rejectionReason, refundAmount, adminNotes, refundReference } = req.body;
 
     const validStatuses = ["Approved", "Rejected", "Processing", "Completed"];
     if (status && !validStatuses.includes(status)) {
@@ -584,6 +601,12 @@ export const processReturnRequest = asyncHandler(
 
     if (status === "Approved" && refundAmount) {
       updateData.refundAmount = refundAmount;
+    }
+
+    if (status === "Completed") {
+      updateData.refundStatus = "Refunded";
+      updateData.refundedAt = new Date();
+      if (refundReference) updateData.refundReference = refundReference;
     }
 
     const updatedReturn = await Return.findByIdAndUpdate(id, updateData, {
@@ -654,7 +677,8 @@ export const processReturnRequest = asyncHandler(
                 customerId,
                 finalRefundAmount,
                 "credit",
-                `Refund for returned item in Order #${returnRequest.order}`
+                `Refund for returned item in Order #${returnRequest.order}`,
+                dbSession
               );
               console.log(`[processReturnRequest] Refunded ₹${finalRefundAmount} to Customer ${customerId}'s wallet.`);
             }
@@ -791,5 +815,140 @@ export const exportOrders = asyncHandler(
       `attachment; filename=orders_${Date.now()}.csv`
     );
     res.send(csvContent);
+  }
+);
+
+/**
+ * Assign delivery boy to a return request manually
+ */
+export const assignDeliveryBoyToReturn = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { deliveryBoyId } = req.body;
+
+    if (!deliveryBoyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery boy ID is required",
+      });
+    }
+
+    const deliveryBoy = await Delivery.findById(deliveryBoyId);
+    if (!deliveryBoy || deliveryBoy.status !== "Active") {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery boy not found or not active",
+      });
+    }
+
+    const returnRequest = await Return.findById(id);
+    if (!returnRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Return request not found",
+      });
+    }
+
+    returnRequest.deliveryBoy = deliveryBoyId as any;
+    returnRequest.pickupStatus = "Assigned";
+    returnRequest.assignedAt = new Date();
+    await returnRequest.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Delivery boy assigned to return request successfully",
+      data: returnRequest,
+    });
+  }
+);
+
+/**
+ * Reassign delivery boy to a return request
+ */
+export const reassignDeliveryBoyToReturn = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { deliveryBoyId } = req.body;
+
+    if (!deliveryBoyId) {
+      return res.status(400).json({
+        success: false,
+        message: "New delivery boy ID is required",
+      });
+    }
+
+    const deliveryBoy = await Delivery.findById(deliveryBoyId);
+    if (!deliveryBoy || deliveryBoy.status !== "Active") {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery boy not found or not active",
+      });
+    }
+
+    const returnRequest = await Return.findById(id);
+    if (!returnRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Return request not found",
+      });
+    }
+
+    // Constraint: Reassignment is only allowed BEFORE the rider collects the item from the customer.
+    if (returnRequest.pickupStatus === "Picked Up" || returnRequest.pickupStatus === "Returned to Seller" || returnRequest.pickupStatus === "QC Failed") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot reassign rider after the item has been collected from the customer",
+      });
+    }
+
+    returnRequest.deliveryBoy = deliveryBoyId as any;
+    returnRequest.pickupStatus = "Assigned";
+    returnRequest.assignedAt = new Date();
+    await returnRequest.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Rider reassigned successfully. Previous rider will not be paid for this return.",
+      data: returnRequest,
+    });
+  }
+);
+
+/**
+ * Re-broadcast return pickup to nearby delivery boys
+ */
+export const rebroadcastReturnPickup = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const returnRequest = await Return.findById(id);
+    if (!returnRequest) {
+      return res.status(404).json({
+        success: false,
+        message: "Return request not found",
+      });
+    }
+
+    if (returnRequest.status !== "Approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Only approved return requests can be broadcasted",
+      });
+    }
+
+    returnRequest.pickupStatus = "Pending";
+    returnRequest.deliveryBoy = undefined;
+    await returnRequest.save();
+
+    const io: SocketIOServer = req.app.get("io");
+    if (io) {
+      notifyDeliveryBoysOfReturnPickup(io, returnRequest);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Return pickup re-broadcasted successfully",
+      data: returnRequest,
+    });
   }
 );

@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { handleOrderAcceptance, handleOrderRejection } from '../services/orderNotificationService';
+import { handleReturnPickupAcceptance, handleReturnPickupRejection } from '../services/returnNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 
@@ -267,6 +268,30 @@ export const initializeSocket = (httpServer: HttpServer) => {
             } catch (error) {
                 console.error('❌ Error in reject-order handler:', error);
                 socket.emit('reject-order-response', { success: false, message: 'Internal server error', allRejected: false });
+            }
+        });
+
+        // Handle return pickup acceptance
+        socket.on('accept-return-pickup', async (data: { returnId: string; deliveryBoyId: string }) => {
+            try {
+                console.log(`✅ Delivery boy ${data.deliveryBoyId} accepting return pickup ${data.returnId}`);
+                const result = await handleReturnPickupAcceptance(io, data.returnId, String(data.deliveryBoyId).trim());
+                socket.emit('accept-return-pickup-response', result);
+            } catch (error) {
+                console.error('❌ Error in accept-return-pickup handler:', error);
+                socket.emit('accept-return-pickup-response', { success: false, message: 'Internal server error' });
+            }
+        });
+
+        // Handle return pickup rejection
+        socket.on('reject-return-pickup', async (data: { returnId: string; deliveryBoyId: string }) => {
+            try {
+                console.log(`❌ Delivery boy ${data.deliveryBoyId} rejecting return pickup ${data.returnId}`);
+                const result = await handleReturnPickupRejection(io, data.returnId, String(data.deliveryBoyId).trim());
+                socket.emit('reject-return-pickup-response', result);
+            } catch (error) {
+                console.error('❌ Error in reject-return-pickup handler:', error);
+                socket.emit('reject-return-pickup-response', { success: false, message: 'Internal server error', allRejected: false });
             }
         });
 

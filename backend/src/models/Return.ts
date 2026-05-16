@@ -40,7 +40,8 @@ export interface IReturn extends Document {
 
   // Delivery & QC Tracking
   deliveryBoy?: mongoose.Types.ObjectId;
-  pickupStatus?: "Pending" | "Assigned" | "Picked Up" | "Returned to Seller" | "QC Failed";
+  assignedAt?: Date;
+  pickupStatus?: "Pending" | "Assigned" | "Picked Up" | "Returned to Seller" | "QC Failed" | "Unassigned";
   productCustody?: "With Customer" | "With Rider" | "With Seller";
   qcStatus?: "Pending" | "Passed" | "Failed";
   qcNotes?: string;
@@ -163,9 +164,12 @@ const ReturnSchema = new Schema<IReturn>(
       type: Schema.Types.ObjectId,
       ref: "Delivery",
     },
+    assignedAt: {
+      type: Date,
+    },
     pickupStatus: {
       type: String,
-      enum: ["Pending", "Assigned", "Picked Up", "Returned to Seller", "QC Failed"],
+      enum: ["Pending", "Assigned", "Picked Up", "Returned to Seller", "QC Failed", "Unassigned"],
       default: "Pending",
     },
     productCustody: {

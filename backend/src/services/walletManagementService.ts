@@ -166,21 +166,29 @@ export const debitWallet = async (
         const Model: any = userType === 'SELLER' ? Seller : Delivery;
         let updateQuery: any;
 
+        const incObj: any = {};
+        if (userType === 'SELLER' && (referenceType === 'Return' || referenceType === 'Refund')) {
+            incObj.lifetimeEarnings = -amount;
+        }
+
         if (userType === 'SELLER' && fromLocked) {
             const seller = await Seller.findById(userId).session(session || null as any);
             if (!seller) throw new Error('Seller not found');
             const lockedBal = seller.lockedBalance || 0;
             if (lockedBal >= amount) {
-                updateQuery = { $inc: { lockedBalance: -amount } };
+                incObj.lockedBalance = -amount;
+                updateQuery = { $inc: incObj };
             } else {
                 const remainder = amount - lockedBal;
+                incObj.balance = -remainder;
                 updateQuery = {
                     $set: { lockedBalance: 0 },
-                    $inc: { balance: -remainder }
+                    $inc: incObj
                 };
             }
         } else {
-            updateQuery = { $inc: { balance: -amount } };
+            incObj.balance = -amount;
+            updateQuery = { $inc: incObj };
         }
 
         if (session) {

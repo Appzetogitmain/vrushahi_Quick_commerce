@@ -251,7 +251,7 @@ const OrderSummaryCard = ({
   onCancelReturnClick?: (item: any) => void;
 }) => {
   const isEligibleForReturn = (item: any) => {
-    if (order.status !== "Delivered") return false;
+    if (order.status !== "Delivered" && !order.status?.startsWith("Return")) return false;
     const product = item.product;
     if (!product || !product.isReturnable) return false;
     
@@ -280,13 +280,27 @@ const OrderSummaryCard = ({
         <div className="space-y-4">
           {order.items?.map((item: any, index: number) => {
             const isEligible = isEligibleForReturn(item);
+            const product = item.product || {};
+            const variant = item.variation || item.variant || '';
+            let displayImage = item.productImage || product.mainImage || '';
+            if ((!item.productImage || item.productImage === '') && product.variations?.length > 0) {
+              const matchingVar = product.variations.find((v: any) => 
+                v.title === variant || v.value === variant || v.pack === variant || v._id === variant
+              );
+              if (matchingVar && matchingVar.image) {
+                displayImage = matchingVar.image;
+              } else if (product.variations[0]?.image) {
+                displayImage = product.variations[0].image;
+              }
+            }
+
             return (
                <div key={index} className="flex flex-col gap-2 p-3 rounded-2xl border border-gray-50 bg-neutral-50/30 hover:bg-neutral-50/70 transition-all">
                 <div className="flex gap-3 items-center">
                   <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                    {item.product?.mainImage || item.productImage ? (
+                    {displayImage ? (
                       <img
-                        src={item.product?.mainImage || item.productImage}
+                        src={displayImage}
                         alt={item.productName || "Product"}
                         className="w-full h-full object-cover"
                       />
@@ -351,6 +365,18 @@ const OrderSummaryCard = ({
                         </span>
                       )}
                     </div>
+                    {item.returnInfo.status === 'Completed' && item.returnInfo.refundReference && (
+                      <div className="text-xs bg-emerald-50 border border-emerald-200/60 p-2.5 rounded-xl text-emerald-800">
+                        <span className="font-bold block text-[10px] uppercase tracking-wider text-emerald-600 mb-0.5">Refund Transaction ID</span>
+                        <span className="font-mono">{item.returnInfo.refundReference}</span>
+                      </div>
+                    )}
+                    {item.returnInfo.status === 'Rejected' && item.returnInfo.rejectionReason && (
+                      <div className="text-xs bg-red-50 border border-red-200/60 p-2.5 rounded-xl text-red-800">
+                        <span className="font-bold block text-[10px] uppercase tracking-wider text-red-600 mb-0.5">Rejection Reason</span>
+                        {item.returnInfo.rejectionReason}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -437,7 +463,7 @@ const OrderInfoCard = ({ order }: { order: any }) => {
         />
         <SectionItem
           icon={HomeIcon}
-          title={order.status === 'Delivered' ? "Delivered To" : "Delivery Address"}
+          title={(order.status === 'Delivered' || order.status?.startsWith('Return')) ? "Delivered To" : "Delivery Address"}
           subtitle={`${order.address?.address || order.address?.street}${order.address?.city ? ', ' + order.address.city : ''}`}
           showArrow={false}
         />
@@ -668,11 +694,27 @@ const RatingOverlay = ({
               {order.items?.map((item: any, idx: number) => {
                const productId = (item.product?._id || item.product)?.toString();
                  const isRated = hasItemRating(productId);
+                 
+                 const product = item.product || {};
+                 const variant = item.variation || item.variant || '';
+                 let displayImage = item.productImage || product.mainImage || '';
+                 if ((!item.productImage || item.productImage === '') && product.variations?.length > 0) {
+                   const matchingVar = product.variations.find((v: any) => 
+                     v.title === variant || v.value === variant || v.pack === variant || v._id === variant
+                   );
+                   if (matchingVar && matchingVar.image) {
+                     displayImage = matchingVar.image;
+                   } else if (product.variations[0]?.image) {
+                     displayImage = product.variations[0].image;
+                   }
+                 }
+                 if (!displayImage) displayImage = '/assets/placeholder.png';
+
                  return (
                   <div key={idx} className="p-6 space-y-4">
                     <div className="flex gap-4">
                        <div className="w-16 h-16 bg-gray-50 rounded-2xl border border-gray-100 flex-shrink-0 overflow-hidden">
-                          <img src={item.product?.mainImage || item.productImage} className="w-full h-full object-cover" alt="item" />
+                          <img src={displayImage} className="w-full h-full object-cover" alt="item" />
                        </div>
                        <div className="flex-1">
                           <p className="font-bold text-sm text-gray-900 line-clamp-2">{item.productName || item.product?.productName}</p>
@@ -1389,7 +1431,7 @@ export default function OrderDetail() {
         <div className="px-4 py-6 space-y-6 pb-32">
           
           {/* Active Order Live Tracking Components */}
-          {!showConfirmation && !["Delivered", "Cancelled", "Returned"].includes(orderStatus) && (
+          {!showConfirmation && !["Delivered", "Cancelled", "Returned"].includes(orderStatus) && !orderStatus?.startsWith("Return") && (
             <motion.div 
               className="space-y-6"
               initial={{ opacity: 0 }}
@@ -1454,7 +1496,7 @@ export default function OrderDetail() {
           />
 
           {/* New Section: Rating Prompt (Only after delivery) */}
-          {orderStatus === 'Delivered' && (
+          {(orderStatus === 'Delivered' || orderStatus?.startsWith('Return')) && (
             <>
               <RatingSection 
                 onClick={() => setShowRatingOverlay(true)} 

@@ -284,18 +284,17 @@ export const createOrder = async (req: Request, res: Response) => {
             const itemTotal = itemPrice * qty;
             calculatedSubtotal += itemTotal;
 
-            // Create OrderItem
             const newOrderItemData = {
                 order: newOrder._id,
                 product: product._id,
                 seller: product.seller,
                 productName: product.productName,
-                productImage: product.mainImage,
+                productImage: selectedVariation?.image || product.mainImage,
                 sku: product.sku,
                 unitPrice: itemPrice,
                 quantity: qty,
                 total: itemTotal,
-                variation: variationValue,
+                variation: variationValue || (selectedVariation as any)?.title || selectedVariation?.value || (selectedVariation as any)?.pack || selectedVariation?.name,
                 status: 'Pending'
             };
 
@@ -455,7 +454,7 @@ export const getMyOrders = async (req: Request, res: Response) => {
             .populate({
                 path: 'items',
                 populate: [
-                    { path: 'product', select: 'productName mainImage price' },
+                    { path: 'product', select: 'productName mainImage price variations' },
                     { path: 'seller', select: 'storeName city phone' }
                 ]
             })
@@ -465,12 +464,30 @@ export const getMyOrders = async (req: Request, res: Response) => {
 
         const total = await Order.countDocuments(query);
 
+        const orderIds = orders.map(o => o._id);
+        const returns = await Return.find({ order: { $in: orderIds }, customer: userId });
+        const returnByOrder = returns.reduce((acc: any, ret: any) => {
+            acc[ret.order.toString()] = ret.status;
+            return acc;
+        }, {});
+
         // Transform orders to match frontend Order type
         const transformedOrders = orders.map(order => {
             const orderObj = order.toObject();
+            const orderIdStr = orderObj._id.toString();
+            let displayStatus = orderObj.status;
+            if (returnByOrder[orderIdStr]) {
+                const retStatus = returnByOrder[orderIdStr];
+                if (retStatus === 'Pending') displayStatus = 'Return Pending';
+                else if (retStatus === 'Approved' || retStatus === 'Processing') displayStatus = 'Return Approved';
+                else if (retStatus === 'Completed') displayStatus = 'Return Completed';
+                else if (retStatus === 'Rejected') displayStatus = 'Return Rejected';
+            }
+
             return {
                 ...orderObj,
-                id: orderObj._id.toString(),
+                status: displayStatus,
+                id: orderIdStr,
                 totalItems: Array.isArray(orderObj.items) ? orderObj.items.length : 0,
                 totalAmount: orderObj.total,
                 fees: {
@@ -513,7 +530,7 @@ export const getOrderById = async (req: Request, res: Response) => {
             .populate({
                 path: 'items',
                 populate: [
-                    { path: 'product', select: 'productName mainImage pack manufacturer price isReturnable maxReturnDays' },
+                    { path: 'product', select: 'productName mainImage pack manufacturer price isReturnable maxReturnDays variations' },
                     { path: 'seller', select: 'storeName city phone fssaiLicNo' }
                 ]
             })
@@ -536,7 +553,9 @@ export const getOrderById = async (req: Request, res: Response) => {
                 description: ret.description,
                 refundMethod: ret.refundMethod,
                 images: ret.images,
-                createdAt: ret.createdAt
+                createdAt: ret.createdAt,
+                rejectionReason: ret.rejectionReason || ret.adminNotes,
+                refundReference: ret.refundReference
             };
             return acc;
         }, {});
@@ -553,6 +572,15 @@ export const getOrderById = async (req: Request, res: Response) => {
         // Transform order to match frontend Order type
         const orderObj = order.toObject();
 
+        let displayStatus = orderObj.status;
+        if (returns && returns.length > 0) {
+            const lastRet = returns[returns.length - 1];
+            if (lastRet.status === 'Pending') displayStatus = 'Return Pending';
+            else if (lastRet.status === 'Approved' || lastRet.status === 'Processing') displayStatus = 'Return Approved';
+            else if (lastRet.status === 'Completed') displayStatus = 'Return Completed';
+            else if (lastRet.status === 'Rejected') displayStatus = 'Return Rejected';
+        }
+
         // Map items to include returnInfo
         const itemsWithReturn = (orderObj.items || []).map((item: any) => {
             const returnInfo = returnMap[item._id.toString()];
@@ -564,6 +592,7 @@ export const getOrderById = async (req: Request, res: Response) => {
 
         const transformedOrder = {
             ...orderObj,
+            status: displayStatus,
             items: itemsWithReturn,
             id: orderObj._id.toString(),
             totalItems: Array.isArray(orderObj.items) ? orderObj.items.length : 0,

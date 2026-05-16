@@ -3,6 +3,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Return from "../../../models/Return";
 // import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
+import AppSettings from "../../../models/AppSettings";
 
 import mongoose from "mongoose";
 import { decrypt } from "../../../utils/encryptionUtils";
@@ -13,6 +14,9 @@ export const getReturnRequests = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = req.user?.userId;
     const { status, page = 1, limit = 10, search, dateFrom, dateTo, sortBy, sortOrder } = req.query;
+
+    const settings = await AppSettings.getSettings();
+    const defaultPickupFee = settings?.returnPickupFee || 20;
 
     const query: any = {};
     if (status && status !== 'All Status') {
@@ -106,7 +110,7 @@ export const getReturnRequests = asyncHandler(
         select: 'orderNumber customerName customerEmail customerPhone deliveryAddress paymentMethod createdAt'
       })
       .populate('customer', 'name email mobile bankDetails')
-      .populate('deliveryBoy', 'firstName lastName phone')
+      .populate('deliveryBoy', 'name phone')
       .sort(sort)
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
@@ -131,14 +135,22 @@ export const getReturnRequests = asyncHandler(
       let variantText = item?.variation || "N/A";
 
       if (product && product.variations && Array.isArray(product.variations)) {
-        const matchingVar = product.variations.find((v: any) => v._id?.toString() === item?.variation || v.id === item?.variation);
+        const matchingVar = product.variations.find((v: any) => 
+          v._id?.toString() === item?.variation || 
+          v.id === item?.variation ||
+          v.value === item?.variation ||
+          v.title === item?.variation
+        );
         if (matchingVar) {
           variantText = `${matchingVar.name ? matchingVar.name + ': ' : ''}${matchingVar.value || matchingVar.name || item?.variation}`;
           if (matchingVar.image && matchingVar.image.trim() !== "") {
             productImage = matchingVar.image;
           }
+        } else if ((!productImage || productImage.trim() === "") && product.variations.length > 0 && product.variations[0]?.image) {
+          productImage = product.variations[0].image;
         }
       }
+      if (!productImage) productImage = "https://via.placeholder.com/150?text=No+Image";
 
       const calculatedTotal = (item?.unitPrice || 0) * ret.quantity;
       return {
@@ -174,8 +186,9 @@ export const getReturnRequests = asyncHandler(
         riderImages: ret.riderImages || [],
         customerOtpVerified: ret.customerOtpVerified || false,
         sellerOtpVerified: ret.sellerOtpVerified || false,
-        deliveryBoyName: ret.deliveryBoy ? `${(ret.deliveryBoy as any).firstName} ${(ret.deliveryBoy as any).lastName}` : "Not Assigned",
-        returnPickupFee: ret.returnPickupFee || 0,
+        deliveryBoyName: ret.deliveryBoy ? ((ret.deliveryBoy as any).name === "undefined undefined" || !(ret.deliveryBoy as any).name ? "Not Assigned" : (ret.deliveryBoy as any).name) : "Not Assigned",
+        assignedAt: ret.assignedAt,
+        returnPickupFee: ret.returnPickupFee || defaultPickupFee,
         riderPayoutProcessed: ret.riderPayoutProcessed || false,
       };
     });
@@ -196,6 +209,9 @@ export const getReturnRequestById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    const settings = await AppSettings.getSettings();
+    const defaultPickupFee = settings?.returnPickupFee || 20;
+
     const returnRequest = await Return.findById(id)
       .populate({
         path: 'orderItem',
@@ -210,7 +226,7 @@ export const getReturnRequestById = asyncHandler(
         select: 'orderNumber customerName deliveryAddress paymentMethod'
       })
       .populate('customer', 'name email mobile bankDetails')
-      .populate('deliveryBoy', 'firstName lastName phone');
+      .populate('deliveryBoy', 'name phone');
 
     if (!returnRequest) {
       return res.status(404).json({
@@ -275,8 +291,9 @@ export const getReturnRequestById = asyncHandler(
       riderImages: returnRequest.riderImages || [],
       customerOtpVerified: returnRequest.customerOtpVerified || false,
       sellerOtpVerified: returnRequest.sellerOtpVerified || false,
-      deliveryBoyName: returnRequest.deliveryBoy ? `${(returnRequest.deliveryBoy as any).firstName} ${(returnRequest.deliveryBoy as any).lastName}` : "Not Assigned",
-      returnPickupFee: returnRequest.returnPickupFee || 0,
+      deliveryBoyName: returnRequest.deliveryBoy ? ((returnRequest.deliveryBoy as any).name === "undefined undefined" || !(returnRequest.deliveryBoy as any).name ? "Not Assigned" : (returnRequest.deliveryBoy as any).name) : "Not Assigned",
+      assignedAt: returnRequest.assignedAt,
+      returnPickupFee: returnRequest.returnPickupFee || defaultPickupFee,
       riderPayoutProcessed: returnRequest.riderPayoutProcessed || false,
     };
 
@@ -291,11 +308,16 @@ export const getReturnRequestById = asyncHandler(
 export const updateReturnStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
+
+    const updateData: any = { status };
+    if (status === "Rejected" && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
 
     const returnRequest = await Return.findByIdAndUpdate(
       id,
-      { status },
+      updateData,
       { new: true }
     );
 

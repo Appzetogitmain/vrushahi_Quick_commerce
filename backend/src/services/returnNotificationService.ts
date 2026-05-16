@@ -2,8 +2,10 @@ import { Server as SocketIOServer } from 'socket.io';
 import Return from '../models/Return';
 import Order from '../models/Order';
 import AppSettings from '../models/AppSettings';
+import Delivery from '../models/Delivery';
 import mongoose from 'mongoose';
 import { findDeliveryBoysNearLocation } from './orderNotificationService';
+import { sendPushNotification } from './firebaseAdmin';
 
 export interface ReturnNotificationState {
     returnId: string;
@@ -117,16 +119,48 @@ export async function notifyDeliveryBoysOfReturnPickup(
 
         const notifiedIds = new Set<string>();
 
+        const deliveryBoys = await Delivery.find({
+            _id: { $in: nearbyBoyIds }
+        }).select('_id fcmTokens fcmTokenMobile name');
+
+        const deliveryBoyMap = new Map(deliveryBoys.map(db => [db._id.toString(), db]));
+
         // Broadcast to individual delivery boy rooms
         for (const id of nearbyBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
             const room = io.sockets.adapter.rooms.get(roomName);
+            const deliveryBoy = deliveryBoyMap.get(idString);
 
             if (room && room.size > 0) {
                 notifiedIds.add(idString);
                 io.to(roomName).emit('new-return-pickup', returnNotificationData);
                 console.log(`✅ Emitted new-return-pickup to room: ${roomName}`);
+            } else {
+                console.log(`ℹ️ Room ${roomName} is empty or does not exist. Fallback to FCM for return pickup.`);
+                if (deliveryBoy) {
+                    const tokens = [
+                        ...(deliveryBoy.fcmTokenMobile || []),
+                        ...(deliveryBoy.fcmTokens || [])
+                    ];
+
+                    if (tokens.length > 0) {
+                        notifiedIds.add(idString);
+                        sendPushNotification(tokens, {
+                            title: 'Return Pickup Available! 🔄',
+                            body: `Return pickup for order #${order.orderNumber} is available. Earn ₹${returnPickupFee}.`,
+                            data: {
+                                type: 'new_return_pickup',
+                                returnId: populatedReturn._id.toString(),
+                                orderNumber: order.orderNumber,
+                                expectedEarning: returnPickupFee.toString(),
+                                click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                            }
+                        }).catch(err => console.error(`Failed to send FCM to delivery boy ${idString}:`, err));
+                        
+                        console.log(`📱 Sent FCM fallback for return pickup to delivery boy: ${deliveryBoy?.name || idString}`);
+                    }
+                }
             }
         }
 
@@ -135,14 +169,35 @@ export async function notifyDeliveryBoysOfReturnPickup(
             return;
         }
 
-        returnNotificationStates.set(populatedReturn._id.toString(), {
-            returnId: populatedReturn._id.toString(),
+        const returnIdStr = populatedReturn._id.toString();
+        returnNotificationStates.set(returnIdStr, {
+            returnId: returnIdStr,
             notifiedDeliveryBoys: notifiedIds,
             rejectedDeliveryBoys: new Set(),
             acceptedBy: null
         });
 
         console.log(`📢 Broadcasted return pickup ${populatedReturn._id} to ${notifiedIds.size} riders`);
+
+        // Start 10-minute timeout timer
+        setTimeout(async () => {
+            try {
+                const currentState = returnNotificationStates.get(returnIdStr);
+                if (currentState && !currentState.acceptedBy) {
+                    const ret = await Return.findById(returnIdStr);
+                    if (ret && !ret.deliveryBoy && ret.pickupStatus === 'Pending') {
+                        ret.pickupStatus = 'Unassigned';
+                        ret.qcNotes = (ret.qcNotes ? ret.qcNotes + '\n' : '') +
+                            `[${new Date().toISOString()}] Broadcast timed out (10 mins) with no rider acceptance.`;
+                        await ret.save();
+                        console.log(`⏰ Return pickup ${returnIdStr} broadcast timed out. Marked Unassigned.`);
+                    }
+                    returnNotificationStates.delete(returnIdStr);
+                }
+            } catch (timeoutErr) {
+                console.error(`Error in return pickup broadcast timeout for ${returnIdStr}:`, timeoutErr);
+            }
+        }, 10 * 60 * 1000);
     } catch (error) {
         console.error('Error in notifyDeliveryBoysOfReturnPickup:', error);
     }
@@ -184,6 +239,7 @@ export async function handleReturnPickupAcceptance(
 
         returnReq.deliveryBoy = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
         returnReq.pickupStatus = 'Assigned';
+        returnReq.assignedAt = new Date();
         await returnReq.save();
 
         if (state) {
@@ -234,6 +290,18 @@ export async function handleReturnPickupRejection(
         if (allRejected) {
             returnNotificationStates.delete(returnId);
             console.log(`🚫 All riders rejected return pickup ${returnId}`);
+            try {
+                const ret = await Return.findById(returnId);
+                if (ret && !ret.deliveryBoy && ret.pickupStatus === 'Pending') {
+                    ret.pickupStatus = 'Unassigned';
+                    ret.qcNotes = (ret.qcNotes ? ret.qcNotes + '\n' : '') +
+                        `[${new Date().toISOString()}] Rejected: All notified delivery boys (${state.notifiedDeliveryBoys.size}) rejected the return pickup.`;
+                    await ret.save();
+                    console.log(`✅ Updated Return ${returnId} pickupStatus to Unassigned.`);
+                }
+            } catch (dbErr) {
+                console.error(`Error updating Return ${returnId} on all rejection:`, dbErr);
+            }
         }
 
         return { success: true, message: 'Return pickup rejected', allRejected };

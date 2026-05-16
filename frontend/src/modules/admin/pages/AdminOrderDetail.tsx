@@ -285,6 +285,39 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
+          {/* Commission Breakdown */}
+          {order.commissions && order.commissions.length > 0 && (
+            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-teal-500">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2v20M17 5H9.5a4.5 4.5 0 1 0 0 9h5a4.5 4.5 0 1 1 0 9H6" />
+                </svg>
+                Commission Breakdown
+              </h2>
+              <div className="space-y-4">
+                {order.commissions.map((comm: any, idx: number) => (
+                  <div key={comm._id || idx} className="text-sm border-b pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between font-medium mb-1">
+                      <span>{comm.seller?.storeName || 'Seller'}</span>
+                      <span className="text-teal-600">₹{comm.commissionAmount?.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-neutral-500">
+                      <span>Rate: {comm.commissionRate}%</span>
+                      <span>Source: <span className="bg-neutral-100 px-1.5 py-0.5 rounded font-medium text-neutral-700">{comm.commissionSourceLabel || 'Default'}</span></span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-neutral-400">
+                      Status: {comm.releaseStatus}
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-2 mt-2 border-t flex justify-between font-bold text-neutral-900">
+                  <span>Total Commission</span>
+                  <span>₹{order.commissions.reduce((acc: number, c: any) => acc + (c.commissionAmount || 0), 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Delivery Information */}
           {deliveryBoy && (
             <div className="bg-white rounded-lg shadow p-6">

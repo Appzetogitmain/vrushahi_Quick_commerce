@@ -86,6 +86,7 @@ export interface UpdateReturnRequestData {
   status?: "Pending" | "Approved" | "Rejected" | "Refunded" | "Completed";
   refundAmount?: number;
   adminNotes?: string;
+  refundReference?: string;
 }
 
 export interface CreateHeaderCategoryData {
@@ -195,6 +196,26 @@ export const updateReturnRequest = async (
   const response = await api.put<ApiResponse<MiscReturnRequest>>(
     `/admin/return-requests/${id}`,
     data
+  );
+  return response.data;
+};
+
+export const rebroadcastReturnRequest = async (
+  id: string
+): Promise<ApiResponse<MiscReturnRequest>> => {
+  const response = await api.post<ApiResponse<MiscReturnRequest>>(
+    `/admin/return-requests/${id}/rebroadcast`
+  );
+  return response.data;
+};
+
+export const reassignRider = async (
+  id: string,
+  deliveryBoyId: string
+): Promise<ApiResponse<MiscReturnRequest>> => {
+  const response = await api.post<ApiResponse<MiscReturnRequest>>(
+    `/admin/return-requests/${id}/reassign`,
+    { deliveryBoyId }
   );
   return response.data;
 };

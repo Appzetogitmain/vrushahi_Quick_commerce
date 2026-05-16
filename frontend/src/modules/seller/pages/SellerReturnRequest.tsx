@@ -13,7 +13,7 @@ export default function SellerReturnRequest() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [totalEntries, setTotalEntries] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -101,10 +101,17 @@ export default function SellerReturnRequest() {
 
     // Handle status changes (Approve / Reject)
     const handleStatusUpdate = async (id: string, newStatus: 'Approved' | 'Rejected' | 'Completed') => {
+        let rejectionReason: string | undefined = undefined;
+        if (newStatus === 'Rejected') {
+            const reason = prompt("Please enter the reason for rejecting this return:");
+            if (!reason) return; // User cancelled
+            rejectionReason = reason;
+        }
+
         setActionLoading(true);
         setActionError('');
         try {
-            const response = await updateReturnStatus(id, { status: newStatus });
+            const response = await updateReturnStatus(id, { status: newStatus, rejectionReason });
             if (response.success) {
                 // Update local list state
                 setReturnRequests(prev => prev.map(req => req.id === id ? { ...req, status: newStatus } : req));
@@ -582,6 +589,9 @@ export default function SellerReturnRequest() {
                                     <div>
                                         <span className="text-neutral-500 block">Assigned Delivery Partner:</span>
                                         <span className="font-bold text-neutral-800">{selectedRequest.deliveryBoyName || 'Not Assigned'}</span>
+                                        {selectedRequest.assignedAt && (
+                                            <span className="text-[10px] text-neutral-400 block mt-0.5">Since: {new Date(selectedRequest.assignedAt).toLocaleString('en-GB')}</span>
+                                        )}
                                     </div>
                                     <div>
                                         <span className="text-neutral-500 block">Product Custody Status:</span>
@@ -655,7 +665,7 @@ export default function SellerReturnRequest() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                                     <div>
                                         <span className="text-neutral-500 block">Return Pickup Fee:</span>
-                                        <span className="font-bold text-neutral-800">₹{selectedRequest.returnPickupFee || 20}</span>
+                                        <span className="font-bold text-neutral-800">₹{selectedRequest.returnPickupFee ?? 20}</span>
                                     </div>
                                     <div>
                                         <span className="text-neutral-500 block">Fee Deduction Status:</span>
@@ -665,32 +675,6 @@ export default function SellerReturnRequest() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Refund Destination Info */}
-                            {selectedRequest.refundMethod && (
-                                <div className="bg-blue-50 border border-blue-200/60 p-4 rounded-xl shadow-sm text-left space-y-2">
-                                    <span className="text-xs text-blue-700 font-bold uppercase block mb-1 tracking-wider">Refund Method</span>
-                                    <div className="text-sm font-bold text-neutral-800 flex items-center gap-1.5">
-                                        {selectedRequest.refundMethod === 'Wallet' && '⚡ Instant Refund to Wallet'}
-                                        {selectedRequest.refundMethod === 'UPI' && '📱 UPI Refund'}
-                                        {(selectedRequest.refundMethod === 'Bank Account' || selectedRequest.refundMethod === 'Bank') && '🏦 Bank Account Transfer'}
-                                        {!['Wallet', 'UPI', 'Bank Account', 'Bank'].includes(selectedRequest.refundMethod) && '💳 Original Payment Source'}
-                                    </div>
-                                    {selectedRequest.refundMethod === 'UPI' && selectedRequest.bankDetails?.upiId && (
-                                        <div className="text-xs font-mono bg-white p-2 rounded border border-blue-100 text-neutral-700">
-                                            <span className="font-bold text-neutral-500">UPI ID:</span> {selectedRequest.bankDetails.upiId}
-                                        </div>
-                                    )}
-                                    {(selectedRequest.refundMethod === 'Bank Account' || selectedRequest.refundMethod === 'Bank') && selectedRequest.bankDetails?.accountNumber && (
-                                        <div className="text-xs font-mono bg-white p-2.5 rounded border border-blue-100 text-neutral-700 space-y-1">
-                                            <div><span className="font-bold text-neutral-500">Acc Holder:</span> {selectedRequest.bankDetails.accountName}</div>
-                                            <div><span className="font-bold text-neutral-500">Acc No:</span> {selectedRequest.bankDetails.accountNumber}</div>
-                                            <div><span className="font-bold text-neutral-500">IFSC:</span> {selectedRequest.bankDetails.ifscCode}</div>
-                                            <div><span className="font-bold text-neutral-500">Bank:</span> {selectedRequest.bankDetails.bankName}</div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
                             {/* State / Status info */}
                             <div className="flex items-center gap-3 bg-neutral-50 p-3.5 rounded-xl border border-neutral-100">

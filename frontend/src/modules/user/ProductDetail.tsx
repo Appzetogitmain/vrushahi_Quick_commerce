@@ -108,7 +108,11 @@ export default function ProductDetail() {
           });
 
           // Initialize variations
-          setSelectedVariantIndex(0);
+          if (productData.variations && productData.variations.length > 0) {
+            setSelectedVariantIndex(-1);
+          } else {
+            setSelectedVariantIndex(0);
+          }
 
           // Reset selected image when product changes
           setSelectedImageIndex(0);
@@ -360,6 +364,10 @@ export default function ProductDetail() {
     if (!isAvailableAtLocation) {
       // Show alert if trying to add item outside delivery area
       alert("This product is not available for delivery at your location.");
+      return;
+    }
+    if (variations.length > 0 && selectedVariantIndex === -1) {
+      alert("Please select a variant.");
       return;
     }
     if (!isVariantAvailable && variantStock !== 0) {
@@ -702,7 +710,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Variant Selection - Modern Chips */}
-              {variations.length > 1 && (
+              {variations.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select Variant</span>
