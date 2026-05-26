@@ -102,6 +102,15 @@ export default function AdminBestsellerCards() {
             }
         }
 
+        // Check for duplicate order
+        if (order !== undefined && order !== null) {
+            const isDuplicate = cards.some((c) => c.order === order && c._id !== editingId);
+            if (isDuplicate) {
+                setError(`Order number ${order} is already in use. Please choose a unique number.`);
+                return;
+            }
+        }
+
         const formData: BestsellerCardFormData = {
             name: name.trim(),
             category: selectedCategory,
@@ -185,6 +194,7 @@ export default function AdminBestsellerCards() {
     const displayedCards = cards.slice(startIndex, endIndex);
 
     const activeCardsCount = cards.filter((c) => c.isActive).length;
+    const nextOrder = cards.length > 0 ? Math.max(...cards.map((c) => c.order || 0)) + 1 : 1;
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
@@ -283,12 +293,12 @@ export default function AdminBestsellerCards() {
                                     onChange={(e) =>
                                         setOrder(e.target.value ? Number(e.target.value) : undefined)
                                     }
-                                    placeholder="Auto-assign"
+                                    placeholder={`Suggested: ${nextOrder}`}
                                     min="0"
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
-                                    Leave empty to auto-assign at the end
+                                    Leave empty to auto-assign <strong>{nextOrder}</strong> at the end
                                 </p>
                             </div>
 

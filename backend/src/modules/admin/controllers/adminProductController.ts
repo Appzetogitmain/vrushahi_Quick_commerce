@@ -157,6 +157,7 @@ export const getCategories = asyncHandler(
       includeChildren = "false",
       status,
       headerCategoryId,
+      includeProductCount = "false",
     } = req.query;
 
     const query: any = {};
@@ -195,10 +196,23 @@ export const getCategories = asyncHandler(
         const subcategoryCount = await SubCategory.countDocuments({
           category: category._id,
         });
+
+        let totalProduct = 0;
+        if (includeProductCount === "true") {
+          // If it's a subcategory (has parentId), count products matching this category ID as subcategory
+          if (category.parentId) {
+            totalProduct = await Product.countDocuments({ subcategory: category._id });
+          } else {
+             // For top level category, count products matching this category
+            totalProduct = await Product.countDocuments({ category: category._id });
+          }
+        }
+
         return {
           ...category.toObject(),
           childrenCount,
           totalSubcategories: childrenCount + subcategoryCount,
+          ...(includeProductCount === "true" && { totalProduct }),
         };
       })
     );

@@ -8,6 +8,7 @@ import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import LocationPickerMap from '../../../components/LocationPickerMap';
 import { calculateProfileCompletion } from '../utils/profileCompletion';
 import { useToast } from '../../../context/ToastContext';
+import { validateEmail } from '../../../utils/validation';
 
 const SellerAccountSettings = () => {
   const { user, updateUser } = useAuth();
@@ -170,14 +171,9 @@ const SellerAccountSettings = () => {
       }
 
       if (sellerData.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(sellerData.email)) {
-          showToast('Please enter a valid email address', 'error');
-          setSaveLoading(false);
-          return;
-        }
-        if (/\d/.test(sellerData.email)) {
-          showToast('Email should not contain numbers', 'error');
+        const emailValidation = validateEmail(sellerData.email);
+        if (!emailValidation.isValid) {
+          showToast(emailValidation.error || 'Invalid email', 'error');
           setSaveLoading(false);
           return;
         }

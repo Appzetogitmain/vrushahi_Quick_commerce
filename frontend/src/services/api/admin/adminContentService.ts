@@ -10,6 +10,7 @@ export interface FAQ {
   category?: string;
   isActive: boolean;
   order: number;
+  role: "All" | "Customer" | "Seller" | "Delivery Partner";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,6 +21,7 @@ export interface CreateFAQData {
   category?: string;
   isActive?: boolean;
   order?: number;
+  role?: "All" | "Customer" | "Seller" | "Delivery Partner";
 }
 
 export interface UpdateFAQData {
@@ -28,6 +30,7 @@ export interface UpdateFAQData {
   category?: string;
   isActive?: boolean;
   order?: number;
+  role?: "All" | "Customer" | "Seller" | "Delivery Partner";
 }
 
 export interface Policy {

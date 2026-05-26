@@ -144,6 +144,7 @@ const SellerAccountSettings = lazy(
 );
 const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
+const SellerFAQ = lazy(() => import("./modules/seller/pages/SellerFAQ"));
 
 // Lazy load admin routes
 const AdminLayout = lazy(
@@ -502,6 +503,10 @@ function AppContent() {
                                     <Route
                                       path="wallet"
                                       element={<SellerWallet />}
+                                    />
+                                    <Route
+                                      path="faqs"
+                                      element={<SellerFAQ />}
                                     />
                                     <Route
                                       path="reports/sales"

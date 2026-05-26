@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   getProducts,
   getCategories,
@@ -24,11 +24,20 @@ interface ProductVariation {
 }
 
 const STATUS_OPTIONS = ["All Products", "Published", "Unpublished"];
-const STOCK_OPTIONS = ["All Products", "In Stock", "Out of Stock"];
+const STOCK_OPTIONS = ["All Products", "In Stock", "Low Stock", "Out of Stock"];
 
 export default function AdminStockManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated, token } = useAuth();
+  
+  const initialStockParam = searchParams.get("stock");
+  const initialFilterStock = initialStockParam === "out_of_stock" 
+    ? "Out of Stock" 
+    : initialStockParam === "low_stock" 
+      ? "Low Stock" 
+      : "All Products";
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +51,7 @@ export default function AdminStockManagement() {
   const [filterCategory, setFilterCategory] = useState("All Category");
   const [filterSeller, setFilterSeller] = useState("All Sellers");
   const [filterStatus, setFilterStatus] = useState("All Products");
-  const [filterStock, setFilterStock] = useState("All Products");
+  const [filterStock, setFilterStock] = useState(initialFilterStock);
 
   // Fetch products and categories
   const fetchData = async () => {
@@ -235,6 +244,7 @@ export default function AdminStockManagement() {
       const matchesStock =
         filterStock === "All Products" ||
         (filterStock === "In Stock" && product.stock > 0) ||
+        (filterStock === "Low Stock" && product.stock > 0 && product.stock <= 10) ||
         (filterStock === "Out of Stock" && product.stock === 0);
       const matchesSearch =
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -16,6 +16,7 @@ import LocationPickerMap from "../../../components/LocationPickerMap";
 import FileUpload from "../../../components/FileUpload";
 import PolicyModal from "../../../components/PolicyModal";
 import { useToast } from "../../../context/ToastContext";
+import { validateEmail } from "../../../utils/validation";
 import LogoLatest from "@assets/LogoLatest.png";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6; // 6 is success step
@@ -160,13 +161,9 @@ export default function SellerSignUp() {
         return showToast("Name should only contain alphabets (a-z)", "error");
       }
       
-      if (!formData.email) return showToast("Email address is required", "error");
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        return showToast("Please enter a valid email address", "error");
-      }
-      if (/\d/.test(formData.email)) {
-        return showToast("Email should not contain numbers", "error");
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        return showToast(emailValidation.error || "Invalid email", "error");
       }
 
       if (!formData.mobile) return showToast("Phone number is required", "error");

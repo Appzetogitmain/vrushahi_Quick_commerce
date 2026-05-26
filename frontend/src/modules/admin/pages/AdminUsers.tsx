@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getUsers, updateUserStatus, type User as UserType } from '../../../services/api/admin/adminMiscService';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -16,6 +17,7 @@ interface User {
 }
 
 export default function AdminUsers() {
+    const navigate = useNavigate();
     const { isAuthenticated, token } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -188,9 +190,20 @@ export default function AdminUsers() {
             {/* Page Header */}
             <div className="p-6 pb-0">
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-semibold text-teal-800">User List</h1>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => navigate(-1)}
+                            className="p-2 bg-teal-50 text-teal-600 rounded-full hover:bg-teal-100 transition-colors"
+                            title="Go Back"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 12H5M12 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <h1 className="text-2xl font-semibold text-teal-800">User List</h1>
+                    </div>
                     <div className="text-sm text-blue-500">
-                        <span className="text-blue-500 hover:underline cursor-pointer">Home</span>{' '}
+                        <span className="text-blue-500 hover:underline cursor-pointer" onClick={() => navigate('/admin/dashboard')}>Home</span>{' '}
                         <span className="text-neutral-400">/</span> User List
                     </div>
                 </div>

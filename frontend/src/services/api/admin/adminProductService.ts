@@ -239,10 +239,14 @@ export const getCategories = async (params?: {
   parentId?: string | null;
   includeChildren?: boolean;
   status?: "Active" | "Inactive";
+  includeProductCount?: boolean;
 }): Promise<ApiResponse<Category[]>> => {
   const queryParams: any = { ...params };
   if (params?.includeChildren !== undefined) {
     queryParams.includeChildren = params.includeChildren.toString();
+  }
+  if (params?.includeProductCount !== undefined) {
+    queryParams.includeProductCount = params.includeProductCount.toString();
   }
   if (params?.parentId === null || params?.parentId === undefined) {
     // Don't include parentId in query if it's null/undefined

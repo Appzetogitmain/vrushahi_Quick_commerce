@@ -12,6 +12,7 @@ export const getFAQs = asyncHandler(async (req: Request, res: Response) => {
         search = "",
         category,
         status,
+        role,
         sortBy = "order",
         sortOrder = "asc",
     } = req.query;
@@ -34,6 +35,11 @@ export const getFAQs = asyncHandler(async (req: Request, res: Response) => {
     // Status filter
     if (status) {
         query.status = status;
+    }
+
+    // Role filter
+    if (role) {
+        query.role = role;
     }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -87,7 +93,7 @@ export const getFAQById = asyncHandler(async (req: Request, res: Response) => {
  * Create a new FAQ
  */
 export const createFAQ = asyncHandler(async (req: Request, res: Response) => {
-    const { question, answer, category, order } = req.body;
+    const { question, answer, category, order, role } = req.body;
 
     if (!question || !answer) {
         return res.status(400).json({
@@ -101,6 +107,7 @@ export const createFAQ = asyncHandler(async (req: Request, res: Response) => {
         answer,
         category,
         order: order || 0,
+        role: role || "All",
     });
 
     return res.status(201).json({
@@ -115,7 +122,7 @@ export const createFAQ = asyncHandler(async (req: Request, res: Response) => {
  */
 export const updateFAQ = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { question, answer, category, order, status } = req.body;
+    const { question, answer, category, order, status, role } = req.body;
 
     const faq = await FAQ.findById(id);
 
@@ -131,6 +138,7 @@ export const updateFAQ = asyncHandler(async (req: Request, res: Response) => {
     if (category !== undefined) faq.category = category;
     if (order !== undefined) faq.order = order;
     if (status !== undefined) faq.status = status;
+    if (role !== undefined) faq.role = role;
 
     await faq.save();
 

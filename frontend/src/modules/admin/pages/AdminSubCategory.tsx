@@ -5,19 +5,17 @@ import {
   createImagePreview,
 } from "../../../utils/imageUpload";
 import {
-  getSubCategories,
-  createSubCategory,
-  updateSubCategory,
-  deleteSubCategory,
   getCategories,
-  type SubCategory,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   type Category,
 } from "../../../services/api/admin/adminProductService";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function AdminSubCategory() {
   const { isAuthenticated, token } = useAuth();
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<Category[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [subcategoryName, setSubcategoryName] = useState("");
@@ -38,6 +36,7 @@ export default function AdminSubCategory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   // Fetch categories and subcategories on component mount
   useEffect(() => {
@@ -51,21 +50,26 @@ export default function AdminSubCategory() {
         setLoading(true);
         setError(null);
 
-        // Fetch categories for dropdown
-        const categoriesResponse = await getCategories();
+        // Fetch all categories with product counts
+        const categoriesResponse = await getCategories({ includeProductCount: true });
         if (categoriesResponse.success) {
-          setCategories(categoriesResponse.data);
-        }
+          const allCats = categoriesResponse.data;
+          // Set top-level categories for dropdown
+          setCategories(allCats.filter(c => !c.parentId));
 
-        // Fetch subcategories
-        const params: any = { search: searchTerm };
-        if (selectedCategory) {
-          params.category = selectedCategory;
-        }
+          // Filter for subcategories
+          let subcats = allCats.filter(c => c.parentId);
 
-        const response = await getSubCategories(params);
-        if (response.success) {
-          setSubCategories(response.data);
+          if (selectedCategory) {
+            subcats = subcats.filter(c => {
+               const pId = typeof c.parentId === "object" ? (c.parentId as any)._id : c.parentId;
+               return pId === selectedCategory;
+            });
+          }
+          if (searchTerm) {
+            subcats = subcats.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+          }
+          setSubCategories(subcats);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -155,14 +159,15 @@ export default function AdminSubCategory() {
 
       const subCategoryData = {
         name: subcategoryName.trim(),
-        category: selectedCategory,
+        parentId: selectedCategory,
         image: imageUrl,
         commissionRate: commissionRate,
+        status: "Active" as const,
       };
 
       if (editingId) {
-        // Update existing subcategory
-        const response = await updateSubCategory(editingId, subCategoryData);
+        // Update existing subcategory (as Category)
+        const response = await updateCategory(editingId, subCategoryData);
         if (response.success) {
           setSubCategories((prev) =>
             prev.map((sub) => (sub._id === editingId ? response.data : sub))
@@ -171,8 +176,8 @@ export default function AdminSubCategory() {
           setEditingId(null);
         }
       } else {
-        // Create new subcategory
-        const response = await createSubCategory(subCategoryData);
+        // Create new subcategory (as Category)
+        const response = await createCategory(subCategoryData);
         if (response.success) {
           setSubCategories((prev) => [...prev, response.data]);
           alert("SubCategory added successfully!");
@@ -207,11 +212,11 @@ export default function AdminSubCategory() {
     const subCategory = subCategories.find((cat) => cat._id === id);
     if (subCategory) {
       setEditingId(id);
-      const categoryId =
-        typeof subCategory.category === "object"
-          ? subCategory.category._id
-          : subCategory.category;
-      setSelectedCategory(categoryId);
+      const parentId =
+        typeof subCategory.parentId === "object"
+          ? (subCategory.parentId as any)._id
+          : subCategory.parentId;
+      setSelectedCategory(parentId || "");
       setSubcategoryName(subCategory.name);
       setSubcategoryImageUrl(subCategory.image || "");
       setCommissionRate(subCategory.commissionRate || 0);
@@ -221,7 +226,7 @@ export default function AdminSubCategory() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this subcategory?")) {
       try {
-        const response = await deleteSubCategory(id);
+        const response = await deleteCategory(id);
         if (response.success) {
           setSubCategories((prev) => prev.filter((sub) => sub._id !== id));
           alert("SubCategory deleted successfully!");
@@ -243,7 +248,44 @@ export default function AdminSubCategory() {
   };
 
   const handleExport = () => {
-    alert("Export functionality will be implemented here");
+    const headers = [
+      "ID",
+      "Category Name",
+      "Subcategory Name",
+      "Total Product",
+      "Commission Rate",
+    ];
+    
+    const csvContent = [
+      headers.join(","),
+      ...subCategories.map((subCategory) => {
+        const categoryName =
+          typeof subCategory.parentId === "object"
+            ? (subCategory.parentId as any).name
+            : categories.find((c) => c._id === subCategory.parentId)?.name || "Unknown";
+            
+        return [
+          subCategory._id,
+          `"${categoryName}"`,
+          `"${subCategory.name}"`,
+          (subCategory as any).totalProduct ?? 0,
+          subCategory.commissionRate ?? 0,
+        ].join(",");
+      }),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `subcategories_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -446,35 +488,59 @@ export default function AdminSubCategory() {
               </div>
 
               {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Export
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsExportOpen(!isExportOpen)}
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Export
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {isExportOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-md shadow-2xl z-50 border border-neutral-200 overflow-hidden">
+                    <button
+                      onClick={() => { setIsExportOpen(false); handleExport(); }}
+                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700"
+                    >
+                      CSV
+                    </button>
+                    <button
+                      onClick={() => { setIsExportOpen(false); handleExport(); }}
+                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                    >
+                      Excel
+                    </button>
+                    <button
+                      onClick={() => { setIsExportOpen(false); window.print(); }}
+                      className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                    >
+                      PDF / Print
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Search */}
               <div className="flex items-center gap-2">
@@ -618,9 +684,9 @@ export default function AdminSubCategory() {
                 ) : (
                   displayedSubCategories.map((subCategory) => {
                     const categoryName =
-                      typeof subCategory.category === "object"
-                        ? subCategory.category.name
-                        : categories.find((c) => c._id === subCategory.category)
+                      typeof subCategory.parentId === "object"
+                        ? (subCategory.parentId as any).name
+                        : categories.find((c) => c._id === subCategory.parentId)
                           ?.name || "Unknown";
                     return (
                       <tr key={subCategory._id} className="hover:bg-neutral-50">
@@ -653,7 +719,7 @@ export default function AdminSubCategory() {
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                          {subCategory.totalProduct ?? 0}
+                          {(subCategory as any).totalProduct ?? 0}
                         </td>
                         <td className="px-4 sm:px-6 py-3">
                           <div className="flex items-center gap-2">

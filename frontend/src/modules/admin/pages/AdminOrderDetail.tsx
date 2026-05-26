@@ -278,6 +278,12 @@ export default function AdminOrderDetail() {
                   <span className="font-medium">-₹{order.discount.toFixed(2)}</span>
                 </div>
               )}
+              {order.platformFee !== undefined && order.platformFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Platform Fee:</span>
+                  <span className="font-medium">₹{order.platformFee.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
                 <span>Total:</span>
                 <span>₹{order.total?.toFixed(2) || '0.00'}</span>

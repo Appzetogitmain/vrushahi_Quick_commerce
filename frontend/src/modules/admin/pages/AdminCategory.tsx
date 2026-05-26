@@ -75,6 +75,7 @@ export default function AdminCategory() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [parentCategory, setParentCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listPage, setListPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -502,39 +503,57 @@ export default function AdminCategory() {
               </div>
 
               {/* Search */}
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                <label className="text-sm font-medium text-neutral-700">
-                  Search:
-                </label>
+              <div className="relative flex-1 min-w-[200px]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => {
-                    setSearchQuery(e.target.value);
+                    setSearchQuery(e.target.value.trimStart());
                     setListPage(1);
                   }}
                   placeholder="Search by name..."
-                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="w-full pl-10 pr-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
                 />
               </div>
 
               {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors w-full sm:w-auto">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Export
-              </button>
+              <div className="relative">
+                <button
+                      onClick={() => setIsExportOpen(!isExportOpen)}
+                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0"><path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Export
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    {isExportOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-md shadow-2xl z-50 border border-neutral-200 overflow-hidden">
+                          <button
+                            onClick={() => { setIsExportOpen(false); handleExport(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700"
+                          >
+                            CSV
+                          </button>
+                          <button
+                            onClick={() => { setIsExportOpen(false); handleExport(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                          >
+                            Excel
+                          </button>
+                          <button
+                            onClick={() => { setIsExportOpen(false); window.print(); }}
+                            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                          >
+                            PDF / Print
+                          </button>
+                        </div>
+                    )}
+              </div>
 
               {/* Bulk Delete Button (List View) */}
               {viewMode === "list" && selectedIds.size > 0 && (

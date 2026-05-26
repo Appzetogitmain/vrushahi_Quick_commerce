@@ -21,6 +21,7 @@ import reportRoutes from "./reportRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import sellerWalletRoutes from "./sellerWalletRoutes";
+import sellerFAQRoutes from "./sellerFAQRoutes";
 import taxRoutes from "./taxRoutes";
 import customerProductRoutes from "./customerProductRoutes";
 import customerCategoryRoutes from "./customerCategoryRoutes";
@@ -163,6 +164,9 @@ router.use("/seller/reports", reportRoutes);
 
 // Wallet routes (protected, seller only)
 router.use("/seller/wallet", sellerWalletRoutes);
+
+// FAQ routes (protected, seller only)
+router.use("/seller/faqs", sellerFAQRoutes);
 
 // Tax routes (protected, seller/admin)
 router.use("/seller/taxes", taxRoutes);

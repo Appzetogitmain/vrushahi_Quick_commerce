@@ -12,6 +12,7 @@ export default function AdminManageDeliveryBoy() {
     const { isAuthenticated, token } = useAuth();
     const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
     const [loading, setLoading] = useState(true);
+  const [isExportOpen, setIsExportOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -428,15 +429,37 @@ export default function AdminManageDeliveryBoy() {
                                 <span className="text-sm text-neutral-600">entries</span>
                             </div>
 
-                            <button
-                                onClick={handleExport}
-                                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
-                            >
+                            <div className="relative">
+                              <button
+                                onClick={() => setIsExportOpen(!isExportOpen)}
+                                className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0"><path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 Export
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                            </button>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </button>
+                              {isExportOpen && (
+                                <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-md shadow-2xl z-50 border border-neutral-200 overflow-hidden">
+                                  <button
+                                    onClick={() => { setIsExportOpen(false); handleExport(); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700"
+                                  >
+                                    CSV
+                                  </button>
+                                  <button
+                                    onClick={() => { setIsExportOpen(false); handleExport(); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                                  >
+                                    Excel
+                                  </button>
+                                  <button
+                                    onClick={() => { setIsExportOpen(false); window.print(); }}
+                                    className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                                  >
+                                    PDF / Print
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                         </div>
                     </div>
 

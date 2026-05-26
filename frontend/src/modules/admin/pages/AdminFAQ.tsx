@@ -14,6 +14,7 @@ export default function AdminFAQ() {
   const { isAuthenticated, token } = useAuth();
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
+  const [faqRole, setFaqRole] = useState<"All" | "Customer" | "Seller" | "Delivery Partner">("All");
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -22,6 +23,7 @@ export default function AdminFAQ() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,6 +110,7 @@ export default function AdminFAQ() {
         const updateData: UpdateFAQData = {
           question: faqQuestion.trim(),
           answer: faqAnswer.trim(),
+          role: faqRole,
         };
 
         const response = await updateFAQ(editingFAQ._id, updateData);
@@ -121,6 +124,7 @@ export default function AdminFAQ() {
                   ...faq,
                   question: faqQuestion.trim(),
                   answer: faqAnswer.trim(),
+                  role: faqRole,
                 }
                 : faq
             )
@@ -138,6 +142,7 @@ export default function AdminFAQ() {
           question: faqQuestion.trim(),
           answer: faqAnswer.trim(),
           isActive: true,
+          role: faqRole,
         };
 
         const response = await createFAQ(faqData);
@@ -154,6 +159,7 @@ export default function AdminFAQ() {
       // Reset form
       setFaqQuestion("");
       setFaqAnswer("");
+      setFaqRole("All");
     } catch (err: any) {
       console.error("Error saving FAQ:", err);
       alert(
@@ -168,6 +174,7 @@ export default function AdminFAQ() {
   const handleEdit = (faq: FAQ) => {
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
+    setFaqRole(faq.role || "All");
     setEditingFAQ(faq);
   };
 
@@ -190,6 +197,7 @@ export default function AdminFAQ() {
           setEditingFAQ(null);
           setFaqQuestion("");
           setFaqAnswer("");
+          setFaqRole("All");
         }
       } else {
         alert("Failed to delete FAQ: " + (response.message || "Unknown error"));
@@ -206,11 +214,11 @@ export default function AdminFAQ() {
   };
 
   const handleExport = () => {
-    const headers = ["ID", "FAQ Question", "FAQ Answer"];
+    const headers = ["ID", "FAQ Question", "FAQ Answer", "Role"];
     const csvContent = [
       headers.join(","),
       ...displayedFAQs.map((faq) =>
-        [faq._id, `"${faq.question}"`, `"${faq.answer}"`].join(",")
+        [faq._id, `"${faq.question}"`, `"${faq.answer}"`, faq.role || "All"].join(",")
       ),
     ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -269,6 +277,21 @@ export default function AdminFAQ() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Target Audience / Role
+                  </label>
+                  <select
+                    value={faqRole}
+                    onChange={(e) => setFaqRole(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white"
+                  >
+                    <option value="All">All Users</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Seller">Seller</option>
+                    <option value="Delivery Partner">Delivery Partner</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
                     FAQ Answer
                   </label>
                   <textarea
@@ -302,6 +325,7 @@ export default function AdminFAQ() {
                       setEditingFAQ(null);
                       setFaqQuestion("");
                       setFaqAnswer("");
+                      setFaqRole("All");
                     }}
                     className="w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-medium transition-colors">
                     Cancel
@@ -335,23 +359,37 @@ export default function AdminFAQ() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleExport}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
-                  Export
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="ml-1">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
+                <div className="relative" tabIndex={-1} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsExportOpen(false); }}>
+                  <button
+                      onClick={() => setIsExportOpen(!isExportOpen)}
+                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0"><path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Export
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                    {isExportOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-md shadow-2xl z-50 border border-neutral-200 overflow-hidden">
+                        <button
+                          onClick={() => { setIsExportOpen(false); handleExport(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700"
+                        >
+                          CSV
+                        </button>
+                        <button
+                          onClick={() => { setIsExportOpen(false); handleExport(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                        >
+                          Excel
+                        </button>
+                        <button
+                          onClick={() => { setIsExportOpen(false); window.print(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 border-t border-neutral-100"
+                        >
+                          PDF / Print
+                        </button>
+                      </div>
+                    )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
                     Search:
@@ -391,6 +429,13 @@ export default function AdminFAQ() {
                     </th>
                     <th
                       className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+                      onClick={() => handleSort("role")}>
+                      <div className="flex items-center justify-between">
+                        Role <SortIcon column="role" />
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
                       onClick={() => handleSort("answer")}>
                       <div className="flex items-center justify-between">
                         FAQ Answer <SortIcon column="answer" />
@@ -402,7 +447,7 @@ export default function AdminFAQ() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center">
+                      <td colSpan={5} className="p-8 text-center">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 mr-2"></div>
                           Loading FAQs...
@@ -411,15 +456,13 @@ export default function AdminFAQ() {
                     </tr>
                   ) : error ? (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-red-600">
+                      <td colSpan={5} className="p-8 text-center text-red-600">
                         {error}
                       </td>
                     </tr>
                   ) : displayedFAQs.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={4}
-                        className="p-8 text-center text-neutral-400 border border-neutral-200">
+                      <td colSpan={5} className="p-8 text-center text-neutral-400 border border-neutral-200">
                         No FAQs found.
                       </td>
                     </tr>
@@ -433,6 +476,16 @@ export default function AdminFAQ() {
                         </td>
                         <td className="p-4 align-middle border border-neutral-200">
                           {faq.question}
+                        </td>
+                        <td className="p-4 align-middle border border-neutral-200">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                            (faq.role || 'All') === 'All' ? 'bg-purple-100 text-purple-800' :
+                            faq.role === 'Customer' ? 'bg-blue-100 text-blue-800' :
+                            faq.role === 'Seller' ? 'bg-orange-100 text-orange-800' :
+                            'bg-indigo-100 text-indigo-800'
+                          }`}>
+                            {faq.role || 'All'}
+                          </span>
                         </td>
                         <td className="p-4 align-middle border border-neutral-200">
                           {faq.answer}

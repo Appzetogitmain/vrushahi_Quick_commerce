@@ -41,7 +41,7 @@ export default function CategoryFormModal({
   const [formData, setFormData] = useState({
     name: "",
     image: "",
-    order: 0,
+    order: 0 as number | string,
     parentId: null as string | null,
     headerCategoryId: null as string | null,
     status: "Active" as "Active" | "Inactive",
@@ -207,7 +207,7 @@ export default function CategoryFormModal({
           : name === "commissionRate"
             ? value === "" ? null : parseFloat(value)
             : type === "number"
-              ? parseInt(value) || 0
+              ? value === "" ? "" : Number(value)
               : value,
     }));
 
@@ -291,8 +291,8 @@ export default function CategoryFormModal({
       newErrors.name = "Category name is required";
     }
 
-    if (formData.order < 0) {
-      newErrors.order = "Display order must be a positive number";
+    if (Number(formData.order) < 0 || formData.order === "") {
+      newErrors.order = "Display order must be a valid positive number";
     }
 
     // Validate header category (required for root categories, inherited for subcategories)
@@ -366,7 +366,7 @@ export default function CategoryFormModal({
       const submitData: CreateCategoryData | UpdateCategoryData = {
         name: formData.name.trim(),
         image: imageUrl,
-        order: formData.order,
+        order: Number(formData.order) || 0,
         parentId: formData.parentId,
         headerCategoryId: formData.headerCategoryId,
         status: formData.status,

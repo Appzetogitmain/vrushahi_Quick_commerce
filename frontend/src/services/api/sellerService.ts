@@ -56,6 +56,16 @@ export interface GetAllSellersParams {
   search?: string;
 }
 
+export interface SellerFAQ {
+  _id: string;
+  question: string;
+  answer: string;
+  isActive: boolean;
+  role?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateSellerData {
   sellerName: string;
   storeName: string;
@@ -147,5 +157,13 @@ export const updateSeller = async (
  */
 export const deleteSeller = async (id: string): Promise<ApiResponse<void>> => {
   const response = await api.delete<ApiResponse<void>>(`/sellers/${id}`);
+  return response.data;
+};
+
+/**
+ * Get Seller FAQs
+ */
+export const getSellerFAQs = async (params?: { search?: string, role?: string }): Promise<ApiResponse<SellerFAQ[]>> => {
+  const response = await api.get<ApiResponse<SellerFAQ[]>>("/seller/faqs", { params });
   return response.data;
 };

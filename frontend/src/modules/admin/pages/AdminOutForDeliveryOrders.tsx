@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getOrdersByStatus, type Order } from '../../../services/api/admin/adminOrderService';
 import { useAuth } from '../../../context/AuthContext';
 
-type SortField = 'orderId' | 'customerDetails' | 'address' | 'deliveryDate' | 'orderDate' | 'status' | 'deliveryBoyStatus' | 'amount';
+type SortField = 'orderId' | 'customerDetails' | 'address' | 'orderDate' | 'status' | 'deliveryBoyStatus' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
 export default function AdminOutForDeliveryOrders() {
@@ -18,6 +18,7 @@ export default function AdminOutForDeliveryOrders() {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [loading, setLoading] = useState(true);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,8 +37,8 @@ export default function AdminOutForDeliveryOrders() {
           limit: parseInt(entriesPerPage),
         };
 
-        if (searchQuery) {
-          params.search = searchQuery;
+        if (searchQuery && searchQuery.trim().length >= 1) {
+          params.search = searchQuery.trim().toLowerCase();
         }
 
         if (dateRange && dateRange.includes(' - ')) {
@@ -87,7 +88,7 @@ export default function AdminOutForDeliveryOrders() {
   };
 
   const handleExport = () => {
-    const headers = ['O. Id', 'Customer Details', 'Address', 'D. Date', 'O. Date', 'Status', 'Delivery Boy Assign Status', 'Amount'];
+    const headers = ['O. Id', 'Customer Details', 'Address', 'O. Date', 'Status', 'Delivery Boy Assign Status', 'Amount'];
     const csvContent = [
       headers.join(','),
       ...filteredAndSortedOrders.map(order =>
@@ -95,7 +96,6 @@ export default function AdminOutForDeliveryOrders() {
           order.orderNumber || '',
           order.customerName || '',
           order.deliveryAddress?.address || '',
-          order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleDateString() : '',
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
           order.status || '',
           order.deliveryBoyStatus || 'Not Assigned',
@@ -136,10 +136,7 @@ export default function AdminOutForDeliveryOrders() {
             aValue = a.deliveryAddress?.address || '';
             bValue = b.deliveryAddress?.address || '';
             break;
-          case 'deliveryDate':
-            aValue = a.estimatedDeliveryDate || '';
-            bValue = b.estimatedDeliveryDate || '';
-            break;
+          
           case 'orderDate':
             aValue = a.orderDate || '';
             bValue = b.orderDate || '';
@@ -274,16 +271,40 @@ export default function AdminOutForDeliveryOrders() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <input
-                    type="text"
-                    value={dateRange}
-                    onChange={(e) => {
-                      setDateRange(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="flex-1 sm:w-48 text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none placeholder:text-neutral-400"
-                    placeholder="MM/DD/YYYY - MM/DD/YYYY"
-                  />
+                  {(() => {
+                    const [from, to] = dateRange ? dateRange.split(' - ') : ['', ''];
+                    return (
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <input
+                          type="date"
+                          value={from ? (() => { const p=from.split('/'); return p.length===3 ? p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0') : '' })() : ''}
+                          onChange={(e) => {
+                            const d = e.target.value;
+                            if(!d) { setDateRange(to ? ' - '+to : ''); } else {
+                              const [y,m,day] = d.split('-');
+                              setDateRange(m+'/'+day+'/'+y + ' - ' + (to || ''));
+                            }
+                            setCurrentPage(1);
+                          }}
+                          className="flex-1 sm:w-32 text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none cursor-pointer"
+                        />
+                        <span className="text-neutral-400">-</span>
+                        <input
+                          type="date"
+                          value={to ? (() => { const p=to.split('/'); return p.length===3 ? p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0') : '' })() : ''}
+                          onChange={(e) => {
+                            const d = e.target.value;
+                            if(!d) { setDateRange(from ? from+' - ' : ''); } else {
+                              const [y,m,day] = d.split('-');
+                              setDateRange((from || '') + ' - ' + m+'/'+day+'/'+y);
+                            }
+                            setCurrentPage(1);
+                          }}
+                          className="flex-1 sm:w-32 text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none cursor-pointer"
+                        />
+                      </div>
+                    );
+                  })()}
                   {dateRange && (
                     <button
                       onClick={handleClearDate}
@@ -360,42 +381,22 @@ export default function AdminOutForDeliveryOrders() {
               <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-auto">
                 <div className="relative">
                   <button
-                    onClick={handleExport}
-                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="flex-shrink-0"
-                    >
-                      <path
-                        d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    onClick={() => setIsExportOpen(!isExportOpen)}
+                    className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0"><path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Export
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M6 9L12 15L18 9"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
+                  {isExportOpen && (
+                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg z-10 border border-neutral-200">
+                      <button
+                        onClick={() => { setIsExportOpen(false); handleExport(); }}
+                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-green-50 hover:text-green-700 rounded-md"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -492,29 +493,7 @@ export default function AdminOutForDeliveryOrders() {
                       )}
                     </div>
                   </th>
-                  <th
-                    onClick={() => handleSort('deliveryDate')}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      D. Date
-                      {sortField === 'deliveryDate' && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          {sortDirection === 'asc' ? (
-                            <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          ) : (
-                            <path d="M17 10L12 15L7 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
+                  
                   <th
                     onClick={() => handleSort('orderDate')}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
@@ -615,19 +594,19 @@ export default function AdminOutForDeliveryOrders() {
               <tbody className="bg-white divide-y divide-neutral-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       Loading orders...
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
                       {error}
                     </td>
                   </tr>
                 ) : paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
+                    <td colSpan={8} className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       No data available in table
                     </td>
                   </tr>
@@ -641,9 +620,7 @@ export default function AdminOutForDeliveryOrders() {
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                         {order.deliveryAddress?.address || '-'}
                       </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                        {order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleDateString() : '-'}
-                      </td>
+                      
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                         {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '-'}
                       </td>

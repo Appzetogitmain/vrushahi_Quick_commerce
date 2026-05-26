@@ -12,6 +12,7 @@ import OTPInput from "../../../components/OTPInput";
 import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
+import { validateEmail } from "../../../utils/validation";
 import LogoLatest from "@assets/LogoLatest.png";
 
 export default function DeliverySignUp() {
@@ -207,13 +208,9 @@ export default function DeliverySignUp() {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      showToast("Please enter a valid email address", "error");
-      return;
-    }
-    if (/\d/.test(formData.email)) {
-      showToast("Email should not contain numbers", "error");
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      showToast(emailValidation.error || "Invalid email", "error");
       return;
     }
 
