@@ -167,3 +167,22 @@ export const getSellerFAQs = async (params?: { search?: string, role?: string })
   const response = await api.get<ApiResponse<SellerFAQ[]>>("/seller/faqs", { params });
   return response.data;
 };
+
+export interface SellerCustomer {
+  _id: string;
+  name: string;
+  email: string;
+  mobile: string;
+  profile?: string;
+  totalOrders: number;
+  totalSpent: number;
+}
+
+/**
+ * Get Seller Customers
+ */
+export const getSellerCustomers = async (): Promise<ApiResponse<SellerCustomer[]>> => {
+  const response = await api.get<ApiResponse<SellerCustomer[]>>("/seller/customers");
+  return response.data;
+};
+

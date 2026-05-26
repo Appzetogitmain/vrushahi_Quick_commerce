@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
 
 
@@ -8,12 +8,13 @@ type SortDirection = 'asc' | 'desc';
 
 export default function SellerOrders() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [status, setStatus] = useState('All Status');
+  const [status, setStatus] = useState((location.state as any)?.status || 'All Status');
   const [entriesPerPage, setEntriesPerPage] = useState('10');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -21,6 +22,13 @@ export default function SellerOrders() {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+
+  // Sync state if location changes
+  useEffect(() => {
+    if ((location.state as any)?.status) {
+      setStatus((location.state as any).status);
+    }
+  }, [location.state]);
 
   // Debounce search query
   useEffect(() => {

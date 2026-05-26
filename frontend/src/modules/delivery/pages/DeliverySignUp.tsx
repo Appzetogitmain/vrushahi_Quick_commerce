@@ -7,7 +7,7 @@ import {
 } from "../../../services/api/auth/deliveryAuthService";
 import { getPolicies } from "../../../services/api/delivery/deliveryService";
 import { uploadDocumentPublic } from "../../../services/api/uploadService";
-import { validateDocumentFile } from "../../../utils/imageUpload";
+import { validateDocumentFile, compressImage } from "../../../utils/imageUpload";
 import OTPInput from "../../../components/OTPInput";
 import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
@@ -153,11 +153,21 @@ export default function DeliverySignUp() {
     );
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (!files || !files[0]) return;
 
-    const file = files[0];
+    let file = files[0];
+
+    // Compress image if it's an image file
+    if (file.type.startsWith('image/')) {
+      try {
+        file = await compressImage(file);
+      } catch (err) {
+        console.error("Failed to compress image:", err);
+      }
+    }
+
     const validation = validateDocumentFile(file);
     if (!validation.valid) {
       showToast(validation.error || "Invalid document file", "error");
@@ -275,7 +285,7 @@ export default function DeliverySignUp() {
           policeVerificationUrl = policeResult.secureUrl;
         }
 
-        setUploadingDocs(false);
+        // Keep it true until the entire registration process finishes to prevent user interactions
       }
 
       const response = await register({
@@ -314,6 +324,7 @@ export default function DeliverySignUp() {
       showToast(err.message || "Registration failed. Please try again.", "error");
     } finally {
       setLoading(false);
+      setUploadingDocs(false);
     }
   };
 

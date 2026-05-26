@@ -682,6 +682,30 @@ export default function SellerOrderDetail() {
             </table>
           </div>
 
+          {/* Order Summary */}
+          <div className="flex justify-end pt-4 pb-6 px-4 sm:px-6">
+            <div className="w-full sm:w-1/2 lg:w-1/3 space-y-3 bg-neutral-50 p-4 rounded-lg border border-neutral-100">
+              <div className="flex justify-between text-sm text-neutral-600">
+                <span>Subtotal:</span>
+                <span className="font-medium text-neutral-900">
+                  ₹{orderDetail.items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm text-neutral-600">
+                <span>Tax:</span>
+                <span className="font-medium text-neutral-900">
+                  ₹{orderDetail.items.reduce((sum, item) => sum + item.tax, 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-neutral-900 pt-3 border-t border-neutral-200">
+                <span>Grand Total:</span>
+                <span>
+                  ₹{(orderDetail.items.reduce((sum, item) => sum + item.subtotal + item.tax, 0)).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Bill Generation Note */}
           <div className="border-t border-dashed border-neutral-300 pt-4">
             <p className="text-sm text-neutral-600 text-center">

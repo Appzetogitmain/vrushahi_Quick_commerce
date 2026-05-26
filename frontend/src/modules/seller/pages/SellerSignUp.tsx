@@ -78,7 +78,14 @@ export default function SellerSignUp() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    if (name === "mobile") {
+    
+    if (name === "sellerName") {
+      if (/[0-9]/.test(value)) {
+        showToast("Numbers are not allowed in seller name", "error");
+        return;
+      }
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    } else if (name === "mobile") {
       setFormData((prev) => ({
         ...prev,
         [name]: value.replace(/\D/g, "").slice(0, 10),

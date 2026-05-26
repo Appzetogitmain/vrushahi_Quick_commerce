@@ -98,6 +98,11 @@ const SellerAccountSettings = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
+    if (name === 'sellerName' && /[0-9]/.test(value)) {
+      showToast('Numbers are not allowed in seller name', 'error');
+      return;
+    }
+
     // Handle nested workingHours
     if (name === 'open' || name === 'close') {
       setSellerData(prev => ({

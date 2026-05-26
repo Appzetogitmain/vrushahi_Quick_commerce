@@ -30,6 +30,7 @@ export default function SellerStockManagement() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [categories, setCategories] = useState<string[]>([]);
     const [totalPages, setTotalPages] = useState(1);
+    const [isExportOpen, setIsExportOpen] = useState(false);
     const { user } = useAuth();
 
     // Fetch categories for filter
@@ -269,44 +270,66 @@ export default function SellerStockManagement() {
                                 <option value={100}>100</option>
                             </select>
                         </div>
-                        <button
-                            onClick={() => {
-                                const headers = ['Variation Id', 'Product Id', 'Product Name', 'Seller Name', 'Variation', 'Current Stock', 'Status', 'Category'];
-                                const csvContent = [
-                                    headers.join(','),
-                                    ...filteredItems.map(item => [
-                                        item.variationId,
-                                        item.productId,
-                                        `"${item.name}"`,
-                                        `"${item.seller}"`,
-                                        `"${item.variation}"`,
-                                        item.stock,
-                                        item.status,
-                                        `"${item.category}"`
-                                    ].join(','))
-                                ].join('\n');
-                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                                const link = document.createElement('a');
-                                const url = URL.createObjectURL(blob);
-                                link.setAttribute('href', url);
-                                link.setAttribute('download', `stock_${new Date().toISOString().split('T')[0]}.csv`);
-                                link.style.visibility = 'hidden';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            }}
-                            className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Export
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsExportOpen(!isExportOpen)}
+                                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            {isExportOpen && (
+                                <div className="absolute right-0 mt-2 w-36 bg-white rounded-md shadow-lg border border-neutral-200 z-10 py-1">
+                                    <button
+                                        onClick={() => {
+                                            setIsExportOpen(false);
+                                            const headers = ['Variation Id', 'Product Id', 'Product Name', 'Seller Name', 'Variation', 'Current Stock', 'Status', 'Category'];
+                                            const csvContent = [
+                                                headers.join(','),
+                                                ...filteredItems.map(item => [
+                                                    item.variationId,
+                                                    item.productId,
+                                                    `"${item.name}"`,
+                                                    `"${item.seller}"`,
+                                                    `"${item.variation}"`,
+                                                    item.stock,
+                                                    item.status,
+                                                    `"${item.category}"`
+                                                ].join(','))
+                                            ].join('\n');
+                                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                            const link = document.createElement('a');
+                                            const url = URL.createObjectURL(blob);
+                                            link.setAttribute('href', url);
+                                            link.setAttribute('download', `stock_${new Date().toISOString().split('T')[0]}.csv`);
+                                            link.style.visibility = 'hidden';
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                                    >
+                                        Export as CSV
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsExportOpen(false);
+                                            alert("Excel export coming soon!");
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                                    >
+                                        Export as Excel
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <div className="relative">
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
                             <input
