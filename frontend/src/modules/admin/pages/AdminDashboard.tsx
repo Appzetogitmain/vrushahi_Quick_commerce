@@ -761,6 +761,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
                           className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
                           aria-label="View order">
                           <svg
@@ -964,6 +965,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
+                          onClick={() => navigate(`/admin/manage-seller/list`)}
                           className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
                           aria-label="View seller">
                           <svg
