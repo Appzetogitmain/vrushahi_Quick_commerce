@@ -29,6 +29,7 @@ export default function SellerSignUp() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isOTPVerified, setIsOTPVerified] = useState(false);
   const [showOTPFields, setShowOTPFields] = useState(false);
+  const [fssaiError, setFssaiError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     sellerName: "",
@@ -90,6 +91,12 @@ export default function SellerSignUp() {
         ...prev,
         [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
+    } else if (name === "fssaiLicNo") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 14);
+      setFormData((prev) => ({ ...prev, [name]: numericValue }));
+      if (numericValue.length === 14) {
+        setFssaiError(null);
+      }
     } else if (name === "serviceRadiusKm") {
       const cleanedValue = value.replace(/[^0-9.]/g, "");
       const parts = cleanedValue.split(".");
@@ -160,6 +167,15 @@ export default function SellerSignUp() {
     }
   };
 
+  const handleFssaiBlur = () => {
+    if (formData.fssaiLicNo.length > 0 && formData.fssaiLicNo.length !== 14) {
+      setFssaiError("FSSAI License must be exactly 14 digits");
+      showToast("Invalid FSSAI License format", "error");
+    } else {
+      setFssaiError(null);
+    }
+  };
+
   const nextStep = () => {
     // Validation for current step
     if (currentStep === 1) {
@@ -190,7 +206,13 @@ export default function SellerSignUp() {
       if (!formData.businessLicense) return showToast("Please upload business license", "error");
       if (!formData.storeImage) return showToast("Please upload real store image", "error");
       const isFood = formData.categories.some(c => c.toLowerCase().includes('food') || c.toLowerCase().includes('restaurant'));
-      if (isFood && !formData.fssaiLicNo) return showToast("FSSAI license number is required for food categories", "error");
+      if (isFood) {
+        if (!formData.fssaiLicNo) return showToast("FSSAI license number is required for food categories", "error");
+        if (formData.fssaiLicNo.length !== 14) {
+          setFssaiError("FSSAI License must be exactly 14 digits");
+          return showToast("FSSAI License must be exactly 14 digits", "error");
+        }
+      }
     } else if (currentStep === 5) {
       if (formData.workingHours.workingDays.length === 0) return showToast("Please select at least one working day", "error");
       handleFinalSubmit();
@@ -558,9 +580,17 @@ export default function SellerSignUp() {
                       name="fssaiLicNo"
                       value={formData.fssaiLicNo}
                       onChange={handleInputChange}
+                      onBlur={handleFssaiBlur}
                       placeholder="14-digit FSSAI number"
-                      className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all"
+                      className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl focus:ring-4 transition-all ${
+                        fssaiError 
+                          ? 'border-red-500 focus:ring-red-500/20' 
+                          : 'border-neutral-100 focus:ring-green-500/10 focus:border-green-500'
+                      }`}
                     />
+                    {fssaiError && (
+                      <p className="text-xs text-red-500 mt-1.5 font-medium ml-1">{fssaiError}</p>
+                    )}
                   </div>
                 )}
               </div>
