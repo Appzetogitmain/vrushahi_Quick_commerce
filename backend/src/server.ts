@@ -30,6 +30,8 @@ const allowedOrigins = [
   "https://kosil-frontend.onrender.com",
   "https://kosil.biz",
   "https://kosil.biz/",
+  "https://vrumarket.com",
+  "https://www.vrumarket.com",
   // Add more origins from environment variable if needed
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
