@@ -16,7 +16,7 @@ export interface DeliveryBoy {
   nationalIdentityCard?: string;
   policeVerificationForm?: string;
   policeVerificationDeadline?: string;
-  accountNumber: string;
+  bankAccountNumber: string;
   bankName: string;
   accountName: string;
   ifscCode: string;
@@ -52,7 +52,7 @@ export interface CreateDeliveryBoyData {
   drivingLicense?: string;
   nationalIdentityCard?: string;
   policeVerificationForm?: string;
-  accountNumber: string;
+  bankAccountNumber: string;
   bankName: string;
   accountName: string;
   ifscCode: string;
@@ -76,7 +76,7 @@ export interface UpdateDeliveryBoyData {
   drivingLicense?: string;
   nationalIdentityCard?: string;
   policeVerificationForm?: string;
-  accountNumber?: string;
+  bankAccountNumber?: string;
   bankName?: string;
   accountName?: string;
   ifscCode?: string;
