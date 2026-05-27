@@ -235,7 +235,10 @@ export default function SellerSignUp() {
         
         // Log in automatically
         if (response.data.token && response.data.user) {
-          login(response.data.token, response.data.user);
+          login(response.data.token, {
+            ...response.data.user,
+            userType: "Seller"
+          });
         }
         
         setCurrentStep(6);
