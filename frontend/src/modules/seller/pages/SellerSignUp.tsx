@@ -286,7 +286,7 @@ export default function SellerSignUp() {
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden border border-white/50 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* Header */}
-        <div className="px-8 pt-10 pb-6 text-center">
+        <div className="px-6 sm:px-8 pt-10 pb-6 text-center">
           <img src={LogoLatest} alt="vrushahi" className="h-20 w-auto mx-auto mb-4 object-contain" />
           <h1 className="text-2xl font-bold text-neutral-800">Explore New Opportunities</h1>
           <p className="text-neutral-500 text-sm mt-1">Hyperlocal Multi-Vendor Onboarding</p>
@@ -295,7 +295,7 @@ export default function SellerSignUp() {
         <StepIndicator />
 
         {/* Form Body */}
-        <div className="px-8 pb-10">
+        <div className="px-6 sm:px-8 pb-10">
           <div className="space-y-6">
             {/* Step 1: Basic Info */}
             {currentStep === 1 && (
@@ -326,20 +326,23 @@ export default function SellerSignUp() {
                 <div>
                   <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
                   <div className="flex gap-2">
-                    <input
-                      type="tel"
-                      name="mobile"
-                      value={formData.mobile}
-                      onChange={handleInputChange}
-                      placeholder="9876543210"
-                      disabled={isOTPVerified || showOTPFields}
-                      className="flex-1 px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all disabled:text-neutral-400"
-                    />
+                    <div className="flex-1 min-w-0 flex items-center bg-neutral-50 border border-neutral-100 rounded-xl focus-within:ring-4 focus-within:ring-green-500/10 focus-within:border-green-500 transition-all overflow-hidden">
+                      <span className="pl-4 pr-3 py-3 text-neutral-500 font-bold border-r border-neutral-200 bg-neutral-100/50">+91</span>
+                      <input
+                        type="tel"
+                        name="mobile"
+                        value={formData.mobile}
+                        onChange={handleInputChange}
+                        placeholder="9876543210"
+                        disabled={isOTPVerified || showOTPFields}
+                        className="flex-1 w-full px-3 py-3 bg-transparent border-none focus:outline-none focus:ring-0 disabled:text-neutral-400"
+                      />
+                    </div>
                     {!isOTPVerified && !showOTPFields && (
                       <button 
                         onClick={handleSendOTP}
                         disabled={loading || formData.mobile.length !== 10}
-                        className="px-4 py-3 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 disabled:bg-neutral-200 transition-all"
+                        className="shrink-0 px-4 py-3 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 disabled:bg-neutral-200 transition-all"
                       >
                         {loading ? '...' : 'Verify'}
                       </button>
@@ -636,7 +639,7 @@ export default function SellerSignUp() {
                   onClick={() => navigate("/seller/login")}
                   className="text-xs font-bold text-neutral-400 uppercase tracking-widest hover:text-green-600 transition-all"
                 >
-                  Already have an account? Login
+                  Already have an account? <span className="text-green-600">Login</span>
                </button>
             </div>
           </div>

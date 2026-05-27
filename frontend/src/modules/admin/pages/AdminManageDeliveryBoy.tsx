@@ -7,12 +7,11 @@ import {
     type DeliveryBoy,
 } from '../../../services/api/admin/adminDeliveryService';
 import { useAuth } from '../../../context/AuthContext';
-
-export default function AdminManageDeliveryBoy() {
+export default function AdminManageDeliveryBoy() {
     const { isAuthenticated, token } = useAuth();
     const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
     const [loading, setLoading] = useState(true);
-  const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +29,8 @@ export default function AdminManageDeliveryBoy() {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [rejectingId, setRejectingId] = useState<string | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Debounce search term and fetch delivery boys
     useEffect(() => {
@@ -216,14 +217,17 @@ export default function AdminManageDeliveryBoy() {
         }
     };
 
-    const handleDelete = async (deliveryBoyId: string) => {
-        if (!window.confirm('Are you sure you want to delete this delivery boy? This action cannot be undone.')) {
-            return;
-        }
+    const handleDelete = (deliveryBoyId: string) => {
+        setDeletingId(deliveryBoyId);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingId) return;
 
         try {
-            setProcessing(deliveryBoyId);
-            const response = await deleteDeliveryBoy(deliveryBoyId);
+            setProcessing(deletingId);
+            const response = await deleteDeliveryBoy(deletingId);
 
             if (response.success) {
                 setSuccessMessage('Delivery boy deleted successfully!');
@@ -256,6 +260,8 @@ export default function AdminManageDeliveryBoy() {
             setSuccessMessage('');
         } finally {
             setProcessing(null);
+            setShowDeleteModal(false);
+            setDeletingId(null);
         }
     };
 
@@ -876,7 +882,7 @@ export default function AdminManageDeliveryBoy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-neutral-500 uppercase">Account Number</p>
-                                        <p className="font-medium">{selectedDeliveryBoy.bankAccountNumber || 'N/A'}</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.accountNumber || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-neutral-500 uppercase">IFSC Code</p>
@@ -1018,7 +1024,54 @@ export default function AdminManageDeliveryBoy() {
                     </div>
                 </div>
             )}
+
+            {/* Delete Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 text-center">
+                            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-900 mb-2">Delete Delivery Boy</h3>
+                            <p className="text-neutral-500 font-medium leading-relaxed">
+                                Are you sure you want to delete this delivery boy? This action cannot be undone.
+                            </p>
+                        </div>
+                        <div className="border-t p-4 flex justify-end gap-3 bg-neutral-50">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeletingId(null);
+                                }}
+                                className="px-6 py-2.5 bg-white border border-neutral-300 text-neutral-700 rounded-xl hover:bg-neutral-100 transition-colors font-bold shadow-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={processing === deletingId}
+                                className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-bold shadow-sm shadow-red-200 flex items-center justify-center gap-2"
+                            >
+                                {processing === deletingId ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Yes, Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
