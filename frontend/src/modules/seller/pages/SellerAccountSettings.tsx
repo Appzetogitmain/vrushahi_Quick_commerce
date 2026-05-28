@@ -33,6 +33,9 @@ const SellerAccountSettings = () => {
     longitude: '',
     serviceRadiusKm: '10',
     panCard: '',
+    idProof: '',
+    businessLicense: '',
+    fssaiLicNo: '',
     taxName: '',
     taxNumber: '',
     accountName: '',
@@ -140,7 +143,7 @@ const SellerAccountSettings = () => {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'storeBanner' | 'profile' | 'storeImage') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'storeBanner' | 'profile' | 'storeImage' | 'idProof' | 'businessLicense') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -737,6 +740,65 @@ const SellerAccountSettings = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
                             <InputGroup label="PAN Card Number" name="panCard" value={sellerData.panCard} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="Tax Number (GST)" name="taxNumber" value={sellerData.taxNumber} onChange={handleInputChange} disabled={!isEditing} />
+                            <InputGroup label="FSSAI License No." name="fssaiLicNo" value={sellerData.fssaiLicNo} onChange={handleInputChange} disabled={!isEditing} placeholder="For food categories" />
+                          </div>
+                        </section>
+
+                        <section>
+                          <div className="flex items-center gap-3 mb-6 mt-8">
+                            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </div>
+                            <h4 className="text-lg font-bold text-gray-900">Legal Documents</h4>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                              <label className="text-sm font-semibold text-gray-700 ml-1">ID Proof (Aadhar/PAN)</label>
+                              <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-[4/3] transition-all hover:border-teal-300">
+                                <img
+                                  src={sellerData.idProof || 'https://placehold.co/400x300?text=ID+Proof'}
+                                  alt="ID Proof"
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                />
+                                {isEditing && (
+                                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept="image/*"
+                                      onChange={(e) => handleImageUpload(e, 'idProof')}
+                                    />
+                                    <div className="bg-white/20 p-4 rounded-full border border-white/30 backdrop-blur-md">
+                                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                    </div>
+                                  </label>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <label className="text-sm font-semibold text-gray-700 ml-1">Business License</label>
+                              <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-[4/3] transition-all hover:border-teal-300">
+                                <img
+                                  src={sellerData.businessLicense || 'https://placehold.co/400x300?text=Business+License'}
+                                  alt="Business License"
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                />
+                                {isEditing && (
+                                  <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept="image/*"
+                                      onChange={(e) => handleImageUpload(e, 'businessLicense')}
+                                    />
+                                    <div className="bg-white/20 p-4 rounded-full border border-white/30 backdrop-blur-md">
+                                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                    </div>
+                                  </label>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </section>
                       </div>

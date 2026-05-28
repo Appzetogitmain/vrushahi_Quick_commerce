@@ -10,8 +10,7 @@ import { Category } from "../../../types/domain";
 import { getHeaderCategoriesPublic } from "../../../services/api/headerCategoryService";
 import { getIconByName } from "../../../utils/iconLibrary";
 import CartIconButton from "../../../components/CartIconButton";
-
-
+import logoImg from "../../../assets/WhatsApp Image 2026-05-20 at 12.50.35.jpeg";
 gsap.registerPlugin(ScrollTrigger);
 
 // Helper function to convert RGB string to RGBA
@@ -382,9 +381,8 @@ export default function HomeHero({
             >
               
               <div className="flex flex-col min-w-0">
-                <div className={`text-[15px] font-extrabold tracking-wide uppercase leading-tight group-hover:opacity-70 transition-colors`} 
-                   style={{ color: isHome ? '#000000' : 'inherit' }}>
-                  Vrushahi
+                <div className={`flex items-center group-hover:opacity-70 transition-opacity`}>
+                  <img src={logoImg} alt="Vrushahi" className="h-8 md:h-10 object-contain" />
                 </div>
                 {locationDisplayText && (
                   <div className={`flex items-center gap-1 text-xs mt-0.5 group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>

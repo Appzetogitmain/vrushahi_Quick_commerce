@@ -159,25 +159,13 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">Net Quantity (e.g. 500ml, 1kg, 1 Unit)</label>
-                <input
-                  type="text"
-                  name="netQuantity"
-                  value={formData.netQuantity}
-                  onChange={handleChange}
-                  placeholder="Selling item quantity"
-                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-medium"
-                />
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">Category <span className="text-rose-500">*</span></label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
                   disabled={!formData.headerCategory}
-                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white disabled:bg-neutral-50"
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white disabled:bg-neutral-50 disabled:text-neutral-400"
                 >
                   <option value="">Select Category</option>
                   {categories
@@ -195,11 +183,11 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   value={formData.subcategory}
                   onChange={handleChange}
                   disabled={!formData.category}
-                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white disabled:bg-neutral-50"
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none bg-white disabled:bg-neutral-50 disabled:text-neutral-400"
                 >
                   <option value="">Select Sub-Category</option>
                   {subcategories.map((sub) => (
-                    <option key={sub._id} value={sub._id}>{sub.subcategoryName}</option>
+                    <option key={sub._id} value={sub._id}>{sub.subcategoryName || sub.name}</option>
                   ))}
                 </select>
               </div>
@@ -217,6 +205,18 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                     <option key={brand._id} value={brand._id}>{brand.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Net Quantity (e.g. 500ml, 1kg, 1 Unit)</label>
+                <input
+                  type="text"
+                  name="netQuantity"
+                  value={formData.netQuantity}
+                  onChange={handleChange}
+                  placeholder="Selling item quantity"
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none font-medium"
+                />
               </div>
 
               <div className="flex items-center space-x-4">
@@ -243,9 +243,9 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                 </div>
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-neutral-700 mb-2">Publish Status</label>
-                <div className="flex bg-neutral-100 p-1 rounded-xl">
+                <div className="flex bg-neutral-100 p-1 rounded-xl w-full md:w-1/2">
                   <button
                     type="button"
                     onClick={() => setFormData((p: any) => ({ ...p, publish: "Yes" }))}

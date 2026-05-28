@@ -226,7 +226,20 @@ export default function SellerAddProduct() {
         finalValue = value.replace(/^0+/, '');
       }
     }
-    setFormData((prev) => ({ ...prev, [name]: finalValue }));
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: finalValue };
+      if (name === "headerCategory") {
+        newData.category = "";
+        newData.subcategory = "";
+        newData.subSubCategory = "";
+      } else if (name === "category") {
+        newData.subcategory = "";
+        newData.subSubCategory = "";
+      } else if (name === "subcategory") {
+        newData.subSubCategory = "";
+      }
+      return newData;
+    });
   };
 
   const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

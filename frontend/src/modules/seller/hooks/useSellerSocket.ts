@@ -38,7 +38,8 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        if (!isAuthenticated || !token || !user || user.userType !== 'Seller') {
+        // Support legacy sessions where userType might be missing by only rejecting if userType exists and is NOT 'Seller'
+        if (!isAuthenticated || !token || !user || !user.id || (user.userType && user.userType !== 'Seller')) {
             if (socket) {
                 socket.disconnect();
                 setSocket(null);

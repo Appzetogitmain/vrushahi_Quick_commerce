@@ -6,6 +6,7 @@ import OTPInput from '../../components/OTPInput';
 import PolicyModal from '../../components/PolicyModal';
 import Lottie from 'lottie-react';
 import groceryAnimation from '../../../assets/animation/Grocery-animation.json';
+import logoImg from '../../assets/WhatsApp Image 2026-05-20 at 12.50.35.jpeg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -79,9 +80,9 @@ export default function Login() {
           {/* Logo */}
           <div className="mb-2">
             <img
-              src="/assets/LogoLatest.png"
+              src={logoImg}
               alt="Vrushahi"
-              className="h-16 w-auto object-contain drop-shadow-md"
+              className="h-16 w-auto object-contain drop-shadow-md mix-blend-multiply"
             />
           </div>
 
