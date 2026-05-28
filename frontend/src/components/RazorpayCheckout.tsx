@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createRazorpayOrder, verifyPayment } from '../services/api/paymentService';
 
 interface RazorpayCheckoutProps {
@@ -26,10 +26,28 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     onFailure,
     customerDetails,
 }) => {
+    const paymentInitiated = useRef(false);
+    const callbacksRef = useRef({ onSuccess, onFailure, customerDetails });
+
+    // Always keep callback and customer details refs updated on each render
     useEffect(() => {
+        callbacksRef.current = { onSuccess, onFailure, customerDetails };
+    }, [onSuccess, onFailure, customerDetails]);
+
+    useEffect(() => {
+        // Prevent initiating payment multiple times on the same mount
+        if (paymentInitiated.current) {
+            return;
+        }
+        paymentInitiated.current = true;
+
         // Load Razorpay script if not already loaded
         const loadRazorpayScript = () => {
             return new Promise((resolve) => {
+                if (window.Razorpay) {
+                    resolve(true);
+                    return;
+                }
                 const script = document.createElement('script');
                 script.src = 'https://checkout.razorpay.com/v1/checkout.js';
                 script.onload = () => resolve(true);
@@ -43,7 +61,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                 // Load Razorpay script
                 const scriptLoaded = await loadRazorpayScript();
                 if (!scriptLoaded) {
-                    onFailure('Failed to load Razorpay SDK');
+                    callbacksRef.current.onFailure('Failed to load Razorpay SDK');
                     return;
                 }
 
@@ -51,7 +69,7 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                 const orderResponse = await createRazorpayOrder(orderId);
 
                 if (!orderResponse.success) {
-                    onFailure(orderResponse.message || 'Failed to create payment order');
+                    callbacksRef.current.onFailure(orderResponse.message || 'Failed to create payment order');
                     return;
                 }
 
@@ -66,9 +84,9 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     description: `Order #${orderId}`,
                     order_id: razorpayOrderId,
                     prefill: {
-                        name: customerDetails.name,
-                        email: customerDetails.email,
-                        contact: customerDetails.phone,
+                        name: callbacksRef.current.customerDetails.name,
+                        email: callbacksRef.current.customerDetails.email,
+                        contact: callbacksRef.current.customerDetails.phone,
                     },
                     theme: {
                         color: '#16a34a', // vrushahi green
@@ -84,18 +102,18 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                             });
 
                             if (verificationResponse.success) {
-                                onSuccess(response.razorpay_payment_id);
+                                callbacksRef.current.onSuccess(response.razorpay_payment_id);
                             } else {
-                                onFailure(verificationResponse.message || 'Payment verification failed');
+                                callbacksRef.current.onFailure(verificationResponse.message || 'Payment verification failed');
                             }
                         } catch (error: any) {
                             console.error('Payment verification error:', error);
-                            onFailure(error.response?.data?.message || 'Payment verification failed');
+                            callbacksRef.current.onFailure(error.response?.data?.message || 'Payment verification failed');
                         }
                     },
                     modal: {
                         ondismiss: function () {
-                            onFailure('Payment cancelled by user');
+                            callbacksRef.current.onFailure('Payment cancelled by user');
                         },
                     },
                 };
@@ -104,12 +122,12 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                 razorpay.open();
             } catch (error: any) {
                 console.error('Payment initiation error:', error);
-                onFailure(error.response?.data?.message || 'Failed to initiate payment');
+                callbacksRef.current.onFailure(error.response?.data?.message || 'Failed to initiate payment');
             }
         };
 
         initiatePayment();
-    }, [orderId, amount, customerDetails, onSuccess, onFailure]);
+    }, [orderId, amount]);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

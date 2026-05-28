@@ -307,23 +307,17 @@ export const capturePayment = async (
         }
         await order.save({ session });
 
-        // Trigger creation of Pending commissions
-        try {
-            const { createPendingCommissions } = await import('./commissionService');
-            await createPendingCommissions(orderId);
-        } catch (commError) {
-            console.error("Failed to create pending commissions after payment:", commError);
-        }
-
-        // Trigger creation of Pending commissions
-        // Note: We do this inside the transaction or right after. Ideally inside but createPendingCommissions might not support session passing yet.
-        // For safety/simplicity in this refactor step, we'll do it post-commit or ensure createPendingCommissions is safe.
-        // Given existing architecture, let's do it part of the flow but loosely coupled if needed.
-        // Actually, for data integrity, let's run it.
-        const { createPendingCommissions } = await import('./commissionService');
-        await createPendingCommissions(orderId); // This creates them as 'Pending'
-
         await session.commitTransaction();
+
+        // Trigger creation of Pending commissions in the background after transaction commits successfully
+        (async () => {
+            try {
+                const { createPendingCommissions } = await import('./commissionService');
+                await createPendingCommissions(orderId);
+            } catch (commError) {
+                console.error("Failed to create pending commissions after payment:", commError);
+            }
+        })();
 
         return {
             success: true,
