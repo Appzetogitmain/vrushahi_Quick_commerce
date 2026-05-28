@@ -15,6 +15,8 @@ router.put("/profile", deliveryProfileController.updateProfile);
 router.put("/profile/resubmit", deliveryProfileController.resubmitForApproval);
 router.put("/status", deliveryProfileController.updateStatus);
 router.put("/settings", deliveryProfileController.updateSettings);
+router.post("/profile/delete-otp", deliveryProfileController.sendDeleteOtp);
+router.delete("/profile", deliveryProfileController.deleteAccount);
 
 // Notifications
 router.get("/notifications", deliveryNotificationController.getNotifications);

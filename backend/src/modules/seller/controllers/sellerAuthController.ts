@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import Seller from "../../../models/Seller";
+import AuditLog from "../../../models/AuditLog";
 import {
   sendOTP as sendOTPService,
   verifyOTP as verifyOTPService,
+  sendSmsOtp,
 } from "../../../services/otpService";
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
@@ -396,5 +398,95 @@ export const reSubmitApproval = asyncHandler(async (req: Request, res: Response)
     success: true,
     message: "Profile resubmitted for approval successfully",
     data: { status: seller.status },
+  });
+});
+
+/**
+ * Send OTP for seller account deletion
+ */
+export const sendDeleteOtp = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  const seller = await Seller.findById(sellerId);
+
+  if (!seller || seller.status === "Deleted") {
+    return res.status(404).json({
+      success: false,
+      message: "Seller not found",
+    });
+  }
+
+  // Generate and send OTP using the OTP service
+  const result = await sendSmsOtp(seller.mobile, 'Seller');
+
+  return res.status(200).json({
+    success: true,
+    message: result.message,
+    sessionId: result.sessionId,
+  });
+});
+
+/**
+ * Delete seller account (soft delete with data anonymization & session revocation)
+ */
+export const deleteAccount = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const { otp, confirmText } = req.body;
+
+  if (confirmText !== "DELETE") {
+    return res.status(400).json({
+      success: false,
+      message: "Please type 'DELETE' to confirm deletion",
+    });
+  }
+
+  if (!otp || !/^[0-9]{4}$/.test(otp)) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid 4-digit OTP is required",
+    });
+  }
+
+  const seller = await Seller.findById(sellerId);
+
+  if (!seller || seller.status === "Deleted") {
+    return res.status(404).json({
+      success: false,
+      message: "Seller not found",
+    });
+  }
+
+  // Verify OTP
+  const isValid = await verifyOTPService(seller.mobile, otp, "Seller");
+  if (!isValid) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired OTP",
+    });
+  }
+
+  const originalMobile = seller.mobile;
+  const originalEmail = seller.email;
+
+  // Log the deletion activity for security audit
+  await AuditLog.create({
+    userId: sellerId,
+    userType: "Seller",
+    action: "DELETE_ACCOUNT",
+    details: {
+      reason: "Seller requested deletion",
+      registrationDate: seller.createdAt,
+      lifetimeEarnings: seller.lifetimeEarnings,
+    },
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  // Hard delete from database
+  await Seller.findByIdAndDelete(sellerId);
+
+  return res.status(200).json({
+    success: true,
+    message: "Your seller account has been deleted successfully",
   });
 });

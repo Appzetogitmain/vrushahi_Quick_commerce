@@ -120,4 +120,20 @@ export const reSubmitApproval = async (): Promise<any> => {
   return response.data;
 };
 
+/**
+ * Send OTP for seller account deletion
+ */
+export const sendDeleteOtp = async (): Promise<any> => {
+  const response = await api.post('/auth/seller/profile/delete-otp');
+  return response.data;
+};
+
+/**
+ * Delete seller account securely
+ */
+export const deleteSellerAccount = async (data: { otp: string; confirmText: string }): Promise<any> => {
+  const response = await api.delete('/auth/seller/profile', { data });
+  return response.data;
+};
+
 

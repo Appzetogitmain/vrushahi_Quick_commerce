@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSellerProfile, updateSellerProfile } from '../../../services/api/auth/sellerAuthService';
+import { useNavigate } from 'react-router-dom';
+import { getSellerProfile, updateSellerProfile, sendDeleteOtp, deleteSellerAccount } from '../../../services/api/auth/sellerAuthService';
 import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import { uploadImage } from '../../../services/api/uploadService';
@@ -11,13 +12,96 @@ import { useToast } from '../../../context/ToastContext';
 import { validateEmail } from '../../../utils/validation';
 
 const SellerAccountSettings = () => {
-  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUser, logout } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Delete Account States & Flow
+  const [deleteStep, setDeleteStep] = useState(0); // 0 = Closed, 1 = Warning, 2 = OTP Re-Auth, 3 = Confirmation Text
+  const [deleteOtp, setDeleteOtp] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+
+  const startDeleteFlow = () => {
+    setDeleteStep(1);
+    setDeleteOtp('');
+    setDeleteConfirmText('');
+  };
+
+  const handleSendDeleteOtp = async () => {
+    try {
+      setOtpSending(true);
+      const res = await sendDeleteOtp();
+      if (res.success) {
+        showToast(res.message || 'OTP sent successfully to registered number', 'success');
+        setDeleteStep(2);
+      } else {
+        showToast(res.message || 'Failed to send OTP', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Failed to send OTP', 'error');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyOtpAndNext = () => {
+    if (!deleteOtp || !/^[0-9]{4}$/.test(deleteOtp)) {
+      showToast('Please enter a valid 4-digit verification OTP', 'error');
+      return;
+    }
+    setDeleteStep(3);
+  };
+
+  const handleConfirmDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText !== 'DELETE') {
+      showToast('Please type DELETE to confirm', 'error');
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      const res = await deleteSellerAccount({ otp: deleteOtp, confirmText: 'DELETE' });
+      if (res.success) {
+        showToast('Your seller account has been deleted successfully', 'success');
+        setDeleteStep(0);
+        logout();
+        navigate('/login');
+      } else {
+        showToast(res.message || 'Deletion failed', 'error');
+      }
+    } catch (err: any) {
+      const errMsg = err.response?.data?.message || 'Deletion failed';
+      showToast(errMsg, 'error');
+      if (errMsg.toLowerCase().includes('otp')) {
+        setDeleteStep(2); // Send back to OTP step if OTP is invalid
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Lock background scroll when Delete Modal is active
+  useEffect(() => {
+    if (deleteStep > 0) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [deleteStep]);
 
   // Initial state with empty values
   const [sellerData, setSellerData] = useState({
@@ -484,6 +568,20 @@ const SellerAccountSettings = () => {
                             {isEditing && <p className="text-xs text-gray-400 ml-1">Leave blank to keep current password</p>}
                           </div>
                         </div>
+
+                        {/* Danger Zone */}
+                        <div className="mt-12 pt-8 border-t border-red-100">
+                          <p className="text-xs text-neutral-500 mb-4 leading-relaxed">
+                            Deleting your account is a permanent action. All your product listings, store branding, balance history, and profile data will be permanently cleared.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={startDeleteFlow}
+                            className="px-5 py-2.5 rounded-lg font-bold text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors shadow-sm uppercase tracking-wider cursor-pointer"
+                          >
+                            Delete Account
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -902,6 +1000,159 @@ const SellerAccountSettings = () => {
           </div>
         </div>
       </div>
+
+      {deleteStep > 0 && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+            onClick={() => { if (!deleting) setDeleteStep(0); }}
+          />
+          <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-4 pt-10 sm:pt-4">
+            <div className="bg-white rounded-[24px] shadow-2xl max-w-[290px] sm:max-w-sm w-full p-4 pt-6 pb-4 sm:p-5 sm:pt-8 sm:pb-5 relative overflow-y-auto max-h-[85vh]">
+              {!deleting && (
+                <button
+                  onClick={() => setDeleteStep(0)}
+                  className="absolute top-3.5 right-3.5 w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 transition-colors border-none cursor-pointer">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M18 6L6 18M6 6L18 18"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Step 1: Warning Details */}
+              {deleteStep === 1 && (
+                <div className="text-center animate-fadeIn">
+                  <div className="mx-auto mb-3.5 w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-500">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                      <line x1="12" y1="9" x2="12" y2="13"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-neutral-900 mb-1.5">
+                    Delete Seller Account?
+                  </h3>
+                  <p className="text-[12px] text-neutral-500 mb-4 px-2 leading-relaxed">
+                    Are you sure you want to delete your seller account? This action is permanent and cannot be undone. All your product listings, store details, and wallet balance history will be cleared.
+                  </p>
+
+                  <div className="flex gap-3 mt-5">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteStep(0)}
+                      className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-xs hover:bg-neutral-50 transition-all uppercase tracking-wider cursor-pointer">
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendDeleteOtp}
+                      disabled={otpSending}
+                      className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-md shadow-red-100 uppercase tracking-wider border-none cursor-pointer">
+                      {otpSending ? "Sending..." : "Continue"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: OTP Verification */}
+              {deleteStep === 2 && (
+                <div className="text-center animate-fadeIn">
+                  <div className="mx-auto mb-3.5 w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="5" y="11" width="14" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-neutral-900 mb-1.5">
+                    Security Verification
+                  </h3>
+                  <p className="text-[12px] text-neutral-500 mb-4 px-2 leading-relaxed">
+                    We've generated a secure verification code to confirm store ownership. Please enter the 4-digit code sent to your registered number.
+                  </p>
+
+                  <div className="max-w-xs mx-auto mb-4">
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={deleteOtp}
+                      onChange={(e) => setDeleteOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="• • • •"
+                      className="w-full text-center tracking-[1.2em] font-mono text-lg rounded-xl border border-neutral-200 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-600/10 focus:border-teal-600 transition-all placeholder-neutral-300"
+                    />
+                    <p className="text-[10px] font-bold text-neutral-400 mt-2">
+                      (Local Dev Mode Code: <span className="text-teal-600 font-extrabold">1234</span>)
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 mt-5">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteStep(1)}
+                      className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-xs hover:bg-neutral-50 transition-all uppercase tracking-wider cursor-pointer">
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleVerifyOtpAndNext}
+                      className="flex-1 py-3 rounded-xl bg-teal-600 text-white font-bold text-xs hover:bg-teal-700 transition-all shadow-md shadow-teal-100 uppercase tracking-wider border-none cursor-pointer">
+                      Verify OTP
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Explicit Text Confirmation */}
+              {deleteStep === 3 && (
+                <form onSubmit={handleConfirmDelete} className="text-center animate-fadeIn">
+                  <div className="mx-auto mb-3.5 w-12 h-12 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-neutral-900 mb-1.5">
+                    Final Confirmation
+                  </h3>
+                  <p className="text-[12px] text-neutral-500 mb-4 px-2 leading-relaxed">
+                    To completely finalize the soft-deletion process, please type <strong className="text-red-600 uppercase font-extrabold">DELETE</strong> below.
+                  </p>
+
+                  <div className="max-w-xs mx-auto mb-4">
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      placeholder="Type DELETE here"
+                      className="w-full text-center uppercase font-bold text-xs rounded-xl border border-neutral-200 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-red-600/10 focus:border-red-600 transition-all placeholder-neutral-300"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 mt-5">
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => setDeleteStep(2)}
+                      className="flex-1 py-3 rounded-xl border border-neutral-200 text-neutral-600 font-bold text-xs hover:bg-neutral-50 transition-all uppercase tracking-wider cursor-pointer">
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={deleting || deleteConfirmText !== "DELETE"}
+                      className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-red-100 uppercase tracking-wider border-none cursor-pointer">
+                      {deleting ? "Deleting..." : "Delete Account"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

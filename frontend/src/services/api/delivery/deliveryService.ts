@@ -342,3 +342,27 @@ export const getPolicies = async (type: 'delivery' | 'customer') => {
         throw handleApiError(error);
     }
 };
+
+/**
+ * Send OTP for delivery partner account deletion
+ */
+export const sendDeleteOtp = async (): Promise<any> => {
+    try {
+        const response = await api.post(`${BASE_URL}/profile/delete-otp`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+/**
+ * Delete delivery partner account securely
+ */
+export const deleteDeliveryAccount = async (data: { otp: string; confirmText: string }): Promise<any> => {
+    try {
+        const response = await api.delete(`${BASE_URL}/profile`, { data });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};

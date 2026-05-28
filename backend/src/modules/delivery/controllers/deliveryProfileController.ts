@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Delivery from "../../../models/Delivery";
+import AuditLog from "../../../models/AuditLog";
+import { sendSmsOtp, verifySmsOtp } from "../../../services/otpService";
 
 /**
  * Update Delivery Profile
@@ -167,5 +169,95 @@ export const resubmitForApproval = asyncHandler(async (req: Request, res: Respon
         success: true,
         message: "Profile resubmitted for approval successfully",
         data: delivery
+    });
+});
+
+/**
+ * Send OTP for delivery partner account deletion
+ */
+export const sendDeleteOtp = asyncHandler(async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+
+    const delivery = await Delivery.findById(deliveryId);
+
+    if (!delivery || delivery.status === "Deleted") {
+        return res.status(404).json({
+            success: false,
+            message: "Delivery partner not found",
+        });
+    }
+
+    // Generate and send OTP using OTP service
+    const result = await sendSmsOtp(delivery.mobile, 'Delivery');
+
+    return res.status(200).json({
+        success: true,
+        message: result.message,
+        sessionId: result.sessionId,
+    });
+});
+
+/**
+ * Delete delivery partner account (soft delete with data anonymization & session revocation)
+ */
+export const deleteAccount = asyncHandler(async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+    const { otp, confirmText } = req.body;
+
+    if (confirmText !== "DELETE") {
+        return res.status(400).json({
+            success: false,
+            message: "Please type 'DELETE' to confirm deletion",
+        });
+    }
+
+    if (!otp || !/^[0-9]{4}$/.test(otp)) {
+        return res.status(400).json({
+            success: false,
+            message: "Valid 4-digit OTP is required",
+        });
+    }
+
+    const delivery = await Delivery.findById(deliveryId);
+
+    if (!delivery || delivery.status === "Deleted") {
+        return res.status(404).json({
+            success: false,
+            message: "Delivery partner not found",
+        });
+    }
+
+    // Verify OTP using SMS verification service
+    const isValid = await verifySmsOtp('DB_VERIFIED_' + delivery.mobile, otp, delivery.mobile, 'Delivery');
+    if (!isValid) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or expired OTP",
+        });
+    }
+
+    const originalMobile = delivery.mobile;
+    const originalEmail = delivery.email;
+
+    // Log the deletion activity for security audit
+    await AuditLog.create({
+        userId: deliveryId,
+        userType: "Delivery",
+        action: "DELETE_ACCOUNT",
+        details: {
+            reason: "Delivery partner requested deletion",
+            registrationDate: delivery.createdAt,
+            balance: delivery.balance,
+        },
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+    });
+
+    // Hard delete from database
+    await Delivery.findByIdAndDelete(deliveryId);
+
+    return res.status(200).json({
+        success: true,
+        message: "Your delivery account has been deleted successfully",
     });
 });

@@ -66,7 +66,7 @@ export interface ISeller extends Document {
   commissionRate?: number; // Alias or specific rate
 
   // Status
-  status: 'Approved' | 'Pending' | 'Rejected';
+  status: 'Approved' | 'Pending' | 'Rejected' | 'Deleted';
   balance: number;
   lockedBalance: number;
   lifetimeEarnings: number;
@@ -78,6 +78,7 @@ export interface ISeller extends Document {
   rejectionReason?: string;
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
+  deletedAt?: Date;
 
   createdAt: Date;
   updatedAt: Date;
@@ -284,7 +285,7 @@ const SellerSchema = new Schema<ISeller>(
     // Status
     status: {
       type: String,
-      enum: ['Approved', 'Pending', 'Rejected'],
+      enum: ['Approved', 'Pending', 'Rejected', 'Deleted'],
       default: 'Pending',
     },
     rejectionReason: {
@@ -334,6 +335,9 @@ const SellerSchema = new Schema<ISeller>(
     fcmTokenMobile: {
       type: [String],
       default: [],
+    },
+    deletedAt: {
+      type: Date,
     },
   },
   {

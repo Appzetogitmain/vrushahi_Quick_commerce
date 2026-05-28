@@ -32,7 +32,7 @@ export interface IDelivery extends Document {
   // Commission & Payment
   bonusType?: string; // 'Fixed' | 'Salaried' | 'Commission Based'
   commissionRate?: number; // Individual commission rate (overrides global setting)
-  status: 'Active' | 'Inactive' | 'Rejected';
+  status: 'Active' | 'Inactive' | 'Rejected' | 'Deleted';
   rejectionReason?: string;
   isOnline: boolean; // Availability status
   available: 'Available' | 'Not Available';
@@ -54,6 +54,7 @@ export interface IDelivery extends Document {
   };
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
+  deletedAt?: Date;
 
   createdAt: Date;
   updatedAt: Date;
@@ -178,7 +179,7 @@ const DeliverySchema = new Schema<IDelivery>(
     },
     status: {
       type: String,
-      enum: ['Active', 'Inactive', 'Rejected'],
+      enum: ['Active', 'Inactive', 'Rejected', 'Deleted'],
       default: 'Inactive', // New delivery partners start as Inactive until approved
     },
     rejectionReason: {
@@ -251,6 +252,9 @@ const DeliverySchema = new Schema<IDelivery>(
     fcmTokenMobile: {
       type: [String],
       default: [],
+    },
+    deletedAt: {
+      type: Date,
     },
   },
   {
