@@ -829,7 +829,7 @@ function AppContent() {
                                     element={<ProductDetail />}
                                   />
                                   <Route
-                                    path="/invoice/:id"
+                                    path="/orders/:id/invoice"
                                     element={
                                       <ProtectedRoute requiredUserType="Customer">
                                         <Invoice />

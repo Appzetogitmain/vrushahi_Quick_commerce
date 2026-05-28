@@ -18,6 +18,13 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
 
   const handleStatusUpdate = async (status: string) => {
     if (!notification) return;
+
+    // Stop audio immediately
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
     setLoading(true);
     try {
       await updateOrderStatus(notification.orderId, { status: status as any });
@@ -29,6 +36,10 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update order status');
+      // Resume audio if action failed
+      if (audioRef.current && hasUserInteracted) {
+        audioRef.current.play().catch(console.error);
+      }
     } finally {
       setLoading(false);
     }
