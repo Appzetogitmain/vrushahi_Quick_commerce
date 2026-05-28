@@ -236,9 +236,6 @@ export const deleteAccount = asyncHandler(async (req: Request, res: Response) =>
         });
     }
 
-    const originalMobile = delivery.mobile;
-    const originalEmail = delivery.email;
-
     // Log the deletion activity for security audit
     await AuditLog.create({
         userId: deliveryId,
