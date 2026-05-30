@@ -313,7 +313,7 @@ export async function findDeliveryBoysNearSellerLocations(
             .sort((a, b) => a[1].distance - b[1].distance)
             .map(([id]) => new mongoose.Types.ObjectId(id));
 
-        console.log(`📍 Found ${sortedBoys.length} delivery boys near seller locations`);
+        console.log(`📍 Found ${sortedBoys.length} delivery boys near seller locations. IDs:`, sortedBoys);
         return sortedBoys;
     } catch (error) {
         console.error('Error finding delivery boys near seller locations:', error);
@@ -350,6 +350,8 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         // Find delivery boys near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(populatedOrder);
+
+        console.log(`🔍 [DEBUG] nearbyDeliveryBoyIds before filtering:`, nearbyDeliveryBoyIds);
 
         if (nearbyDeliveryBoyIds.length === 0) {
             console.log('No available delivery boys to notify (including fallback)');
@@ -454,6 +456,9 @@ export async function notifyDeliveryBoysOfNewOrder(
                 console.log(`✅ SUCCESS: Emitted new-order to room: ${roomName} (Active users: ${room.size})`);
             } else {
                 console.log(`ℹ️ Room ${roomName} is empty or does not exist. (Checked: ${!!room})`);
+                const allDeliveryRooms = Array.from(io.sockets.adapter.rooms.keys()).filter(r => r.startsWith('delivery-'));
+                console.log(`🔍 [DEBUG] Active delivery rooms right now:`, allDeliveryRooms);
+
                 if (deliveryBoy) {
                 // Disconnected: Fallback to FCM Push Notification
                 const tokens = [

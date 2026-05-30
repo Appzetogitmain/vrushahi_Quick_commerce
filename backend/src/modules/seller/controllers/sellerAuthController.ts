@@ -106,6 +106,7 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
       token,
       user: {
         id: seller._id,
+        userType: "Seller",
         sellerName: seller.sellerName,
         mobile: seller.mobile,
         email: seller.email,

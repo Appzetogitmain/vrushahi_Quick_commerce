@@ -35,7 +35,7 @@ export const useDeliveryOrderNotifications = () => {
     const reconnectAttemptsRef = useRef(0);
 
     const connectSocket = useCallback(() => {
-        if (!isAuthenticated || user?.userType !== 'Delivery' || !user?.id) {
+        if (!isAuthenticated || (user?.userType && user.userType !== 'Delivery') || !user?.id) {
             return;
         }
 
@@ -383,7 +383,7 @@ export const useDeliveryOrderNotifications = () => {
     }, []);
 
     useEffect(() => {
-        if (!isAuthenticated || user?.userType !== 'Delivery' || !user?.id) {
+        if (!isAuthenticated || (user?.userType && user.userType !== 'Delivery') || !user?.id) {
             disconnectSocket();
             return;
         }

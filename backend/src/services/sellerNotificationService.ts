@@ -36,6 +36,11 @@ export async function notifySellersOfOrderUpdate(
         const sellerIds = [...new Set(orderItems.map(getSellerId).filter(Boolean))];
 
         console.log(`🔔 Notifying ${sellerIds.length} sellers about ${type} for order ${order.orderNumber}`);
+        console.log(`🔍 [DEBUG] Extracted sellerIds:`, sellerIds);
+        
+        // Debug: print all active seller rooms
+        const activeRooms = Array.from(io.sockets.adapter.rooms.keys()).filter(room => room.startsWith('seller-'));
+        console.log(`🔍 [DEBUG] Active seller rooms right now:`, activeRooms);
 
         for (const sellerId of sellerIds) {
             const roomName = `seller-${sellerId}`;
