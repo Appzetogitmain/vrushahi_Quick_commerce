@@ -87,7 +87,7 @@ export default function Checkout() {
   const [showCancellationPolicy, setShowCancellationPolicy] = useState(false);
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online">("Online");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online">("COD");
 
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -1731,6 +1731,7 @@ export default function Checkout() {
   <h3 className="text-sm font-bold text-neutral-900 mb-2">Payment Method</h3>
   <div className="space-y-2">
     {/* Online Payment Option */}
+    {/* Temporarily hidden
     <div
       onClick={() => setPaymentMethod("Online")}
       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === "Online"
@@ -1756,6 +1757,7 @@ export default function Checkout() {
         </div>
       )}
     </div>
+    */}
 
     {/* COD Option */}
     <div
