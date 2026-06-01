@@ -63,6 +63,8 @@ export const initializeSocket = (httpServer: HttpServer) => {
                         "https://kosil-frontend.onrender.com",
                         "https://kosil.biz",
                         "https://www.kosil.biz",
+                        "https://vrumarket.com",
+                        "https://www.vrumarket.com",
                     ];
 
                     const allAllowedOrigins = [
