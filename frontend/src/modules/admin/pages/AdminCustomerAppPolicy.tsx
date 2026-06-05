@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPolicies, updatePolicy, createPolicy } from '../../../services/api/admin/adminContentService';
 import { useToast } from '../../../context/ToastContext';
 
-type PolicyType = 'Privacy Policy' | 'Terms & Conditions';
+type PolicyType = 'Privacy Policy' | 'Terms & Conditions' | 'About Us' | 'Refund and Cancellation Policy';
 
 export default function AdminCustomerAppPolicy() {
   const [selectedType, setSelectedType] = useState<PolicyType>('Privacy Policy');
@@ -94,7 +94,7 @@ export default function AdminCustomerAppPolicy() {
         <div className="max-w-4xl mx-auto">
           {/* Policy Type Selector */}
           <div className="flex gap-2 mb-6">
-            {(['Privacy Policy', 'Terms & Conditions'] as PolicyType[]).map((type) => (
+            {(['Privacy Policy', 'Terms & Conditions', 'About Us', 'Refund and Cancellation Policy'] as PolicyType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}

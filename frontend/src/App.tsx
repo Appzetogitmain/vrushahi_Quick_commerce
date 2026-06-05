@@ -37,6 +37,7 @@ const Invoice = lazy(() => import("./modules/user/Invoice"));
 const Login = lazy(() => import("./modules/user/Login"));
 
 const AboutUs = lazy(() => import("./modules/user/AboutUs"));
+const Support = lazy(() => import("./modules/user/Support"));
 const FAQ = lazy(() => import("./modules/user/FAQ"));
 const Wishlist = lazy(() => import("./modules/user/Wishlist"));
 const Addresses = lazy(() => import("./modules/user/Addresses"));
@@ -782,6 +783,14 @@ function AppContent() {
                                   <Route
                                     path="/about-us"
                                     element={<AboutUs />}
+                                  />
+                                  <Route
+                                    path="/support"
+                                    element={
+                                      <ProtectedRoute requiredUserType="Customer">
+                                        <Support />
+                                      </ProtectedRoute>
+                                    }
                                   />
                                   <Route path="/faq" element={<FAQ />} />
                                   <Route

@@ -1,7 +1,32 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getPublicPolicies, Policy } from "../../services/api/customerPolicyService";
 
 export default function AboutUs() {
   const navigate = useNavigate();
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPolicy = async () => {
+      try {
+        setLoading(true);
+        const response = await getPublicPolicies("customer");
+        if (response.success && response.data) {
+          const aboutPolicy = response.data.find(p => p.title === "About Us");
+          if (aboutPolicy) {
+            setPolicy(aboutPolicy);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch About Us policy:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPolicy();
+  }, []);
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
@@ -35,7 +60,20 @@ export default function AboutUs() {
 
       {/* Content */}
       <div className="px-4 md:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
-        {/* Logo/Brand Section */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mb-4"></div>
+            <p className="text-neutral-500 font-medium text-sm">Loading...</p>
+          </div>
+        ) : policy ? (
+          <div className="prose max-w-none">
+            <div className="whitespace-pre-wrap text-neutral-700 leading-relaxed text-[15px]">
+              {policy.content}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Logo/Brand Section */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 mb-4 shadow-lg">
             <svg
@@ -383,6 +421,8 @@ export default function AboutUs() {
             © 2024 vrushahi. All rights reserved.
           </p>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

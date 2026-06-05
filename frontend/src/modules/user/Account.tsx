@@ -574,69 +574,14 @@ export default function Account() {
                 </button>
 
                 <button
-                  onClick={() => (window.location.href = "https://about.vrushahi.com")}
-                  className="w-full flex items-center justify-between px-3 md:px-5 py-3 md:py-4 hover:bg-neutral-50 md:hover:bg-purple-50/20 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-neutral-500 md:text-neutral-400 md:group-hover:text-purple-600 md:w-5 md:h-5 transition-colors duration-200">
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <line
-                        x1="12"
-                        y1="16"
-                        x2="12"
-                        y2="12"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <line
-                        x1="12"
-                        y1="8"
-                        x2="12.01"
-                        y2="8"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                    </svg>
-                    <span className="text-[13px] md:text-sm font-medium text-neutral-900 md:text-neutral-800 md:font-semibold">
-                      About Us
-                    </span>
-                  </div>
-                  <span className="text-neutral-400 md:text-neutral-300 md:group-hover:text-purple-600 md:group-hover:translate-x-0.5 transition-all duration-200">›</span>
-                </button>
-                <button
-                  onClick={() => navigate("/policy?type=customer&title=Privacy Policy")}
+                  onClick={() => navigate("/support")}
                   className="w-full flex items-center justify-between px-3 md:px-5 py-3 md:py-4 hover:bg-neutral-50 md:hover:bg-purple-50/20 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-center gap-3 md:gap-4">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-neutral-500 md:text-neutral-400 md:group-hover:text-purple-600 md:w-5 md:h-5 transition-colors duration-200">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     <span className="text-[13px] md:text-sm font-medium text-neutral-900 md:text-neutral-800 md:font-semibold">
-                      Privacy Policy
-                    </span>
-                  </div>
-                  <span className="text-neutral-400 md:text-neutral-300 md:group-hover:text-purple-600 md:group-hover:translate-x-0.5 transition-all duration-200">›</span>
-                </button>
-                <button
-                  onClick={() => navigate("/policy?type=customer&title=Terms & Conditions")}
-                  className="w-full flex items-center justify-between px-3 md:px-5 py-3 md:py-4 hover:bg-neutral-50 md:hover:bg-purple-50/20 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-neutral-500 md:text-neutral-400 md:group-hover:text-purple-600 md:w-5 md:h-5 transition-colors duration-200">
-                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9 15L11 17L15 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="text-[13px] md:text-sm font-medium text-neutral-900 md:text-neutral-800 md:font-semibold">
-                      Terms & Conditions
+                      Support
                     </span>
                   </div>
                   <span className="text-neutral-400 md:text-neutral-300 md:group-hover:text-purple-600 md:group-hover:translate-x-0.5 transition-all duration-200">›</span>
