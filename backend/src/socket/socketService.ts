@@ -39,6 +39,7 @@ const calculateETA = (distanceInMeters: number): number => {
 
 export const initializeSocket = (httpServer: HttpServer) => {
     const io = new SocketIOServer(httpServer, {
+        path: '/api/v1/socket.io', // ✅ Route through /api/v1 to bypass Nginx route limitations
         cors: {
             origin: (origin, callback) => {
                 // Allow requests with no origin (like mobile apps or server-to-server)

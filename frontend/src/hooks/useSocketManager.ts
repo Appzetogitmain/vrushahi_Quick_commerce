@@ -51,7 +51,8 @@ export const useSocketManager = (options: SocketManagerOptions) => {
         console.log(`[Socket Manager #${instanceId}] Creating new socket connection`);
         const socket = io(getSocketBaseURL(), {
             auth: { token },
-            transports: ['websocket', 'polling'],
+            path: '/api/v1/socket.io', // ✅ Route through /api/v1 to bypass Nginx route limitations
+            transports: ['polling', 'websocket'], // ✅ Polling-first for Nginx compatibility
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 2000,

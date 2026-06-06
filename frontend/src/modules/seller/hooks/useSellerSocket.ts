@@ -50,6 +50,7 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         const socketUrl = getSocketBaseURL();
         const newSocket = io(socketUrl, {
             auth: { token },
+            path: '/api/v1/socket.io', // ✅ Route through /api/v1 to bypass Nginx route limitations
             // polling-first is required for Nginx reverse proxy on VPS
             // WebSocket upgrade happens automatically after polling is established
             transports: ['polling', 'websocket'],

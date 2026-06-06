@@ -62,7 +62,8 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
             auth: {
                 token,
             },
-            transports: ['websocket', 'polling'],
+            path: '/api/v1/socket.io', // ✅ Route through /api/v1 to bypass Nginx route limitations
+            transports: ['polling', 'websocket'], // ✅ Polling-first for Nginx compatibility
             reconnection: true,
             reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
             reconnectionDelay: INITIAL_RECONNECT_DELAY,

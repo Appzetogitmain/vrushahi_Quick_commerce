@@ -7,7 +7,7 @@ import Banner from "../../../models/Banner";
  */
 export const getAllBanners = asyncHandler(async (_req: Request, res: Response) => {
   const banners = await Banner.find().sort({ order: 1 });
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     data: banners,
   });
@@ -20,11 +20,10 @@ export const createBanner = asyncHandler(async (req: Request, res: Response) => 
   const { title, image, link, order, isActive } = req.body;
 
   if (!title || !image) {
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: "Title and image are required",
     });
-    return;
   }
 
   const banner = await Banner.create({
@@ -35,7 +34,7 @@ export const createBanner = asyncHandler(async (req: Request, res: Response) => 
     isActive: isActive !== undefined ? isActive : true,
   });
 
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     data: banner,
   });
@@ -51,11 +50,10 @@ export const updateBanner = asyncHandler(async (req: Request, res: Response) => 
   const banner = await Banner.findById(id);
 
   if (!banner) {
-    res.status(404).json({
+    return res.status(404).json({
       success: false,
       message: "Banner not found",
     });
-    return;
   }
 
   if (title) banner.title = title;
@@ -66,7 +64,7 @@ export const updateBanner = asyncHandler(async (req: Request, res: Response) => 
 
   await banner.save();
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     data: banner,
   });
@@ -81,14 +79,13 @@ export const deleteBanner = asyncHandler(async (req: Request, res: Response) => 
   const banner = await Banner.findByIdAndDelete(id);
 
   if (!banner) {
-    res.status(404).json({
+    return res.status(404).json({
       success: false,
       message: "Banner not found",
     });
-    return;
   }
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "Banner deleted successfully",
   });

@@ -68,6 +68,7 @@ export const useDeliveryOrderNotifications = () => {
             auth: {
                 token,
             },
+            path: '/api/v1/socket.io', // ✅ Route through /api/v1 to bypass Nginx route limitations
             // polling-first for Nginx reverse proxy on Hostinger VPS
             // WebSocket upgrade happens automatically after polling is established
             transports: ['polling', 'websocket'],
