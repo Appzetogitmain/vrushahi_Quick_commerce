@@ -112,12 +112,7 @@ export default function Checkout() {
   const isPlaceholderUser =
     user?.name === "User" || user?.email?.endsWith("@vrushahi.temp");
 
-  // Redirect if empty
-  useEffect(() => {
-    if (!cartLoading && cart.items.length === 0 && !buyNowItem && !showOrderSuccess) {
-      navigate("/");
-    }
-  }, [cart.items.length, cartLoading, buyNowItem, navigate, showOrderSuccess]);
+  // Removed redirect if empty to prevent silent kicks when location changes cause items to be filtered out.
 
   // Load addresses and coupons
   useEffect(() => {
@@ -231,15 +226,39 @@ export default function Checkout() {
     fetchSimilar();
   }, [cart?.items?.length]);
 
-  if (cartLoading || ((cart?.items?.length || 0) === 0 && !buyNowItem && !showOrderSuccess)) {
+  if (cartLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-sm font-medium text-neutral-600">
-            {cartLoading ? "Loading checkout..." : "Redirecting..."}
+            Loading checkout...
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (((cart?.items?.length || 0) === 0 && !buyNowItem && !showOrderSuccess)) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-4 text-center">
+        <div className="w-24 h-24 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mb-6">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-neutral-900 mb-2">Cart is Empty</h2>
+        <p className="text-neutral-500 mb-8 max-w-md">
+          Your cart is empty or the selected delivery address is out of range for the items in your cart. Please update your address or add items to your cart.
+        </p>
+        <button
+          onClick={() => navigate("/")}
+          className="bg-[#ff3269] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-[#ff1f5a] transition-colors shadow-lg shadow-pink-200"
+        >
+          Return to Home
+        </button>
       </div>
     );
   }
