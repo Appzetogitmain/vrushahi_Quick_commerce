@@ -239,7 +239,7 @@ export default function OrderNotificationCard({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ duration: 0.3 }}
-            className="fixed top-4 left-4 right-4 sm:top-4 sm:left-auto sm:right-4 sm:w-auto sm:max-w-md z-50"
+            className="fixed top-4 left-4 right-4 sm:top-4 sm:left-auto sm:right-4 sm:w-auto sm:max-w-md z-[9999]"
             onClick={handleUserInteraction}
             onMouseEnter={handleUserInteraction}
             onTouchStart={handleUserInteraction}

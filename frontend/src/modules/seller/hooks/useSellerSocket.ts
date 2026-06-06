@@ -50,7 +50,14 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         const socketUrl = getSocketBaseURL();
         const newSocket = io(socketUrl, {
             auth: { token },
-            transports: ['websocket', 'polling'],
+            // polling-first is required for Nginx reverse proxy on VPS
+            // WebSocket upgrade happens automatically after polling is established
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 10000,
+            timeout: 20000,
         });
 
         newSocket.on('connect', () => {
@@ -58,6 +65,12 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
             setIsConnected(true);
 
             // Join seller room
+            newSocket.emit('join-seller-room', user.id);
+        });
+
+        // Re-join seller room on reconnect (handles PM2 restarts / network drops)
+        newSocket.io.on('reconnect', () => {
+            console.log('🔄 Seller socket reconnected, re-joining seller room...');
             newSocket.emit('join-seller-room', user.id);
         });
 
@@ -74,6 +87,11 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
 
         newSocket.on('disconnect', () => {
             console.log('❌ Seller disconnected from socket server');
+            setIsConnected(false);
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('❌ Seller socket connection error:', error.message);
             setIsConnected(false);
         });
 

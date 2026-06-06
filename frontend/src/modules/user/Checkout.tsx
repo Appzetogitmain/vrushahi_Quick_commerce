@@ -267,14 +267,18 @@ export default function Checkout() {
     ? [buyNowItem]
     : (cart?.items || []).filter((item) => item && item.product);
 
+  const deliverableItems = displayItems.filter(item => item.isDeliverable !== false);
+  const undeliverableItems = displayItems.filter(item => item.isDeliverable === false);
+  const hasUndeliverableItems = undeliverableItems.length > 0;
+
   const displayCart = {
     ...cart,
     items: displayItems,
-    itemCount: displayItems.reduce(
+    itemCount: deliverableItems.reduce(
       (sum, item) => sum + (item.quantity || 0),
       0
     ),
-    total: displayItems.reduce((sum, item) => {
+    total: deliverableItems.reduce((sum, item) => {
       const { displayPrice } = calculateProductPrice(
         item.product,
         item.variant
@@ -290,7 +294,7 @@ export default function Checkout() {
   );
   const cartItem = displayItems[0];
 
-  const itemsTotal = displayItems.reduce((sum, item) => {
+  const itemsTotal = deliverableItems.reduce((sum, item) => {
     if (!item?.product) return sum;
     const { mrp } = calculateProductPrice(item.product, item.variant);
     return sum + mrp * (item.quantity || 0);
@@ -936,6 +940,25 @@ export default function Checkout() {
   </h1>
 </header>
 
+      {/* Undeliverable Alert Banner */}
+      {hasUndeliverableItems && (
+        <div className="bg-red-50 border-b border-red-100 p-4 flex items-start gap-3">
+          <div className="text-red-500 mt-0.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-red-800 mb-1">Delivery Unavailable</h4>
+            <p className="text-xs text-red-700">
+              Your selected address is outside our delivery area for some items in your cart. Please change your address to proceed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Saved Address Section */}
       <div className="px-4 md:px-6 lg:px-8 py-3 border-b border-neutral-200 bg-white">
         <div className="mb-3 flex justify-between items-center">
@@ -1240,9 +1263,9 @@ export default function Checkout() {
         .map((item) => (
           <div
             key={item.product?.id || Math.random()}
-            className="flex gap-2 p-2 rounded-xl bg-purple-50/20 border border-purple-100/30">
+            className={`flex gap-2 p-2 rounded-xl border ${item.isDeliverable === false ? 'bg-red-50/50 border-red-100 opacity-80' : 'bg-purple-50/20 border-purple-100/30'}`}>
             {/* Product Image */}
-            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden">
+            <div className={`w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden ${item.isDeliverable === false ? 'grayscale' : ''}`}>
               {item.product?.imageUrl ? (
                 <img
                   src={item.product?.imageUrl}
@@ -1259,10 +1282,15 @@ export default function Checkout() {
             {/* Product Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-sm font-bold text-neutral-900 line-clamp-1">
+                <h3 className={`text-sm font-bold line-clamp-1 ${item.isDeliverable === false ? 'text-neutral-500 line-through' : 'text-neutral-900'}`}>
                   {item.product?.productName || item.product?.name}
                 </h3>
               </div>
+              {item.isDeliverable === false && (
+                <div className="text-[10px] text-red-600 font-bold mb-1 uppercase tracking-wider">
+                  Not Deliverable Here
+                </div>
+              )}
               <div className="text-[10px] text-neutral-500 mb-2">
                 {item.variant ? (
                   typeof item.variant === 'object' ? (
@@ -1929,8 +1957,8 @@ export default function Checkout() {
     <div className="p-3">
       <button
         onClick={handlePlaceOrder}
-        disabled={displayItems.length === 0}
-        className={`w-full py-3 px-4 font-bold text-base uppercase tracking-wider rounded-xl transition-all shadow-lg ${displayItems.length > 0
+        disabled={displayItems.length === 0 || hasUndeliverableItems}
+        className={`w-full py-3 px-4 font-bold text-base uppercase tracking-wider rounded-xl transition-all shadow-lg ${displayItems.length > 0 && !hasUndeliverableItems
           ? "bg-[#ff3269] text-white hover:bg-[#ff1f5a] shadow-pink-100"
           : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
           }`}>

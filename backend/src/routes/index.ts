@@ -23,6 +23,7 @@ import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import sellerWalletRoutes from "./sellerWalletRoutes";
 import sellerFAQRoutes from "./sellerFAQRoutes";
 import sellerCustomerRoutes from "./sellerCustomerRoutes";
+import sellerNotificationRoutes from "./sellerNotificationRoutes";
 import taxRoutes from "./taxRoutes";
 import customerProductRoutes from "./customerProductRoutes";
 import customerCategoryRoutes from "./customerCategoryRoutes";
@@ -130,6 +131,7 @@ router.use("/payment", paymentRoutes);
 router.use("/seller/dashboard", dashboardRoutes);
 console.log("Is sellerCustomerRoutes defined?", !!sellerCustomerRoutes);
 router.use("/seller", sellerCustomerRoutes);
+router.use("/seller", sellerNotificationRoutes);
 
 // Seller management routes (protected, admin only)
 router.use("/sellers", sellerRoutes);

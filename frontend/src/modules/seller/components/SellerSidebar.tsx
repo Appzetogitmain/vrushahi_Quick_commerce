@@ -148,6 +148,7 @@ const menuItems: MenuItem[] = [
   },
   { label: "Return", path: "/seller/return" },
   { label: "FAQs", path: "/seller/faqs" },
+  { label: "Settings", path: "/seller/account-settings" },
 ];
 
 export default function SellerSidebar({ onClose }: SellerSidebarProps) {

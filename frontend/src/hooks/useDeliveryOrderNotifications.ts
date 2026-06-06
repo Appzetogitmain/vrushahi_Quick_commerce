@@ -68,7 +68,9 @@ export const useDeliveryOrderNotifications = () => {
             auth: {
                 token,
             },
-            transports: ['websocket', 'polling'],
+            // polling-first for Nginx reverse proxy on Hostinger VPS
+            // WebSocket upgrade happens automatically after polling is established
+            transports: ['polling', 'websocket'],
             reconnection: true,
             reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
             reconnectionDelay: INITIAL_RECONNECT_DELAY,

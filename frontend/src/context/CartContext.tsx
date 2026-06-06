@@ -94,7 +94,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           variantId: item.variation // Preserving variation ID/value
         },
         quantity: item.quantity,
-        variant: item.variation // Also preserve it here for order placement
+        variant: item.variation, // Also preserve it here for order placement
+        isDeliverable: item.isDeliverable
       }));
   };
 

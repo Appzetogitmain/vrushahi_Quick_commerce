@@ -628,7 +628,10 @@ export async function handleOrderRejection(
         const state = notificationStates.get(orderId);
 
         if (!state) {
-            return { success: false, message: 'Order notification not found', allRejected: false };
+            // In-memory state was lost (PM2 restart / server redeploy).
+            // Allow the delivery boy to dismiss the stale popup gracefully.
+            console.warn(`⚠️ No notification state for order ${orderId} (likely PM2 restart). Allowing graceful dismiss.`);
+            return { success: true, message: 'Order notification cleared', allRejected: false };
         }
 
         // Check if already accepted

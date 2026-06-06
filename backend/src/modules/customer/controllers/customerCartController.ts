@@ -172,16 +172,24 @@ export const getCart = async (req: Request, res: Response) => {
             return res.status(200).json({ success: true, data: cart });
         }
 
-        // Filter items based on location availability and update total
-        const filteredItems = [];
+        // Evaluate items based on location availability
+        const processedItems = [];
+        const deliverableItems = [];
         let total = 0;
 
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
                 const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString());
+                
+                const processedItem = {
+                    ...(item.toObject ? item.toObject() : item),
+                    isDeliverable: isAvailable
+                };
+                processedItems.push(processedItem);
+                
                 if (isAvailable) {
-                    filteredItems.push(item);
+                    deliverableItems.push(item);
                     const price = calculateItemPrice(product, item.variation);
                     total += price * item.quantity;
                 }
@@ -194,14 +202,14 @@ export const getCart = async (req: Request, res: Response) => {
             await cart.save();
         }
 
-        // Calculate fees
-        const fees = await calculateDeliveryStuff(total, filteredItems, userLat, userLng);
+        // Calculate fees only for deliverable items
+        const fees = await calculateDeliveryStuff(total, deliverableItems, userLat, userLng);
 
         return res.status(200).json({
             success: true,
             data: {
                 ...cart.toObject(),
-                items: filteredItems,
+                items: processedItems,
                 total,
                 ...fees
             }

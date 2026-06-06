@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import vrushahiLogo from "@assets/LogoLatest.png";
 import { useAuth } from "../../../context/AuthContext";
+import SellerNotificationDropdown from "./SellerNotificationDropdown";
 
 interface SellerHeaderProps {
   onMenuClick: () => void;
@@ -118,8 +119,9 @@ export default function SellerHeader({
             />
           </button>
 
-          {/* Mobile Logout Button - Only visible on mobile */}
-          <div className="ml-auto sm:hidden">
+          {/* Mobile Action Icons - Only visible on mobile */}
+          <div className="ml-auto flex items-center gap-1 sm:hidden">
+            <SellerNotificationDropdown />
             <button
               onClick={handleLogout}
               className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
@@ -175,6 +177,9 @@ export default function SellerHeader({
 
         {/* Action Icons */}
         <div className="hidden sm:flex items-center gap-2 md:gap-4 relative">
+          {/* Notification Dropdown */}
+          <SellerNotificationDropdown />
+
           {/* Settings Button with Dropdown */}
           <div className="relative" ref={settingsRef}>
             <button

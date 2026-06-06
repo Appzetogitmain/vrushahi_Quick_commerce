@@ -5,17 +5,29 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
 
-// Socket.io base URL - extract from API_BASE_URL by removing /api/v1
-// Socket connections need the base server URL without the API path
+// Socket.io base URL
+// Priority: VITE_SOCKET_URL (explicit) > strip /api/v1 from API URL (fallback)
+// For Hostinger VPS / Nginx reverse proxy, always set VITE_SOCKET_URL explicitly
 export const getSocketBaseURL = (): string => {
-  // Use VITE_API_URL or VITE_API_BASE_URL
-  const apiBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+  // Use dedicated socket URL if set — recommended for production VPS
+  if (import.meta.env.VITE_SOCKET_URL) {
+    const url = import.meta.env.VITE_SOCKET_URL.replace(/\/$/, ''); // strip trailing slash
+    if (import.meta.env.DEV) console.log('[Socket] Using VITE_SOCKET_URL:', url);
+    return url;
+  }
 
-  // Remove /api/v1 or /api and any trailing slash from the end
+  // Fallback: derive from API URL by stripping /api/v1 suffix
+  const apiBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
   const socketUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$|\/api\/?$|\/$/, '');
+
+  if (import.meta.env.DEV) {
+    console.log('[Socket] Derived socket URL from API URL:', socketUrl);
+    console.warn('[Socket] ⚠️ Set VITE_SOCKET_URL explicitly in .env.production to avoid issues on VPS/Nginx');
+  }
 
   return socketUrl || "http://localhost:5000";
 };
+
 
 // Log the API base URL for debugging (only in development or if there's an issue)
 if (import.meta.env.DEV || !import.meta.env.VITE_API_BASE_URL) {
