@@ -785,6 +785,7 @@ export default function OrderDetail() {
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [showSpecialRequestsModal, setShowSpecialRequestsModal] =
     useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const [existingReviews, setExistingReviews] = useState<any[]>([]);
 
@@ -914,6 +915,8 @@ export default function OrderDetail() {
     isConnected,
     lastUpdate,
     error: trackingError,
+    otpRequested,
+    otpMessage,
   } = useDeliveryTracking(id);
 
   // Seller locations for the order
@@ -1017,6 +1020,16 @@ export default function OrderDetail() {
       return () => clearTimeout(timer1);
     }
   }, [confirmed, order]);
+
+  // Handle OTP socket request
+  useEffect(() => {
+    if (otpRequested && orderStatus !== "Delivered") {
+      setShowOtpModal(true);
+    }
+    if (orderStatus === "Delivered") {
+      setShowOtpModal(false);
+    }
+  }, [otpRequested, orderStatus]);
 
   // Delivery Promise Logic (24 mins)
   useEffect(() => {
@@ -1588,6 +1601,49 @@ export default function OrderDetail() {
                   Keep My Order
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* OTP Request Modal */}
+      <AnimatePresence>
+        {showOtpModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl text-center border-4 border-violet-500 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-violet-400 to-[#8b5cf6]"></div>
+              
+              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4 mt-2">
+                <span className="text-3xl">🛵</span>
+              </div>
+              
+              <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">
+                Partner Arrived!
+              </h2>
+              <p className="text-sm text-gray-500 mb-6 font-medium">
+                {otpMessage || "Your delivery partner is asking for the OTP to hand over your order."}
+              </p>
+              
+              <div className="bg-neutral-50 rounded-2xl border border-dashed border-neutral-300 p-6 mb-6">
+                <p className="text-xs text-neutral-500 font-bold uppercase tracking-widest mb-2">Delivery OTP</p>
+                <p className="text-5xl font-black tracking-[0.2em] text-[#8b5cf6]">
+                  {order?.deliveryOtp || "----"}
+                </p>
+              </div>
+              
+              <Button
+                className="w-full bg-[#8b5cf6] hover:bg-[#7c3aed] text-white border-none py-4 font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-violet-200"
+                onClick={() => setShowOtpModal(false)}>
+                Dismiss
+              </Button>
             </motion.div>
           </motion.div>
         )}

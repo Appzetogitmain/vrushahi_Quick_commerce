@@ -26,6 +26,8 @@ interface TrackingData {
     lastUpdate: Date | null
     error: string | null
     reconnectAttempts: number
+    otpRequested: boolean
+    otpMessage: string | null
 }
 
 const MAX_RECONNECT_ATTEMPTS = 5
@@ -42,6 +44,8 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         lastUpdate: null,
         error: null,
         reconnectAttempts: 0,
+        otpRequested: false,
+        otpMessage: null,
     })
 
     const socketRef = useRef<Socket | null>(null)
@@ -105,6 +109,15 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
             setTrackingData(prev => ({
                 ...prev,
                 isConnected: true,
+            }))
+        })
+
+        socket.on('otp-sent', (data: any) => {
+            console.log('🔑 OTP requested by delivery partner:', data)
+            setTrackingData(prev => ({
+                ...prev,
+                otpRequested: true,
+                otpMessage: data.message || 'Your delivery partner has arrived and is asking for the OTP.'
             }))
         })
 
