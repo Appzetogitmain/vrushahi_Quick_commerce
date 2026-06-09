@@ -7,6 +7,7 @@ import {
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import AppSettings from "../../../models/AppSettings";
+import Order from "../../../models/Order";
 // import { uploadDocument } from "../../../services/uploadService"; // File does not exist
 
 /**
@@ -234,11 +235,17 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
     kmRate: settings?.deliveryConfig?.deliveryBoyKmRate || 0
   };
 
+  const totalDeliveredCount = await Order.countDocuments({
+    deliveryBoy: userId,
+    status: "Delivered",
+  });
+
   return res.status(200).json({
     success: true,
     data: {
       ...delivery.toObject(),
-      deliveryConfig
+      deliveryConfig,
+      totalDeliveredCount
     },
   });
 });

@@ -252,6 +252,14 @@ export const updateDeliveryStatus = asyncHandler(
       updateData.isOnline = false;
     } else if (status === 'Active') {
       updateData.rejectionReason = ""; // Clear reason on approval
+      
+      // If they are being activated but don't have a PV form or deadline yet, give them 15 days by default
+      const existingRider = await Delivery.findById(id);
+      if (existingRider && !existingRider.policeVerificationForm && !existingRider.policeVerificationDeadline) {
+          const defaultDeadline = new Date();
+          defaultDeadline.setDate(defaultDeadline.getDate() + 15);
+          updateData.policeVerificationDeadline = defaultDeadline;
+      }
     }
 
     const deliveryBoy = await Delivery.findByIdAndUpdate(
@@ -450,6 +458,52 @@ export const getDeliveryBoyCashCollections = asyncHandler(
         total,
         pages: Math.ceil(total / parseInt(limit as string)),
       },
+    });
+  }
+);
+
+/**
+ * Extend Police Verification Deadline
+ */
+export const extendDeliveryBoyPvDeadline = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { additionalDays } = req.body;
+
+    if (!additionalDays || typeof additionalDays !== 'number' || additionalDays <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid number of additional days",
+      });
+    }
+
+    const deliveryBoy = await Delivery.findById(id);
+
+    if (!deliveryBoy) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery boy not found",
+      });
+    }
+
+    let currentDeadline = deliveryBoy.policeVerificationDeadline ? new Date(deliveryBoy.policeVerificationDeadline) : new Date();
+    
+    // If deadline has already passed, extend from TODAY, otherwise extend from the current deadline
+    if (currentDeadline < new Date()) {
+      currentDeadline = new Date();
+    }
+
+    currentDeadline.setDate(currentDeadline.getDate() + additionalDays);
+    
+    deliveryBoy.policeVerificationDeadline = currentDeadline;
+    await deliveryBoy.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Deadline extended by ${additionalDays} days successfully`,
+      data: {
+        policeVerificationDeadline: deliveryBoy.policeVerificationDeadline
+      }
     });
   }
 );

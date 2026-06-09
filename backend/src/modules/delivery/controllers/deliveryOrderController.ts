@@ -912,13 +912,9 @@ export const markCashPaid = asyncHandler(async (req: Request, res: Response) => 
     }
 
     if (order.qrPaymentStatus === "Pending") {
-        const now = new Date();
-        if (order.qrExpiryAt && order.qrExpiryAt > now) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "A QR payment is currently active. Please wait for it to expire or fail before marking as cash." 
-            });
-        }
+        // We allow discarding an active QR payment in favor of cash.
+        // We'll mark the QR payment as Cancelled.
+        order.qrPaymentStatus = "Cancelled";
     }
 
     const previousStatus = order.status;

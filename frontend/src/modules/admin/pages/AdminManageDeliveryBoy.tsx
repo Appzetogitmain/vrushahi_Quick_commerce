@@ -259,6 +259,54 @@ export default function AdminManageDeliveryBoy() {
         }
     };
 
+    const handleExtendDeadline = async (deliveryBoyId: string) => {
+        if (!window.confirm("Are you sure you want to extend this rider's Police Verification deadline by 15 days?")) {
+            return;
+        }
+
+        try {
+            setProcessing(deliveryBoyId);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:5000/api/admin/delivery/${deliveryBoyId}/extend-pv-deadline`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ additionalDays: 15 })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccessMessage(data.message);
+                setError('');
+                // Refresh list
+                const params: any = {
+                    page: currentPage,
+                    limit: rowsPerPage,
+                    search: searchTerm,
+                    sortBy: sortColumn || undefined,
+                    sortOrder: sortDirection,
+                };
+                if (statusFilter !== 'All') params.status = statusFilter;
+                if (availabilityFilter !== 'All') params.available = availabilityFilter;
+                const refreshResponse = await getDeliveryBoys(params);
+                if (refreshResponse.success && refreshResponse.data) {
+                    setDeliveryBoys(refreshResponse.data);
+                }
+            } else {
+                setError('Failed to extend deadline: ' + (data.message || 'Unknown error'));
+                setSuccessMessage('');
+            }
+        } catch (err: any) {
+            console.error('Error extending deadline:', err);
+            setError('Failed to extend deadline. Please try again.');
+            setSuccessMessage('');
+        } finally {
+            setProcessing(null);
+        }
+    };
+
     const handleExport = () => {
         const headers = ['Id', 'Name', 'Mobile', 'Address', 'City', 'Commission', 'Balance', 'Cash Collected', 'Status', 'Available'];
         const csvContent = [
@@ -594,20 +642,27 @@ export default function AdminManageDeliveryBoy() {
                                                     </span>
                                                 ) : (
                                                     <div className="flex flex-col">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) < new Date()
-                                                                ? 'bg-red-100 text-red-800'
-                                                                : 'bg-yellow-100 text-yellow-800'
-                                                        }`}>
-                                                            {deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) < new Date()
-                                                                ? 'Expired'
-                                                                : 'Pending'}
-                                                        </span>
-                                                        {deliveryBoy.policeVerificationDeadline && new Date(deliveryBoy.policeVerificationDeadline) >= new Date() && (
-                                                            <span className="text-[10px] text-neutral-500 mt-1">
-                                                                Ends: {new Date(deliveryBoy.policeVerificationDeadline).toLocaleDateString()}
-                                                            </span>
-                                                        )}
+                                                        {(() => {
+                                                            const deadline = deliveryBoy.policeVerificationDeadline ? new Date(deliveryBoy.policeVerificationDeadline) : null;
+                                                            if (!deadline) return <span className="text-xs font-medium text-neutral-500">Not Set</span>;
+                                                            const now = new Date();
+                                                            const diffTime = deadline.getTime() - now.getTime();
+                                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                            const isExpired = diffDays < 0;
+                                                            
+                                                            return (
+                                                                <>
+                                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                                        isExpired ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                                                                    }`}>
+                                                                        {isExpired ? 'Expired' : 'Pending'}
+                                                                    </span>
+                                                                    <span className={`text-[10px] mt-1 ${isExpired ? 'text-red-500 font-medium' : 'text-neutral-500'}`}>
+                                                                        {isExpired ? `Expired by ${Math.abs(diffDays)} day(s)` : `${diffDays} day(s) left`}
+                                                                    </span>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
                                             </td>
@@ -628,6 +683,19 @@ export default function AdminManageDeliveryBoy() {
                                                             <path d="M9 12l2 2 4-4"></path>
                                                         </svg>
                                                     </button>
+
+                                                    {(!deliveryBoy.policeVerificationForm && (!deliveryBoy.policeVerificationDeadline || new Date(deliveryBoy.policeVerificationDeadline) < new Date())) && (
+                                                        <button
+                                                            onClick={() => handleExtendDeadline(deliveryBoy._id)}
+                                                            disabled={processing === deliveryBoy._id}
+                                                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                            title="Extend PV Deadline (+15 Days)"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
 
                                                     <button
                                                         onClick={() => handleDelete(deliveryBoy._id)}

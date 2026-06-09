@@ -48,9 +48,15 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     if (accountNumber) delivery.accountNumber = accountNumber;
     if (ifscCode) delivery.ifscCode = ifscCode;
     if (upiId !== undefined) delivery.upiId = upiId;
-    if (policeVerificationForm) delivery.policeVerificationForm = policeVerificationForm;
-
-    if (policeVerificationForm) delivery.policeVerificationForm = policeVerificationForm;
+    if (policeVerificationForm) {
+        if (delivery.policeVerificationForm && delivery.policeVerificationForm.trim() !== "") {
+            return res.status(400).json({
+                success: false,
+                message: "Police verification form has already been submitted."
+            });
+        }
+        delivery.policeVerificationForm = policeVerificationForm;
+    }
 
     await delivery.save();
 
@@ -78,7 +84,10 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
 
     const delivery = await Delivery.findByIdAndUpdate(
         deliveryId,
-        { isOnline },
+        { 
+            isOnline,
+            available: isOnline ? 'Available' : 'Not Available'
+        },
         { new: true }
     );
 

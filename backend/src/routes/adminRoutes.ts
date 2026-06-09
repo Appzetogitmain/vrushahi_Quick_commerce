@@ -182,6 +182,7 @@ router.get(
   "/delivery/:id/cash-collections",
   deliveryController.getDeliveryBoyCashCollections,
 );
+router.put("/delivery/:id/extend-pv-deadline", deliveryController.extendDeliveryBoyPvDeadline);
 
 // ==================== Payment Routes ====================
 router.get("/payment-methods", paymentController.getPaymentMethods);

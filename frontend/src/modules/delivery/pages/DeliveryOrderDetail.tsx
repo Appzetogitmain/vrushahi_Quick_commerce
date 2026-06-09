@@ -893,9 +893,9 @@ export default function DeliveryOrderDetail() {
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={handleMarkCashPaid}
-                                    disabled={paymentProcessing || order.status !== 'Out for Delivery' || (qrPaymentStatus === 'pending' && qrData?.expiresAt && new Date(qrData.expiresAt) > new Date())}
+                                    disabled={paymentProcessing || order.status !== 'Out for Delivery'}
                                     className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1 ${
-                                        paymentProcessing || order.status !== 'Out for Delivery' || (qrPaymentStatus === 'pending' && qrData?.expiresAt && new Date(qrData.expiresAt) > new Date())
+                                        paymentProcessing || order.status !== 'Out for Delivery'
                                             ? 'bg-neutral-50 border-neutral-100 text-neutral-300'
                                             : 'bg-white border-neutral-200 text-neutral-700 hover:border-yellow-500 hover:bg-yellow-50'
                                     }`}

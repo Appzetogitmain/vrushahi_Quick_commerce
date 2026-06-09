@@ -42,7 +42,7 @@ export interface IOrder extends Document {
   paidVia?: "CASH" | "ONLINE_QR";
 
   // QR / Online Payment via Delivery
-  qrPaymentStatus?: "None" | "Pending" | "Paid" | "Failed";
+  qrPaymentStatus?: "None" | "Pending" | "Paid" | "Failed" | "Cancelled";
   qrRazorpayOrderId?: string;
   qrPaymentLinkId?: string;
   qrExpiryAt?: Date;
@@ -246,7 +246,7 @@ const OrderSchema = new Schema<IOrder>(
     // QR / Online Payment via Delivery
     qrPaymentStatus: {
       type: String,
-      enum: ["None", "Pending", "Paid", "Failed"],
+      enum: ["None", "Pending", "Paid", "Failed", "Cancelled"],
       default: "None",
     },
     qrRazorpayOrderId: {

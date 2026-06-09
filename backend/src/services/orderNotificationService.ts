@@ -140,10 +140,15 @@ export async function findDeliveryBoysNearLocation(
     );
 
     // 2. Fallback to the old method using DeliveryTracking if no delivery boys found with the new field
-    // Get all active and online delivery boys
+    // Get all active and online delivery boys, strictly ensuring they meet the PV requirements
     const allDeliveryBoys = await Delivery.find({
       isOnline: true,
       status: "Active",
+      paymentStatus: { $ne: "Blocked" },
+      $or: [
+        { policeVerificationForm: { $exists: true, $ne: "" } },
+        { policeVerificationDeadline: { $gt: new Date() } }
+      ],
     }).select("_id");
 
     if (allDeliveryBoys.length === 0) {

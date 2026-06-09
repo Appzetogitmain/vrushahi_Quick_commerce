@@ -153,6 +153,18 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'
     }));
 
+    let finalStatus = deliveryPartner.status;
+    let finalRejectionReason = deliveryPartner.rejectionReason;
+
+    // Auto-inactive (Rejected) UI logic for missed Police Verification
+    if (finalStatus === "Active" &&
+        !deliveryPartner.policeVerificationForm &&
+        (!deliveryPartner.policeVerificationDeadline || new Date(deliveryPartner.policeVerificationDeadline) < new Date())
+    ) {
+        finalStatus = "Rejected";
+        finalRejectionReason = "Police Verification Document is missing or deadline missed. Please upload your document to reactivate your account.";
+    }
+
     return res.status(200).json({
         success: true,
         data: {
@@ -167,8 +179,8 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             pendingOrdersList: formattedPendingList,
             policeVerificationForm: deliveryPartner.policeVerificationForm,
             policeVerificationDeadline: deliveryPartner.policeVerificationDeadline,
-            status: deliveryPartner.status,
-            rejectionReason: deliveryPartner.rejectionReason
+            status: finalStatus,
+            rejectionReason: finalRejectionReason
         }
     });
 
