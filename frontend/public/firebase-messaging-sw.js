@@ -32,7 +32,9 @@ if (messaging) {
         const notificationOptions = {
             body: payload.notification?.body || '',
             icon: '/favicon.ico',
-            data: payload.data
+            data: payload.data,
+            requireInteraction: true,
+            vibrate: [200, 100, 200, 100, 200, 100, 200]
         };
 
         self.registration.showNotification(notificationTitle, notificationOptions);

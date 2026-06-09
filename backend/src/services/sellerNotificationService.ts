@@ -2,6 +2,8 @@ import { Server as SocketIOServer } from "socket.io";
 import OrderItem from "../models/OrderItem";
 import mongoose from "mongoose";
 import Notification from "../models/Notification";
+import { sendPushNotification } from "./firebaseAdmin";
+import Seller from "../models/Seller";
 
 /**
  * Notify all sellers involved in an order about a new order or status change
@@ -52,6 +54,10 @@ export async function notifySellersOfOrderUpdate(
       `🔔 Notifying ${sellerIds.length} sellers about ${type} for order ${order.orderNumber}`,
     );
     console.log(`🔍 [DEBUG] Extracted sellerIds:`, sellerIds);
+
+    // Fetch Seller details to get FCM tokens
+    const sellers = await Seller.find({ _id: { $in: sellerIds } }).select('_id fcmTokens fcmTokenMobile');
+    const sellerMap = new Map(sellers.map(s => [s._id.toString(), s]));
 
     // Debug: print all active seller rooms
     const activeRooms = Array.from(io.sockets.adapter.rooms.keys()).filter(
@@ -138,6 +144,33 @@ export async function notifySellersOfOrderUpdate(
         console.log(
           `⚠️ WARNING: Room ${roomName} is empty. Seller may not be connected or room name mismatch.`,
         );
+      }
+
+      // Send Push Notification (FCM)
+      const seller = sellerMap.get(sellerId);
+      if (seller) {
+        const tokens = [
+          ...(seller.fcmTokenMobile || []),
+          ...(seller.fcmTokens || []),
+        ];
+
+        if (tokens.length > 0) {
+          sendPushNotification(tokens, {
+            title,
+            body: message,
+            data: {
+              type: type === "NEW_ORDER" ? "new_order" : "order_update",
+              orderId: order._id.toString(),
+              orderNumber: order.orderNumber,
+              link: `/seller/orders/${order._id}`,
+              click_action: "FLUTTER_NOTIFICATION_CLICK",
+            },
+          }).catch(err => {
+            console.error(`Failed to send FCM to seller ${sellerId}:`, err);
+          });
+          
+          console.log(`📱 Sent FCM push notification to seller ${sellerId} (${tokens.length} tokens)`);
+        }
       }
     }
   } catch (error) {
