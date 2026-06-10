@@ -125,7 +125,7 @@ export default function SellerNotificationDropdown() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-neutral-100 z-50 overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="absolute -right-8 sm:right-0 mt-2 w-[300px] sm:w-96 bg-white rounded-xl shadow-xl border border-neutral-100 z-50 overflow-hidden flex flex-col max-h-[85vh]">
           {/* Header */}
           <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between bg-neutral-50 shrink-0">
             <h3 className="font-bold text-neutral-800">Notifications</h3>

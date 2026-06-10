@@ -27,7 +27,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="flex h-[100dvh] bg-neutral-50 overflow-hidden">
       {/* Real-time Notification Alert */}
       <SellerNotificationAlert
         notification={activeNotification}

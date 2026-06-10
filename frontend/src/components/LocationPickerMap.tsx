@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, MarkerF } from '@react-google-maps/api';
 
 interface LocationPickerMapProps {
   initialLat: number;
@@ -36,6 +36,7 @@ export default function LocationPickerMap({
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [center, setCenter] = useState(defaultCenter);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
   // Update center when props change
   useEffect(() => {
@@ -61,6 +62,19 @@ export default function LocationPickerMap({
 
   const onUnmount = useCallback(function callback(map: google.maps.Map) {
     setMap(null);
+  }, []);
+
+  const onCenterChanged = useCallback(() => {
+    if (map && markerRef.current) {
+      const currentCenter = map.getCenter();
+      if (currentCenter) {
+        markerRef.current.setPosition(currentCenter);
+      }
+    }
+  }, [map]);
+
+  const onMarkerLoad = useCallback((marker: google.maps.Marker) => {
+    markerRef.current = marker;
   }, []);
 
   const onIdle = useCallback(() => {
@@ -96,23 +110,18 @@ export default function LocationPickerMap({
         onLoad={onLoad}
         onUnmount={onUnmount}
         onIdle={onIdle}
+        onCenterChanged={onCenterChanged}
         options={mapOptions}
       >
-        {/* We don't need a marker because we use a fixed center pin */}
-      </GoogleMap>
-
-      {/* Fixed Center Pin Overlay */}
-      <div
-        className="absolute top-1/2 left-1/2 z-10 pointer-events-none"
-        style={{ transform: 'translate(-50%, -100%)' }}
-      >
-        <img
-          src="https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2.png" // Google Maps standard red pin
-          alt="Center Location"
-          className="w-[27px] h-[43px]"
-          style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))' }}
+        <MarkerF
+          position={center}
+          onLoad={onMarkerLoad}
+          options={{
+            clickable: false,
+            draggable: false,
+          }}
         />
-      </div>
+      </GoogleMap>
     </div>
   );
 }

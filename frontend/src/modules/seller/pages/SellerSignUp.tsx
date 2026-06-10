@@ -81,8 +81,14 @@ export default function SellerSignUp() {
     const { name, value } = e.target;
     
     if (name === "sellerName") {
-      if (/[0-9]/.test(value)) {
-        showToast("Numbers are not allowed in seller name", "error");
+      if (value !== "" && /[^a-zA-Z\s]/.test(value)) {
+        showToast("Only alphabetic characters and spaces are allowed in seller name", "error");
+        return;
+      }
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    } else if (name === "city") {
+      if (value !== "" && /[^a-zA-Z\s]/.test(value)) {
+        showToast("Only alphabetic characters and spaces are allowed in city name", "error");
         return;
       }
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -200,6 +206,9 @@ export default function SellerSignUp() {
     } else if (currentStep === 3) {
       if (!formData.latitude || !formData.longitude) return showToast("Please select your shop location on the map", "error");
       if (!formData.city) return showToast("City name is required", "error");
+      if (!/^[a-zA-Z\s]+$/.test(formData.city)) {
+        return showToast("City should only contain alphabetic characters and spaces", "error");
+      }
     } else if (currentStep === 4) {
       if (!formData.idProof) return showToast("Please upload ID proof (Aadhar/PAN)", "error");
       if (!formData.profile) return showToast("Please upload owner photo", "error");
@@ -215,6 +224,13 @@ export default function SellerSignUp() {
       }
     } else if (currentStep === 5) {
       if (formData.workingHours.workingDays.length === 0) return showToast("Please select at least one working day", "error");
+      
+      if (formData.workingHours.open && formData.workingHours.close) {
+        if (formData.workingHours.open >= formData.workingHours.close) {
+          return showToast("Opening time must be earlier than closing time", "error");
+        }
+      }
+
       handleFinalSubmit();
       return;
     }

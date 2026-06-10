@@ -185,8 +185,13 @@ const SellerAccountSettings = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    if (name === 'sellerName' && /[0-9]/.test(value)) {
-      showToast('Numbers are not allowed in seller name', 'error');
+    if (name === 'sellerName' && value !== '' && /[^a-zA-Z\s]/.test(value)) {
+      showToast('Only alphabetic characters and spaces are allowed in seller name', 'error');
+      return;
+    }
+
+    if (name === 'city' && value !== '' && /[^a-zA-Z\s]/.test(value)) {
+      showToast('Only alphabetic characters and spaces are allowed in city name', 'error');
       return;
     }
 
@@ -275,6 +280,20 @@ const SellerAccountSettings = () => {
         showToast('Mobile number must be exactly 10 digits', 'error');
         setSaveLoading(false);
         return;
+      }
+
+      if (sellerData.city && !/^[a-zA-Z\s]+$/.test(sellerData.city)) {
+        showToast('City should only contain alphabetic characters and spaces', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.workingHours?.open && sellerData.workingHours?.close) {
+        if (sellerData.workingHours.open >= sellerData.workingHours.close) {
+          showToast('Opening time must be earlier than closing time', 'error');
+          setSaveLoading(false);
+          return;
+        }
       }
 
       // Validate Bank Details

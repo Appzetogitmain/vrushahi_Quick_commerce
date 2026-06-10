@@ -197,6 +197,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     status: "Inactive", // New delivery partners start as Inactive
     balance: 0,
     cashCollected: 0,
+    location: {
+      type: "Point",
+      coordinates: [0, 0]
+    }
   } as any);
 
   // Generate token (Optional: usually registration doesn't login immediately if approval needed, but for seamless UX we can)

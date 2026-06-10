@@ -17,6 +17,7 @@ export default function SellerHeader({
   const location = useLocation();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, logout } = useAuth();
   const settingsRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
@@ -123,7 +124,7 @@ export default function SellerHeader({
           <div className="ml-auto flex items-center gap-1 sm:hidden">
             <SellerNotificationDropdown />
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
               aria-label="Logout">
               <svg
@@ -266,9 +267,8 @@ export default function SellerHeader({
             )}
           </div>
 
-          {/* Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
             aria-label="Logout">
             <svg
@@ -288,6 +288,36 @@ export default function SellerHeader({
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center transform transition-all">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">Ready to Leave?</h3>
+            <p className="text-neutral-500 mb-6 text-sm">Are you sure you want to log out of your seller dashboard?</p>
+            
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2.5 bg-neutral-100 text-neutral-700 font-semibold rounded-xl hover:bg-neutral-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-sm shadow-red-200"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
