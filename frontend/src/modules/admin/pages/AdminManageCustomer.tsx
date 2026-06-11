@@ -19,7 +19,8 @@ type SortDirection = "asc" | "desc";
 export default function AdminManageCustomer() {
   const { isAuthenticated, token } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [dateRange, setDateRange] = useState("");
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+  const today = new Date().toISOString().split("T")[0];
   const [statusFilter, setStatusFilter] = useState<"Active" | "Inactive" | undefined>(
     undefined
   );
@@ -254,13 +255,23 @@ export default function AdminManageCustomer() {
                 <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Date Range
                 </label>
-                <input
-                  type="text"
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  placeholder="MM/DD/YYYY - MM/DD/YYYY"
-                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    max={today}
+                    value={dateRange.startDate}
+                    onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                  <span className="text-neutral-500">-</span>
+                  <input
+                    type="date"
+                    max={today}
+                    value={dateRange.endDate}
+                    onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-700 mb-1">
