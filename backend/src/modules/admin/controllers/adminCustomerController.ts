@@ -38,14 +38,31 @@ export const getAllCustomers = asyncHandler(
       Customer.find(query)
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit as string)),
+        .limit(parseInt(limit as string))
+        .lean(),
       Customer.countDocuments(query),
     ]);
+
+    // Calculate actual totalOrders and totalSpent from Orders collection
+    const customerIds = customers.map(c => c._id);
+    const customerStats = await Order.aggregate([
+      { $match: { customer: { $in: customerIds } } },
+      { $group: { _id: "$customer", totalOrders: { $sum: 1 }, totalSpent: { $sum: "$total" } } }
+    ]);
+
+    const formattedCustomers = customers.map(customer => {
+      const stats = customerStats.find(s => s._id?.toString() === customer._id?.toString());
+      return {
+        ...customer,
+        totalOrders: stats ? stats.totalOrders : 0,
+        totalSpent: stats ? stats.totalSpent : 0,
+      };
+    });
 
     return res.status(200).json({
       success: true,
       message: "Customers fetched successfully",
-      data: customers,
+      data: formattedCustomers,
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
