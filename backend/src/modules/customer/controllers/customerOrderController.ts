@@ -10,6 +10,8 @@ import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
+import AppSettings from "../../../models/AppSettings";
+import { getRoadDistances } from "../../../services/mapService";
 
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
@@ -329,7 +331,9 @@ export const createOrder = async (req: Request, res: Response) => {
             orderItemIds.push(newOrderItem._id as mongoose.Types.ObjectId);
         }
 
-        // Validate all sellers can deliver to user's location
+        // Validate all sellers can deliver to user's location and compute actual delivery distance
+        let maxOrderDistance = 0;
+        let sellerLocationsForDistance: { lat: number; lng: number }[] = [];
         if (sellerIds.size > 0) {
             const uniqueSellerIds = Array.from(sellerIds).map(id => new mongoose.Types.ObjectId(id));
 
@@ -362,7 +366,36 @@ export const createOrder = async (req: Request, res: Response) => {
                         message: `Your delivery address is ${distance.toFixed(2)} km away from ${seller.storeName}. They only deliver within ${serviceRadius} km. Please select products from sellers in your area.`,
                     });
                 }
+                
+                if (distance > maxOrderDistance) {
+                    maxOrderDistance = distance;
+                }
+                sellerLocationsForDistance.push({ lat: sellerLat, lng: sellerLng });
             }
+        }
+
+        // Get road distance for exact rider payout if Google Maps is configured
+        try {
+            const settings = await AppSettings.findOne();
+            if (settings?.deliveryConfig?.isDistanceBased && settings.deliveryConfig.googleMapsKey && sellerLocationsForDistance.length > 0) {
+                const distances = await getRoadDistances(
+                    sellerLocationsForDistance,
+                    { lat: deliveryLat, lng: deliveryLng },
+                    settings.deliveryConfig.googleMapsKey
+                );
+                if (distances && distances.length > 0) {
+                    const maxRoadDistance = Math.max(...distances);
+                    newOrder.deliveryDistanceKm = maxRoadDistance;
+                } else {
+                    newOrder.deliveryDistanceKm = Number(maxOrderDistance.toFixed(2));
+                }
+            } else {
+                // Fallback to haversine distance if Maps is disabled or fails
+                newOrder.deliveryDistanceKm = Number(maxOrderDistance.toFixed(2));
+            }
+        } catch (distErr) {
+            console.error("Error fetching road distances, falling back to Haversine:", distErr);
+            newOrder.deliveryDistanceKm = Number(maxOrderDistance.toFixed(2));
         }
 
         // Apply fees
