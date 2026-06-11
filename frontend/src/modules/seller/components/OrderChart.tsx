@@ -167,7 +167,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
     const containerRect = containerRef.current.getBoundingClientRect();
     const viewBoxWidth = chartWidth / zoom;
     const scaleX = svgRect.width / viewBoxWidth;
-    const mouseX = ((e.clientX - svgRect.left) / scaleX) - panX;
+    const mouseX = ((e.clientX - svgRect.left) / scaleX) + panX;
     const mouseY = (e.clientY - svgRect.top) / scaleX;
 
     // Find the nearest point
@@ -225,7 +225,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
     setPanX((prev) => {
       const maxPan = chartWidth * (1 - 1 / zoom);
       const newPan = prev - adjustedDeltaX;
-      return Math.max(-maxPan, Math.min(0, newPan));
+      return Math.max(0, Math.min(maxPan, newPan));
     });
 
     setPanStart({ x: e.clientX, y: e.clientY });
@@ -244,8 +244,9 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
         setZoom(newZoom);
         const centerX = (start + end) / 2;
         const centerXPixel = padding.left + (centerX / (data.length - 1)) * graphWidth;
-        const newPanX = -(centerXPixel - chartWidth / 2);
-        setPanX(Math.max(-chartWidth * (1 - 1 / newZoom), Math.min(0, newPanX)));
+        const newPanX = centerXPixel - chartWidth / (2 * newZoom);
+        const maxPan = chartWidth * (1 - 1 / newZoom);
+        setPanX(Math.max(0, Math.min(maxPan, newPanX)));
       }
       setBrushStart(null);
       setBrushEnd(null);
@@ -260,7 +261,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
         const svgRect = svgRef.current.getBoundingClientRect();
         const viewBoxWidth = chartWidth / zoom;
         const scaleX = svgRect.width / viewBoxWidth;
-        const mouseX = ((e.clientX - svgRect.left) / scaleX) - panX;
+        const mouseX = ((e.clientX - svgRect.left) / scaleX) + panX;
         if (mouseX >= padding.left && mouseX <= padding.left + graphWidth) {
           const index = Math.round(((mouseX - padding.left) / graphWidth) * (data.length - 1));
           setBrushStart(index);
@@ -275,7 +276,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
       const svgRect = svgRef.current.getBoundingClientRect();
       const viewBoxWidth = chartWidth / zoom;
       const scaleX = svgRect.width / viewBoxWidth;
-      const mouseX = ((e.clientX - svgRect.left) / scaleX) - panX;
+      const mouseX = ((e.clientX - svgRect.left) / scaleX) + panX;
       if (mouseX >= padding.left && mouseX <= padding.left + graphWidth) {
         const index = Math.round(((mouseX - padding.left) / graphWidth) * (data.length - 1));
         setBrushEnd(index);
@@ -294,7 +295,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
     const maxPan = chartWidth * (1 - 1 / newZoom);
     setZoom(newZoom);
     // Constrain panX to keep graph within bounds
-    setPanX(Math.max(-maxPan, Math.min(0, newPanX)));
+    setPanX(Math.max(0, Math.min(maxPan, newPanX)));
   };
 
   const handleZoomOut = () => {
@@ -309,7 +310,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
       const newPanX = centerPoint - newViewBoxWidth / 2;
       const maxPan = chartWidth * (1 - 1 / newZoom);
       // Constrain panX to keep graph within bounds
-      setPanX(Math.max(-maxPan, Math.min(0, newPanX)));
+      setPanX(Math.max(0, Math.min(maxPan, newPanX)));
     }
     setZoom(newZoom);
   };

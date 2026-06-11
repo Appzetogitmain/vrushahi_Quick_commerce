@@ -10,6 +10,8 @@ export default function SellerSubCategory() {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [isApiPaginated, setIsApiPaginated] = useState(false);
 
     // Fetch subcategories from API
     useEffect(() => {
@@ -30,6 +32,11 @@ export default function SellerSubCategory() {
                     // Extract pagination info if available
                     if ((response as any).pagination) {
                         setTotalPages((response as any).pagination.pages);
+                        setTotalItems((response as any).pagination.total);
+                        setIsApiPaginated(true);
+                    } else {
+                        setIsApiPaginated(false);
+                        setTotalItems(response.data.length);
                     }
                 } else {
                     setError(response.message || 'Failed to fetch subcategories');
@@ -63,10 +70,14 @@ export default function SellerSubCategory() {
     }
 
     // Pagination (client-side if API doesn't handle it)
-    const displayTotalPages = totalPages > 1 ? totalPages : Math.ceil(sortedSubcategories.length / rowsPerPage);
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
-    const displayedSubcategories = sortedSubcategories.slice(startIndex, endIndex);
+    const displayTotalPages = isApiPaginated ? totalPages : Math.ceil(sortedSubcategories.length / rowsPerPage);
+    const startIndex = isApiPaginated ? 0 : (currentPage - 1) * rowsPerPage;
+    const endIndex = isApiPaginated ? sortedSubcategories.length : startIndex + rowsPerPage;
+    const displayedSubcategories = isApiPaginated ? sortedSubcategories : sortedSubcategories.slice(startIndex, endIndex);
+
+    const displayTotalItems = isApiPaginated ? totalItems : sortedSubcategories.length;
+    const displayStartIndex = (currentPage - 1) * rowsPerPage;
+    const displayEndIndex = Math.min(displayStartIndex + rowsPerPage, displayTotalItems);
 
     const handleSort = (column: string) => {
         if (sortColumn === column) {
@@ -120,10 +131,10 @@ export default function SellerSubCategory() {
                 </div>
 
                 {/* Pagination Footer */}
-                {totalPages > 1 && (
+                {displayTotalPages > 1 && (
                     <div className="p-4 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-center gap-3">
                         <div className="text-sm text-neutral-600">
-                            Showing {startIndex + 1} to {Math.min(endIndex, sortedSubcategories.length)} of {sortedSubcategories.length} entries
+                            Showing {displayStartIndex + 1} to {displayEndIndex} of {displayTotalItems} entries
                         </div>
                         <div className="flex items-center gap-2">
                             <button

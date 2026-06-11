@@ -1314,6 +1314,11 @@ export default function Checkout() {
                         <span className="text-sm font-bold text-neutral-900">
                           ₹{displayPrice}
                         </span>
+                        {item.taxBreakdown && item.taxBreakdown.taxAmount > 0 && (
+                          <span className="text-[9px] text-neutral-400 font-medium ml-1">
+                            (Incl. {item.taxBreakdown.taxPercentage}% {item.taxBreakdown.taxName})
+                          </span>
+                        )}
                       </>
                     );
                   })()}
@@ -1501,27 +1506,32 @@ export default function Checkout() {
   </h2>
 
   <div className="space-y-2">
-    {/* Items total */}
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs text-neutral-700">Items total</span>
-        {savedAmount > 0 && (
-          <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
-            Saved ₹{savedAmount}
-          </span>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5">
-        {itemsTotal > discountedTotal && (
-          <span className="text-xs text-neutral-500 line-through">
-            ₹{itemsTotal}
-          </span>
-        )}
+    {/* Items total (Base Price) */}
+    {displayCart.totalBasePrice !== undefined && (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-neutral-700">Total Base Price</span>
+        </div>
         <span className="text-xs font-medium text-neutral-900">
-          ₹{discountedTotal}
+          ₹{displayCart.totalBasePrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
         </span>
       </div>
-    </div>
+    )}
+
+    {/* Total Tax */}
+    {displayCart.totalTax !== undefined && displayCart.totalTax > 0 && (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <span className="text-xs text-neutral-700">Total Tax</span>
+        </div>
+        <span className="text-xs font-medium text-neutral-900">
+          ₹{displayCart.totalTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+        </span>
+      </div>
+    )}
 
     {/* Handling charge */}
     <div className="flex items-center justify-between">
@@ -1579,6 +1589,8 @@ export default function Checkout() {
         )}
       </div>
     </div>
+
+    {/* Tax Info (Removed old Includes Tax line) */}
 
     {/* Coupon discount */}
     {selectedCoupon && currentCouponDiscount > 0 && (

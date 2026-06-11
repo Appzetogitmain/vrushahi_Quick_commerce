@@ -91,7 +91,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           pack: item.product.pack || '1 unit',
           categoryId: item.product.category || '',
           description: item.product.description,
-          variantId: item.variation // Preserving variation ID/value
+          variantId: item.variation, // Preserving variation ID/value
+          tax: item.product.tax // Map tax object from API
         },
         quantity: item.quantity,
         variant: item.variation, // Also preserve it here for order placement
@@ -152,14 +153,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const cart: Cart = useMemo(() => {
     // Filter out any items with null products before computing totals
     const validItems = items.filter(item => item?.product);
+    let totalTax = 0;
     const total = validItems.reduce((sum, item) => {
       const { displayPrice } = calculateProductPrice(item.product, item.variant);
-      return sum + displayPrice * (item.quantity || 0);
+      const itemTotal = displayPrice * (item.quantity || 0);
+
+      let itemTaxBreakdown = undefined;
+      if ((item.product as any).tax && (item.product as any).tax.percentage) {
+        const taxPercentage = (item.product as any).tax.percentage;
+        const taxName = (item.product as any).tax.name || 'Tax';
+        // Since price is inclusive of tax, extract the tax amount
+        const itemTax = itemTotal - (itemTotal / (1 + (taxPercentage / 100)));
+        totalTax += itemTax;
+
+        itemTaxBreakdown = {
+          taxName,
+          taxPercentage,
+          taxAmount: itemTax,
+          basePrice: itemTotal - itemTax
+        };
+      }
+
+      // We attach it to the item locally
+      item.taxBreakdown = itemTaxBreakdown;
+
+      return sum + itemTotal;
     }, 0);
     const itemCount = validItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
     return {
       items: validItems,
       total,
+      totalBasePrice: total - totalTax,
+      totalTax,
       itemCount,
       estimatedDeliveryFee: estimatedFee,
       platformFee,

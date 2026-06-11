@@ -39,6 +39,8 @@ export default function SellerProductList() {
   } | null>(null);
   const [allCategories, setAllCategories] = useState<apiCategory[]>([]);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
 
   // Close export dropdown when clicking anywhere else
@@ -131,9 +133,15 @@ export default function SellerProductList() {
     sortDirection,
   ]);
 
-  const handleDelete = async (productId: string) => {
+  const handleDelete = (productId: string) => {
+    setProductToDelete(productId);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
     try {
-      const response = await deleteProduct(productId);
+      const response = await deleteProduct(productToDelete);
       if (
         response.success ||
         response.message === "Product deleted successfully"
@@ -144,6 +152,9 @@ export default function SellerProductList() {
       }
     } catch (error) {
       console.error("Error deleting product:", error);
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
     }
   };
 
@@ -303,7 +314,7 @@ export default function SellerProductList() {
   const categories = allCategories.map((cat) => cat.name);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0 w-full">
       {/* Page Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-neutral-800">
@@ -317,7 +328,7 @@ export default function SellerProductList() {
       </div>
 
       {/* Content Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex-1 flex flex-col">
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex-1 flex flex-col min-w-0 w-full">
         <div className="p-4 border-b border-neutral-100 font-medium text-neutral-700">
           View Product List
         </div>
@@ -623,8 +634,8 @@ export default function SellerProductList() {
 
         {/* Table */}
         {!loading && !error && (
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse border border-neutral-200">
+        <div className="overflow-x-auto flex-1 w-full pb-4 sm:pb-0">
+          <table className="w-full min-w-[1200px] text-left border-collapse border border-neutral-200 whitespace-nowrap">
             <thead>
               <tr className="bg-neutral-50 text-xs font-bold text-neutral-800">
                 <th className="p-4 w-16 border border-neutral-200">
@@ -745,11 +756,15 @@ export default function SellerProductList() {
                             </svg>
                           </button>
                         )}
-                        <span>{variation.productId}</span>
+                        <span title={variation.productId} className="cursor-help border-b border-dashed border-neutral-300">
+                          {variation.productId.length > 8 ? `...${variation.productId.slice(-6)}` : variation.productId}
+                        </span>
                       </div>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
-                      {variation.variationId}
+                      <span title={variation.variationId} className="cursor-help border-b border-dashed border-neutral-300">
+                        {variation.variationId.length > 8 ? `...${variation.variationId.slice(-6)}` : variation.variationId}
+                      </span>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       <div className="flex flex-col gap-1">
@@ -928,6 +943,47 @@ export default function SellerProductList() {
         </div>
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4 mx-auto">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-center text-neutral-900 mb-2">Delete Product</h3>
+              <p className="text-center text-neutral-600">
+                Are you sure you want to delete this product? This action cannot be undone and all variations will be removed.
+              </p>
+            </div>
+            <div className="p-4 bg-neutral-50 border-t border-neutral-100 flex gap-3 justify-end">
+              <button
+                disabled={isDeleting}
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 font-medium text-neutral-700 bg-white border border-neutral-300 rounded hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="px-4 py-2 font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Product"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

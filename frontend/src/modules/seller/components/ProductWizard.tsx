@@ -21,6 +21,7 @@ import {
   compressImage,
   createImagePreview,
 } from "../../../utils/imageUpload";
+import { useToast } from "../../../context/ToastContext";
 
 interface ProductWizardProps {
   formData: any;
@@ -96,7 +97,53 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
     { id: 5, name: "Discovery", icon: TrendingUp },
   ];
 
+  const { showToast } = useToast();
+
   const nextStep = () => {
+    if (currentStep === 1) {
+      if (!formData.productName.trim() || !formData.headerCategory || !formData.category) {
+        showToast("Please fill in all required fields (Product Name, Header Category, Category)", "error");
+        return;
+      }
+      if (!/[a-zA-Z0-9]/.test(formData.productName)) {
+        showToast("Product Name must contain at least one letter or number", "error");
+        return;
+      }
+      if (formData.netQuantity && !/[a-zA-Z0-9]/.test(formData.netQuantity)) {
+        showToast("Net Quantity must contain at least one letter or number", "error");
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.price || !formData.compareAtPrice) {
+        showToast("Please fill in Pricing details (MRP, Selling Price)", "error");
+        return;
+      }
+    } else if (currentStep === 3) {
+      const hasCoverImage = !!mainImagePreview;
+      const hasVariationImage = variations.some((v) => !!v.imageFile || !!v.imagePreview || !!v.image);
+      if (!hasCoverImage && !hasVariationImage) {
+        showToast("At least one product image is required (Cover Image or on Variation)", "error");
+        return;
+      }
+      if (variations.length === 0) {
+        showToast("Add at least one variation", "error");
+        return;
+      }
+    } else if (currentStep === 4) {
+      if (formData.isReturnable === "Yes" && !formData.maxReturnDays) {
+        showToast("Please provide the return period in days", "error");
+        return;
+      }
+      if (formData.manufacturer && !/[a-zA-Z0-9]/.test(formData.manufacturer)) {
+        showToast("Manufacturer name must contain at least one letter or number", "error");
+        return;
+      }
+      if (formData.madeIn && !/^[a-zA-Z\s]+$/.test(formData.madeIn)) {
+        showToast("Country of Origin should only contain alphabetic characters", "error");
+        return;
+      }
+    }
+
     if (currentStep < totalSteps) setCurrentStep(currentStep + 1);
   };
 
@@ -402,11 +449,11 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   <div>
                     <span className="text-sm text-teal-800 font-medium">Profit Calculator:</span>
                     <span className="ml-2 text-lg font-bold text-teal-900">
-                      ₹{Math.max(0, (formData.price || 0) - (formData.costPrice || 0))}
+                      ₹{Math.max(0, (Number(formData.price) || 0) - (Number(formData.costPrice) || 0))}
                     </span>
                   </div>
                   <div className="text-sm font-bold text-teal-600 bg-white px-3 py-1 rounded-lg">
-                    {formData.compareAtPrice > formData.price ? `${Math.round(((formData.compareAtPrice - formData.price)/formData.compareAtPrice)*100)}% DISCOUNT` : "NO DISCOUNT"}
+                    {Number(formData.compareAtPrice) > Number(formData.price) ? `${Math.round(((Number(formData.compareAtPrice) - Number(formData.price))/Number(formData.compareAtPrice))*100)}% DISCOUNT` : "NO DISCOUNT"}
                   </div>
                 </div>
               </div>
@@ -476,16 +523,18 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                         </button>
                       </div>
                     ))}
-                    <div className="relative aspect-square rounded-xl border-2 border-dashed border-neutral-200 hover:border-teal-500 hover:bg-neutral-50 flex items-center justify-center transition-all cursor-pointer">
-                      <Plus className="text-neutral-400" />
-                      <input
-                        type="file"
-                        multiple
-                        onChange={handleGalleryImagesChange}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        accept="image/*"
-                      />
-                    </div>
+                    {galleryImagePreviews.length < 5 && (
+                      <div className="relative aspect-square rounded-xl border-2 border-dashed border-neutral-200 hover:border-teal-500 hover:bg-neutral-50 flex items-center justify-center transition-all cursor-pointer">
+                        <Plus className="text-neutral-400" />
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleGalleryImagesChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          accept="image/*"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -685,12 +734,16 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
               </h3>
               <div className="bg-white p-6 rounded-2xl border border-neutral-200">
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">One-line Description (Tagline)</label>
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="block text-sm font-medium text-neutral-700 whitespace-normal break-words pr-2">One-line Description (Tagline)</label>
+                    <span className="text-xs text-neutral-400 font-medium">{formData.smallDescription?.length || 0}/60</span>
+                  </div>
                   <input
                     type="text"
                     name="smallDescription"
                     value={formData.smallDescription || ''}
                     onChange={handleChange}
+                    maxLength={60}
                     placeholder="Brief summary e.g. Fresh organic apples from Shimla"
                     className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 transition-all outline-none"
                   />
@@ -962,26 +1015,29 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                <span>Back</span>
              </button>
              
-             {currentStep < totalSteps ? (
-               <button
-                 type="button"
-                 onClick={nextStep}
-                 className="flex items-center space-x-2 py-3 px-10 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-teal-100"
-               >
-                 <span>Save & Continue</span>
-                 <ChevronRight size={20} />
-               </button>
-             ) : (
+             <div className="flex space-x-3 sm:space-x-4">
+               {currentStep < totalSteps && (
+                 <button
+                   type="button"
+                   onClick={nextStep}
+                   className="flex items-center space-x-2 py-3 px-6 sm:px-8 bg-neutral-800 hover:bg-neutral-900 text-white rounded-xl font-bold transition-all shadow-lg"
+                 >
+                   <span className="hidden sm:inline">Save & Continue</span>
+                   <span className="sm:hidden">Next</span>
+                   <ChevronRight size={20} />
+                 </button>
+               )}
                <button
                  type="submit"
                  disabled={uploading}
                  onClick={onSubmit}
-                 className="flex items-center space-x-2 py-3 px-12 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-teal-100 group"
+                 className="flex items-center space-x-2 py-3 px-6 sm:px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-teal-100 group"
                >
                  {uploading ? <RefreshCw className="animate-spin" /> : <Zap size={20} className="group-hover:scale-110 transition-transform" fill="currentColor" />}
-                 <span>{isEdit ? "Update Listing" : "Publish Product"}</span>
+                 <span className="hidden sm:inline">{isEdit ? "Update Listing" : "Publish Product"}</span>
+                 <span className="sm:hidden">{isEdit ? "Update" : "Publish"}</span>
                </button>
-             )}
+             </div>
           </div>
         </div>
       ) : (

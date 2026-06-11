@@ -43,7 +43,8 @@ const calculateItemPrice = (product: any, variationSelector: any) => {
 const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] = []) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
-        select: 'price discPrice variations seller status publish productName'
+        select: 'price discPrice variations seller status publish productName tax',
+        populate: { path: 'tax', select: 'name percentage' }
     });
 
     let total = 0;
@@ -163,7 +164,8 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                populate: { path: 'tax', select: 'name percentage' }
             }
         });
 
@@ -328,7 +330,8 @@ export const addToCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                populate: { path: 'tax', select: 'name percentage' }
             }
         });
 
@@ -416,7 +419,8 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                populate: { path: 'tax', select: 'name percentage' }
             }
         });
 
@@ -481,7 +485,8 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                populate: { path: 'tax', select: 'name percentage' }
             }
         });
 

@@ -294,7 +294,7 @@ export default function SellerOrderDetail() {
         item.srNo.toString(),
         item.product,
         `₹${item.price.toFixed(2)}`,
-        `${item.tax.toFixed(2)} (${item.taxPercent.toFixed(2)}%)`,
+        `${item.tax.toFixed(2)} (${item.taxPercent.toFixed(2)}%${item.taxName ? ' ' + item.taxName : ''})`,
         item.qty.toString(),
         `₹${item.subtotal.toFixed(2)}`,
       ];
@@ -668,7 +668,7 @@ export default function SellerOrderDetail() {
                       ₹{item.price.toFixed(2)}
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">
-                      {item.tax.toFixed(2)} ({item.taxPercent.toFixed(2)}%)
+                      {item.tax.toFixed(2)} ({item.taxPercent.toFixed(2)}%{item.taxName ? ' ' + item.taxName : ''})
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-900">
                       {item.qty}

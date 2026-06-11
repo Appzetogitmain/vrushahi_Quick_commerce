@@ -328,8 +328,13 @@ const OrderSummaryCard = ({
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900 text-sm">
-                      ₹{item.total?.toFixed(0) || (item.unitPrice * item.quantity).toFixed(0)}
+                      ₹{item.total?.toFixed(2) || (item.unitPrice * item.quantity).toFixed(2)}
                     </p>
+                    {item.taxAmount > 0 && (
+                      <p className="text-[9px] text-gray-400 font-medium">
+                        (Incl. {item.taxPercentage}% {item.taxName || 'Tax'})
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -388,10 +393,20 @@ const OrderSummaryCard = ({
 
         {/* Bill Details */}
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-medium text-gray-900">₹{order.subtotal?.toFixed(2)}</span>
-          </div>
+          {order.items && order.items.some((item: any) => item.basePrice !== undefined) ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Total Base Price</span>
+              <span className="font-medium text-gray-900">
+                ₹{order.items.reduce((sum: number, item: any) => sum + ((item.basePrice || 0) * (item.quantity || 1)), 0).toFixed(2)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Items total</span>
+              <span className="font-medium text-gray-900">₹{order.subtotal?.toFixed(2)}</span>
+            </div>
+          )}
+
           {order.fees?.deliveryFee > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Delivery Fee</span>
@@ -406,7 +421,7 @@ const OrderSummaryCard = ({
           )}
           {order.tax > 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">GST</span>
+              <span className="text-gray-500">Total Tax</span>
               <span className="font-medium text-gray-900">₹{order.tax.toFixed(2)}</span>
             </div>
           )}

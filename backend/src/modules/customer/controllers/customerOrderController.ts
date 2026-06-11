@@ -149,6 +149,7 @@ export const createOrder = async (req: Request, res: Response) => {
         });
 
         let calculatedSubtotal = 0;
+        let calculatedTax = 0;
         const orderItemIds: mongoose.Types.ObjectId[] = [];
         const sellerIds = new Set<string>(); // Track unique sellers
 
@@ -256,6 +257,11 @@ export const createOrder = async (req: Request, res: Response) => {
                 throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}${variationValue ? ' (' + variationValue + ')' : ''}`);
             }
 
+            // Populate tax if available to calculate the tax portion
+            if (product.tax) {
+                await product.populate('tax');
+            }
+
             // Track seller IDs to validate location
             if (product.seller) {
                 sellerIds.add(product.seller.toString());
@@ -284,6 +290,18 @@ export const createOrder = async (req: Request, res: Response) => {
             const itemTotal = itemPrice * qty;
             calculatedSubtotal += itemTotal;
 
+            // Calculate Inclusive Tax for this item
+            let itemTax = 0;
+            let taxPct = 0;
+            let taxNm = '';
+            if (product.tax && (product.tax as any).percentage) {
+                taxPct = (product.tax as any).percentage;
+                taxNm = (product.tax as any).name || '';
+                // Since price is inclusive of tax, the tax component is: Total - (Total / (1 + (Tax% / 100)))
+                itemTax = itemTotal - (itemTotal / (1 + (taxPct / 100)));
+            }
+            calculatedTax += itemTax;
+
             const newOrderItemData = {
                 order: newOrder._id,
                 product: product._id,
@@ -295,7 +313,11 @@ export const createOrder = async (req: Request, res: Response) => {
                 quantity: qty,
                 total: itemTotal,
                 variation: variationValue || (selectedVariation as any)?.title || selectedVariation?.value || (selectedVariation as any)?.pack || selectedVariation?.name,
-                status: 'Pending'
+                status: 'Pending',
+                taxName: taxNm,
+                taxPercentage: taxPct,
+                taxAmount: itemTax,
+                basePrice: itemTotal - itemTax
             };
 
             const newOrderItem = new OrderItem(newOrderItemData);
@@ -350,6 +372,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
         // Update Order with calculated values and items
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
+        newOrder.tax = Number(calculatedTax.toFixed(2));
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
 

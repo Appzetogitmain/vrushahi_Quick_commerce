@@ -211,16 +211,15 @@ export default function SellerSalesReport() {
 
                             {/* Search */}
                             <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
                                 <input
                                     type="text"
-                                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-full sm:w-48"
+                                    className="px-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-full sm:w-48 placeholder-neutral-400"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    placeholder=""
+                                    placeholder="Search:"
                                 />
                             </div>
                         </div>

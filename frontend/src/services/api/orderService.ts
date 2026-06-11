@@ -26,6 +26,8 @@ export interface OrderItem {
   price: number;
   tax: number;
   taxPercent: number;
+  taxName?: string;
+  basePrice?: number;
   qty: number;
   subtotal: number;
 }

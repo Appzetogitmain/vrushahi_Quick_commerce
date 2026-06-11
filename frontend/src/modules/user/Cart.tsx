@@ -169,8 +169,8 @@ export default function Cart() {
                       </div>
 
                       <div className="flex flex-wrap items-end justify-between gap-4">
-                        <div className="flex flex-col">
-                           <div className="flex items-center gap-2 mb-1">
+                        <div className="flex flex-col gap-1">
+                           <div className="flex items-center gap-2">
                             <span className="text-base md:text-xl font-bold text-neutral-800">
                               ₹{displayPrice.toLocaleString('en-IN')}
                             </span>
@@ -180,6 +180,11 @@ export default function Cart() {
                               </span>
                             )}
                           </div>
+                          {item.taxBreakdown && item.taxBreakdown.taxAmount > 0 && (
+                            <span className="text-[10px] text-neutral-400 font-medium">
+                              (Incl. {item.taxBreakdown.taxPercentage}% {item.taxBreakdown.taxName})
+                            </span>
+                          )}
                           {hasDiscount && (
                             <span className="text-[10px] font-black text-green-600 uppercase tracking-wider bg-green-50 px-2 py-0.5 rounded-full w-fit">
                               Saved ₹{(mrp - displayPrice).toLocaleString('en-IN')}
@@ -222,10 +227,18 @@ export default function Cart() {
               <h2 className="text-lg md:text-xl font-bold text-neutral-800 mb-6 relative">Bill Summary</h2>
               
               <div className="space-y-4 mb-8 relative">
-                <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
-                  <span className="font-medium">Item Total</span>
-                  <span className="font-semibold text-neutral-800">₹{cart.total.toLocaleString('en-IN')}</span>
-                </div>
+                {cart.totalBasePrice !== undefined && (
+                  <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
+                    <span className="font-medium">Total Base Price</span>
+                    <span className="font-semibold text-neutral-800">₹{cart.totalBasePrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                {cart.totalTax !== undefined && cart.totalTax > 0 && (
+                  <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
+                    <span className="font-medium">Total Tax</span>
+                    <span className="font-semibold text-neutral-800">₹{cart.totalTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium">Platform Fee</span>
@@ -236,11 +249,15 @@ export default function Cart() {
                   </div>
                   <span className="font-semibold text-neutral-800">₹{platformFee.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base">
+                <div className="flex justify-between items-center text-neutral-500 text-sm md:text-base border-b border-neutral-100 pb-4">
                   <span className="font-medium">Delivery Fee</span>
                   <span className={`font-semibold ${deliveryFee === 0 ? 'text-green-600' : 'text-neutral-800'}`}>
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toLocaleString('en-IN')}`}
                   </span>
+                </div>
+                <div className="flex justify-between items-center text-neutral-800 text-base md:text-lg pt-2">
+                  <span className="font-bold">Total Payable</span>
+                  <span className="font-black">₹{(cart.total + platformFee + deliveryFee).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
                 </div>
 
             {cart.total < threshold && (

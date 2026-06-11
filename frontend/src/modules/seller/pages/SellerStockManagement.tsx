@@ -216,14 +216,14 @@ export default function SellerStockManagement() {
                 </div>
 
                 {/* Filters and Controls */}
-                <div className="p-4 flex flex-col sm:flex-row flex-wrap gap-4 items-start sm:items-center justify-between border-b border-neutral-100">
-                    <div className="flex flex-wrap gap-3">
-                        <div>
+                <div className="p-4 flex flex-col gap-4 border-b border-neutral-100">
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+                        <div className="flex-1 min-w-[150px]">
                             <label className="block text-xs text-neutral-600 mb-1">Filter By Category</label>
                             <select
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
+                                className="w-full bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
                             >
                                 <option value="All Category">All Category</option>
                                 {categories.map(cat => (
@@ -231,24 +231,24 @@ export default function SellerStockManagement() {
                                 ))}
                             </select>
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-[150px]">
                             <label className="block text-xs text-neutral-600 mb-1">Filter by Status</label>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
+                                className="w-full bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
                             >
                                 <option value="All Products">All Products</option>
                                 <option value="Published">Published</option>
                                 <option value="Unpublished">Unpublished</option>
                             </select>
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-[150px]">
                             <label className="block text-xs text-neutral-600 mb-1">Filter by Stock</label>
                             <select
                                 value={stockFilter}
                                 onChange={(e) => setStockFilter(e.target.value)}
-                                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
+                                className="w-full bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
                             >
                                 <option value="All Products">All Products</option>
                                 <option value="In Stock">In Stock</option>
@@ -256,8 +256,9 @@ export default function SellerStockManagement() {
                             </select>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
+                    
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between">
+                        <div className="flex items-center justify-between sm:justify-start gap-2">
                             <span className="text-sm text-neutral-600">Show</span>
                             <select
                                 value={rowsPerPage}
@@ -270,75 +271,76 @@ export default function SellerStockManagement() {
                                 <option value={100}>100</option>
                             </select>
                         </div>
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsExportOpen(!isExportOpen)}
-                                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Export
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                            </button>
-                            {isExportOpen && (
-                                <div className="absolute right-0 mt-2 w-36 bg-white rounded-md shadow-lg border border-neutral-200 z-10 py-1">
-                                    <button
-                                        onClick={() => {
-                                            setIsExportOpen(false);
-                                            const headers = ['Variation Id', 'Product Id', 'Product Name', 'Seller Name', 'Variation', 'Current Stock', 'Status', 'Category'];
-                                            const csvContent = [
-                                                headers.join(','),
-                                                ...filteredItems.map(item => [
-                                                    item.variationId,
-                                                    item.productId,
-                                                    `"${item.name}"`,
-                                                    `"${item.seller}"`,
-                                                    `"${item.variation}"`,
-                                                    item.stock,
-                                                    item.status,
-                                                    `"${item.category}"`
-                                                ].join(','))
-                                            ].join('\n');
-                                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                                            const link = document.createElement('a');
-                                            const url = URL.createObjectURL(blob);
-                                            link.setAttribute('href', url);
-                                            link.setAttribute('download', `stock_${new Date().toISOString().split('T')[0]}.csv`);
-                                            link.style.visibility = 'hidden';
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                                    >
-                                        Export as CSV
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setIsExportOpen(false);
-                                            alert("Excel export coming soon!");
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                                    >
-                                        Export as Excel
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
-                            <input
-                                type="text"
-                                className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder=""
-                            />
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsExportOpen(!isExportOpen)}
+                                    className="w-full sm:w-auto justify-center bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Export
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                {isExportOpen && (
+                                    <div className="absolute right-0 mt-2 w-full sm:w-36 bg-white rounded-md shadow-lg border border-neutral-200 z-10 py-1">
+                                        <button
+                                            onClick={() => {
+                                                setIsExportOpen(false);
+                                                const headers = ['Variation Id', 'Product Id', 'Product Name', 'Seller Name', 'Variation', 'Current Stock', 'Status', 'Category'];
+                                                const csvContent = [
+                                                    headers.join(','),
+                                                    ...filteredItems.map(item => [
+                                                        item.variationId,
+                                                        item.productId,
+                                                        `"${item.name}"`,
+                                                        `"${item.seller}"`,
+                                                        `"${item.variation}"`,
+                                                        item.stock,
+                                                        item.status,
+                                                        `"${item.category}"`
+                                                    ].join(','))
+                                                ].join('\n');
+                                                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                                const link = document.createElement('a');
+                                                const url = URL.createObjectURL(blob);
+                                                link.setAttribute('href', url);
+                                                link.setAttribute('download', `stock_${new Date().toISOString().split('T')[0]}.csv`);
+                                                link.style.visibility = 'hidden';
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                                        >
+                                            Export as CSV
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsExportOpen(false);
+                                                alert("Excel export coming soon!");
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                                        >
+                                            Export as Excel
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    className="w-full sm:w-48 px-3 py-1.5 bg-neutral-100 border border-neutral-200 rounded text-sm focus:ring-1 focus:ring-teal-500 placeholder-neutral-400"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search:"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -407,8 +409,16 @@ export default function SellerStockManagement() {
                         <tbody>
                             {filteredItems.map((item) => (
                                 <tr key={item.variationId} className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
-                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">{item.variationId}</td>
-                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">{item.productId}</td>
+                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">
+                                        <span title={item.variationId} className="cursor-help border-b border-dashed border-neutral-300">
+                                            {item.variationId.length > 8 ? `...${item.variationId.slice(-6)}` : item.variationId}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 align-middle border border-neutral-200 text-xs font-mono">
+                                        <span title={item.productId} className="cursor-help border-b border-dashed border-neutral-300">
+                                            {item.productId.length > 8 ? `...${item.productId.slice(-6)}` : item.productId}
+                                        </span>
+                                    </td>
                                     <td className="p-4 align-middle border border-neutral-200 font-medium">{item.name}</td>
                                     <td className="p-4 align-middle border border-neutral-200">{item.seller}</td>
                                     <td className="p-4 border border-neutral-200">
@@ -496,11 +506,11 @@ export default function SellerStockManagement() {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="px-4 py-3 border-t border-neutral-200 flex items-center justify-between">
-                    <div className="text-sm text-neutral-700">
+                <div className="px-4 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-sm text-neutral-700 text-center sm:text-left">
                         Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredItems.length)} of {filteredItems.length} entries
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap justify-center items-center gap-2">
                         <button
                             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}

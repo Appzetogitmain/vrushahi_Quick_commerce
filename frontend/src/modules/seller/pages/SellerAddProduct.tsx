@@ -62,6 +62,9 @@ export default function SellerAddProduct() {
     mainImageUrl: "",
     galleryImageUrls: [] as string[],
     // New Fields
+    price: "",
+    compareAtPrice: "",
+    stock: "",
     costPrice: "",
     minOrderQuantity: "1",
     maxOrderLimit: "0",
@@ -155,7 +158,7 @@ export default function SellerAddProduct() {
               variationType: product.variationType || "",
               manufacturer: product.manufacturer || "",
               madeIn: product.madeIn || "",
-              tax: (product.tax as any)?._id || (product as any).taxId || "",
+              tax: (product.tax as any)?._id || product.tax || (product as any).taxId || "",
               isReturnable: product.isReturnable ? "Yes" : "No",
               maxReturnDays: product.maxReturnDays?.toString() || "",
               fssaiLicNo: product.fssaiLicNo || "",
@@ -163,6 +166,9 @@ export default function SellerAddProduct() {
               mainImageUrl: product.mainImageUrl || product.mainImage || "",
               galleryImageUrls: product.galleryImages || product.galleryImageUrls || [],
               // New fields
+              price: product.discPrice?.toString() || product.variations?.[0]?.discPrice?.toString() || "",
+              compareAtPrice: product.price?.toString() || product.variations?.[0]?.price?.toString() || "",
+              stock: product.stock?.toString() || product.variations?.[0]?.stock?.toString() || "",
               costPrice: (product as any).costPrice?.toString() || "",
               minOrderQuantity: (product as any).minOrderQuantity?.toString() || "1",
               maxOrderLimit: (product as any).maxOrderLimit?.toString() || "0",
@@ -266,6 +272,16 @@ export default function SellerAddProduct() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    const currentCount = galleryImageFiles.length + formData.galleryImageUrls.length;
+    const MAX_GALLERY_IMAGES = 5;
+
+    if (currentCount + files.length > MAX_GALLERY_IMAGES) {
+      showToast(`You can upload a maximum of ${MAX_GALLERY_IMAGES} gallery images`, "error");
+      const allowedCount = Math.max(0, MAX_GALLERY_IMAGES - currentCount);
+      if (allowedCount === 0) return;
+      files.splice(allowedCount); // Only keep allowed number of files
+    }
+
     try {
       const compressedFiles = await Promise.all(
         files.map(file => {
@@ -352,6 +368,18 @@ export default function SellerAddProduct() {
     e.preventDefault();
     if (!formData.productName.trim()) {
       showToast("Product name is required", "error");
+      return;
+    }
+    if (!/[a-zA-Z0-9]/.test(formData.productName)) {
+      showToast("Product name must contain at least one letter or number", "error");
+      return;
+    }
+    if (formData.manufacturer && !/[a-zA-Z0-9]/.test(formData.manufacturer)) {
+      showToast("Manufacturer name must contain at least one letter or number", "error");
+      return;
+    }
+    if (formData.madeIn && !/^[a-zA-Z\s]+$/.test(formData.madeIn)) {
+      showToast("Country of Origin should only contain alphabetic characters", "error");
       return;
     }
     if (variations.length === 0) {

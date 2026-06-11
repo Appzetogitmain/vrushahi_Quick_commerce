@@ -18,6 +18,12 @@ export interface IOrderItem extends Document {
   // Variation
   variation?: string;
 
+  // Tax Details
+  taxName?: string;
+  taxPercentage?: number;
+  taxAmount?: number;
+  basePrice?: number;
+
   // Status
   status: "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
 
@@ -79,6 +85,27 @@ const OrderItemSchema = new Schema<IOrderItem>(
     variation: {
       type: String,
       trim: true,
+    },
+
+    // Tax Details
+    taxName: {
+      type: String,
+      trim: true,
+    },
+    taxPercentage: {
+      type: Number,
+      min: [0, "Tax percentage cannot be negative"],
+      default: 0,
+    },
+    taxAmount: {
+      type: Number,
+      min: [0, "Tax amount cannot be negative"],
+      default: 0,
+    },
+    basePrice: {
+      type: Number,
+      min: [0, "Base price cannot be negative"],
+      default: 0,
     },
 
     // Status

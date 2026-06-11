@@ -130,10 +130,21 @@ export default function Invoice() {
     );
   }
 
-  const subtotal = order.subtotal || 0;
+  const subtotal = order.subtotal || order.items?.reduce((sum: number, item: any) => {
+    const unitPrice = item.product?.price || item.unitPrice || item.price || 0;
+    const quantity = item.quantity || 1;
+    return sum + (item.total || unitPrice * quantity);
+  }, 0) || 0;
+
   const deliveryFee = order.fees?.deliveryFee || 0;
   const platformFee = order.fees?.platformFee || 0;
-  const totalAmount = order.totalAmount || subtotal + deliveryFee + platformFee;
+  const totalAmount = order.totalAmount || order.total || subtotal + deliveryFee + platformFee;
+  
+  const baseSubtotal = order.items && order.items.some((item: any) => item.basePrice !== undefined)
+    ? order.items.reduce((sum: number, item: any) => sum + ((item.basePrice || 0) * (item.quantity || 1)), 0)
+    : subtotal;
+  
+  const totalTax = order.tax || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,7 +266,10 @@ export default function Invoice() {
                     Quantity
                   </th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">
-                    Unit Price
+                    Base Price
+                  </th>
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">
+                    Tax
                   </th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900">
                     Total
@@ -300,7 +314,19 @@ export default function Invoice() {
                         {quantity}
                       </td>
                       <td className="text-right py-4 px-4 text-gray-700">
-                        {formatCurrency(unitPrice)}
+                        {formatCurrency(item.basePrice !== undefined ? item.basePrice : unitPrice)}
+                      </td>
+                      <td className="text-right py-4 px-4 text-gray-700">
+                        {item.taxAmount !== undefined ? (
+                          <div className="flex flex-col items-end">
+                            <span>{formatCurrency(item.taxAmount)}</span>
+                            {item.taxPercentage > 0 && (
+                              <span className="text-[10px] text-gray-400 font-medium">({item.taxPercentage}% {item.taxName})</span>
+                            )}
+                          </div>
+                        ) : (
+                          "Inc."
+                        )}
                       </td>
                       <td className="text-right py-4 px-4 font-medium text-gray-900">
                         {formatCurrency(itemTotal)}
@@ -316,8 +342,8 @@ export default function Invoice() {
           <div className="flex justify-end mb-8">
             <div className="w-full md:w-80 space-y-3">
               <div className="flex justify-between text-gray-700">
-                <span>Subtotal</span>
-                <span className="font-medium">{formatCurrency(subtotal)}</span>
+                <span>Subtotal (Base Price)</span>
+                <span className="font-medium">{formatCurrency(baseSubtotal)}</span>
               </div>
               {deliveryFee > 0 && (
                 <div className="flex justify-between text-gray-700">
@@ -332,6 +358,14 @@ export default function Invoice() {
                   <span>Platform Fee</span>
                   <span className="font-medium">
                     {formatCurrency(platformFee)}
+                  </span>
+                </div>
+              )}
+              {totalTax > 0 && (
+                <div className="flex justify-between text-gray-700">
+                  <span>Total Tax</span>
+                  <span className="font-medium">
+                    {formatCurrency(totalTax)}
                   </span>
                 </div>
               )}
