@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { getHelpSupport } from '../../../services/api/delivery/deliveryService';
+import api from '../../../services/api/config';
 import { Phone, Mail, MessageCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -24,9 +25,37 @@ export default function DeliveryHelp() {
   useEffect(() => {
     const fetchHelp = async () => {
       try {
+        setLoading(true);
         const data = await getHelpSupport();
         setFaqs(data.faqs || []);
-        setContacts(data.contact || []);
+
+        try {
+          const settingsRes = await api.get("/customer/home/settings");
+          if (settingsRes.data.success) {
+            const settings = settingsRes.data.data;
+            const adminContacts = [];
+            if (settings.supportPhone) {
+              adminContacts.push({
+                label: "Phone Support",
+                value: settings.supportPhone,
+                icon: "phone"
+              });
+            }
+            if (settings.supportEmail) {
+              adminContacts.push({
+                label: "Email Support",
+                value: settings.supportEmail,
+                icon: "email"
+              });
+            }
+            setContacts(adminContacts.length > 0 ? adminContacts : (data.contact || []));
+          } else {
+            setContacts(data.contact || []);
+          }
+        } catch (settingsError) {
+          console.error("Failed to load settings info, falling back", settingsError);
+          setContacts(data.contact || []);
+        }
       } catch (error) {
         console.error("Failed to load help data", error);
       } finally {
