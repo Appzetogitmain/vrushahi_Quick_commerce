@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sendOTP, verifyOTP } from '../../services/api/auth/customerAuthService';
 import { useAuth } from '../../context/AuthContext';
@@ -6,7 +6,7 @@ import OTPInput from '../../components/OTPInput';
 import PolicyModal from '../../components/PolicyModal';
 import Lottie from 'lottie-react';
 import groceryAnimation from '../../../assets/animation/Grocery-animation.json';
-import logoImg from '../../assets/WhatsApp Image 2026-05-20 at 12.50.35.jpeg';
+import logoImg from '@assets/LogoLatest.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,7 +17,18 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPolicy, setShowPolicy] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'customer' });
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleContinue = async () => {
     if (mobileNumber.length !== 10) return;
@@ -31,6 +42,7 @@ export default function Login() {
         setSessionId(response.sessionId);
       }
       setShowOTP(true);
+      setResendTimer(30); // Start the 30-second timer
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to initiate call. Please try again.');
     } finally {
@@ -45,7 +57,6 @@ export default function Login() {
     try {
       const response = await verifyOTP(mobileNumber, otp, sessionId);
       if (response.success && response.data) {
-        // Update auth context with user data
         login(response.data.token, {
           id: response.data.user.id,
           name: response.data.user.name,
@@ -54,6 +65,7 @@ export default function Login() {
           walletAmount: response.data.user.walletAmount,
           refCode: response.data.user.refCode,
           status: response.data.user.status,
+          userType: 'Customer',
         });
         navigate('/');
       }
@@ -65,15 +77,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex flex-col relative overflow-x-hidden overflow-y-auto">
 
       {/* Background Decorative Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-[-10%] left-[20%] w-64 h-64 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob pointer-events-none"></div>
+      <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] left-[20%] w-64 h-64 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000 pointer-events-none"></div>
 
-      {/* Main Card */}
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 relative z-10 transition-all duration-300">
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full p-4 min-h-[500px] relative z-10">
+        {/* Main Card */}
+        <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/50 relative transition-all duration-300">
 
         {/* Animation Section */}
         <div className="w-full bg-gradient-to-b from-white/50 to-transparent p-6 pb-0 flex flex-col items-center">
@@ -180,10 +194,14 @@ export default function Login() {
                 </button>
                 <button
                   onClick={handleContinue}
-                  disabled={loading}
-                  className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm bg-purple-50 text-[#ba9af7] border border-[#ba9af7]/30 hover:bg-purple-100 transition-colors"
+                  disabled={loading || resendTimer > 0}
+                  className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
+                    resendTimer > 0 
+                      ? 'bg-neutral-100 text-neutral-400 cursor-not-allowed border border-transparent' 
+                      : 'bg-purple-50 text-[#ba9af7] border border-[#ba9af7]/30 hover:bg-purple-100'
+                  }`}
                 >
-                  {loading ? 'Sending...' : 'Resend OTP'}
+                  {loading ? 'Sending...' : resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
                 </button>
               </div>
             </div>
@@ -214,6 +232,7 @@ export default function Login() {
             </p>
         </div>
       </div>
+      </div>
 
       <PolicyModal 
         isOpen={showPolicy}
@@ -223,7 +242,7 @@ export default function Login() {
       />
 
       {/* Footer Branding */}
-      <div className="absolute bottom-6 left-0 right-0 text-center">
+      <div className="w-full text-center pb-6 pt-4 shrink-0 relative z-10">
         <p className="text-xs font-medium text-neutral-500 opacity-60 uppercase tracking-widest">
           Powered by Vrushahi
         </p>

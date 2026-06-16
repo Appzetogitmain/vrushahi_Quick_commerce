@@ -411,8 +411,8 @@ export const getHomeContent = async (req: Request, res: Response) => {
           logo: seller.logo,
           banner: seller.storeBanner || "",
           address: seller.address || "",
-          rating: seller.rating || (4.0 + Math.random() * 0.9).toFixed(1), // Mock rating if not set for visual flair
-          reviewsCount: seller.reviewsCount || Math.floor(Math.random() * 1000) + 100, // Mock reviews for visual flair
+          rating: seller.rating || 0,
+          reviewsCount: seller.reviewsCount || 0,
           isShopOpen: seller.isShopOpen !== false,
           distance: distance,
           isNearby: isNearby && matchesCategory,
@@ -833,8 +833,8 @@ export const getGlobalSearch = async (req: Request, res: Response) => {
         logo: seller.logo,
         banner: seller.storeBanner || "",
         address: seller.address || "",
-        rating: seller.rating || 4.2,
-        reviewsCount: seller.reviewsCount || Math.floor(Math.random() * 500) + 50,
+        rating: seller.rating || 0,
+        reviewsCount: seller.reviewsCount || 0,
         isShopOpen: seller.isShopOpen !== false,
         distance: distance,
         isNearby: isNearby,

@@ -39,7 +39,19 @@ const HomeBannerCarousel = ({ banners }: HomeBannerCarouselProps) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="absolute inset-0">
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, { offset }) => {
+              if (offset.x < -50) {
+                // Swipe Left - Next Slide
+                setCurrentSlide((prev) => (prev + 1) % banners.length);
+              } else if (offset.x > 50) {
+                // Swipe Right - Previous Slide
+                setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
+              }
+            }}
+            className="absolute inset-0 z-0">
             <Link
               to={banners[currentSlide].link}
               className="block w-full h-full">

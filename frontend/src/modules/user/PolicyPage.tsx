@@ -35,10 +35,26 @@ export default function PolicyPage() {
     fetchPolicy();
   }, [type, titleParam]);
 
+  const getHeaderBg = () => {
+    switch(type) {
+      case 'delivery': return 'bg-orange-50';
+      case 'seller': return 'bg-blue-50';
+      default: return 'bg-[#f0e6f7]';
+    }
+  };
+
+  const getSpinnerColor = () => {
+    switch(type) {
+      case 'delivery': return 'border-orange-500';
+      case 'seller': return 'border-blue-600';
+      default: return 'border-purple-600';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans pb-20">
       {/* Header */}
-      <div className="bg-[#f0e6f7] border-b border-neutral-100 pb-4 pt-6 px-4 flex items-center gap-4 sticky top-0 z-10 backdrop-blur-md bg-white/80">
+      <div className={`${getHeaderBg()} border-b border-neutral-100 pb-4 pt-6 px-4 flex items-center gap-4 sticky top-0 z-10 backdrop-blur-md bg-white/80`}>
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-full hover:bg-black/5 transition-colors"
@@ -62,7 +78,7 @@ export default function PolicyPage() {
       <div className="px-6 py-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600 mb-4"></div>
+            <div className={`animate-spin rounded-full h-10 w-10 border-b-2 ${getSpinnerColor()} mb-4`}></div>
             <p className="text-neutral-500 font-medium text-sm">Loading policy details...</p>
           </div>
         ) : policy ? (

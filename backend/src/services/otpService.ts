@@ -83,7 +83,7 @@ function normalizeMobileNumber(mobile: string): string {
  * Build DLT-compliant message
  */
 function buildOtpMessage(otp: string): string {
-  const appName = process.env.APP_NAME || 'vrushahi';
+  const appName = 'Vrushahi Market';
   return `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
 }
 

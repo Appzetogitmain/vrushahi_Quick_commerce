@@ -176,14 +176,57 @@ export default function ProductCard({
       return;
     }
 
-    isOperationPendingRef.current = true;
+    const productId = String((product as any).id || product._id);
 
+    // If product has variants, handle carefully
+    if (product.variations && product.variations.length > 0) {
+      const firstVariant = product.variations[0];
+      const variantId = (firstVariant as any)._id;
+
+      // If we don't have a valid variant _id, navigate to product page so the user can pick properly
+      if (!variantId) {
+        navigate(`/product/${productId}`);
+        showToast('Please select a variant', 'info');
+        return;
+      }
+
+      // If there are MULTIPLE variants, navigate to product page for explicit selection
+      if (product.variations.length > 1) {
+        navigate(`/product/${productId}`);
+        showToast('Please select a variant to add to cart', 'info');
+        return;
+      }
+
+      // Only ONE variant with a valid _id: auto-add it
+      isOperationPendingRef.current = true;
+      try {
+        const vTitle = (firstVariant as any).title || (firstVariant as any).name || (firstVariant as any).value || product.pack || "Standard";
+        const productToAdd = {
+          ...product,
+          variantId: variantId,
+          selectedVariant: firstVariant,
+          variantTitle: vTitle,
+          // Use discPrice if set, otherwise fall back to variant price
+          price: (firstVariant as any).price || product.price,
+          discPrice: (firstVariant as any).discPrice || 0,
+          mrp: (firstVariant as any).price || (firstVariant as any).compareAtPrice || product.mrp,
+        } as any;
+        await addToCart(productToAdd, addButtonRef.current);
+      } catch (error) {
+        console.error("Error adding to cart:", error);
+      } finally {
+        isOperationPendingRef.current = false;
+      }
+      return;
+    }
+
+    // No variants: add product directly
+    isOperationPendingRef.current = true;
     try {
       await addToCart(product, addButtonRef.current);
     } catch (error) {
       console.error("Error adding to cart:", error);
     } finally {
-      // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
     }
   };
@@ -198,7 +241,9 @@ export default function ProductCard({
 
     try {
       const productId = String((product as any).id || product._id);
-      await updateQuantity(productId, inCartQty - 1);
+      const variantId = (cartItem?.product as any)?.variantId || (cartItem?.product as any)?.selectedVariant?._id || cartItem?.variant;
+      const variantTitle = (cartItem?.product as any)?.variantTitle || (cartItem?.product as any)?.pack;
+      await updateQuantity(productId, inCartQty - 1, variantId as string, variantTitle as string);
     } catch (error) {
       console.error("Error decreasing quantity:", error);
     }
@@ -216,14 +261,42 @@ export default function ProductCard({
     try {
       if (inCartQty > 0) {
         const productId = String((product as any).id || product._id);
-        await updateQuantity(productId, inCartQty + 1);
+        const variantId = (cartItem?.product as any)?.variantId || (cartItem?.product as any)?.selectedVariant?._id || cartItem?.variant;
+        const variantTitle = (cartItem?.product as any)?.variantTitle || (cartItem?.product as any)?.pack;
+        await updateQuantity(productId, inCartQty + 1, variantId as string, variantTitle as string);
       } else {
-        await addToCart(product, addButtonRef.current);
+        // First add: use same logic as handleAdd
+        const productId = String((product as any).id || product._id);
+        if (product.variations && product.variations.length > 0) {
+          const firstVariant = product.variations[0];
+          const variantId = (firstVariant as any)._id;
+
+          if (!variantId || product.variations.length > 1) {
+            navigate(`/product/${productId}`);
+            showToast('Please select a variant to add to cart', 'info');
+            return;
+          }
+
+          const vTitle = (firstVariant as any).title || (firstVariant as any).name || (firstVariant as any).value || product.pack || "Standard";
+          const productToAdd = {
+            ...product,
+            variantId: variantId,
+            selectedVariant: firstVariant,
+            variantTitle: vTitle,
+            price: (firstVariant as any).price || product.price,
+            discPrice: (firstVariant as any).discPrice || 0,
+            mrp: (firstVariant as any).price || (firstVariant as any).compareAtPrice || product.mrp,
+          } as any;
+          await addToCart(productToAdd, addButtonRef.current);
+        } else {
+          await addToCart(product, addButtonRef.current);
+        }
       }
     } catch (error) {
       console.error("Error increasing quantity:", error);
     }
   };
+
 
   return (
     <motion.div
@@ -360,6 +433,15 @@ export default function ProductCard({
             </span>
           )}
         </div>
+
+        {/* Options indicator for multi-variant products */}
+        {product.variations && product.variations.length > 1 && (
+          <div className="mb-1">
+            <span className="text-[9px] font-bold text-[#ff3269] bg-pink-50 px-1.5 py-0.5 rounded-md border border-pink-100">
+              {product.variations.length} options
+            </span>
+          </div>
+        )}
 
         {/* Meta Info: Rating & Time Stacked */}
         <div className="mt-auto flex flex-col gap-1 pt-1">

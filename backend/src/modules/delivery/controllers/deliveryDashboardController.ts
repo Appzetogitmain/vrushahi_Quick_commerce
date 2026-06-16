@@ -165,11 +165,18 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         finalRejectionReason = "Police Verification Document is missing or deadline missed. Please upload your document to reactivate your account.";
     }
 
+    const settings = await AppSettings.getSettings();
+    const riderCashLimit = deliveryPartner.cashLimit || settings.riderCashLimit || 500;
+    const isCashLimitReached = deliveryPartner.pendingAdminPayout >= riderCashLimit;
+
     return res.status(200).json({
         success: true,
         data: {
             dailyCollection: result.dailyCollection,
             cashBalance: deliveryPartner.cashCollected, // This field stores total cash holding
+            pendingAdminPayout: deliveryPartner.pendingAdminPayout,
+            cashLimit: riderCashLimit,
+            isCashLimitReached: isCashLimitReached,
             pendingOrders: result.pendingOrders,
             allOrders: result.allOrdersToday,
             returnOrders: result.returnOrdersToday,

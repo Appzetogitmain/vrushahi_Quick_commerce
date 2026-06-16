@@ -13,86 +13,73 @@ export default function OTPInput({
   length = 4,
   onComplete,
   disabled = false,
-  focusBorderClass = 'focus:border-green-500',
-  focusRingClass = 'focus:ring-green-100',
-  hoverBorderClass = 'hover:border-green-300',
+  focusBorderClass = 'border-green-500 ring-4 ring-green-100',
+  focusRingClass = '', // Not strictly needed with the unified approach but kept for prop compatibility
+  hoverBorderClass = '',
 }: OTPInputProps) {
-  const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [value, setValue] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    // Focus first input on mount
-    inputRefs.current[0]?.focus();
+    // Focus input on mount
+    inputRef.current?.focus();
   }, []);
 
-  const handleChange = (index: number, value: string) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
-
+    
     // Only allow digits
-    if (value && !/^\d$/.test(value)) return;
+    const newValue = e.target.value.replace(/\D/g, '').slice(0, length);
+    setValue(newValue);
 
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Move to next input if value is entered
-    if (value && index < length - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Check if all inputs are filled
-    if (newOtp.every((digit) => digit !== '') && newOtp.join('').length === length) {
-      onComplete(newOtp.join(''));
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      // Move to previous input on backspace
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, length);
-
-    if (/^\d+$/.test(pastedData)) {
-      const newOtp = [...otp];
-      for (let i = 0; i < pastedData.length && i < length; i++) {
-        newOtp[i] = pastedData[i];
-      }
-      setOtp(newOtp);
-
-      // Focus the next empty input or the last one
-      const nextIndex = Math.min(pastedData.length, length - 1);
-      inputRefs.current[nextIndex]?.focus();
-
-      // Check if all inputs are filled
-      if (newOtp.every((digit) => digit !== '') && newOtp.join('').length === length) {
-        onComplete(newOtp.join(''));
-      }
+    if (newValue.length === length) {
+      onComplete(newValue);
     }
   };
 
   return (
-    <div className="flex gap-2 justify-center">
-      {otp.map((digit, index) => (
-        <input
-          key={index}
-          ref={(el) => (inputRefs.current[index] = el)}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={digit}
-          onChange={(e) => handleChange(index, e.target.value)}
-          onKeyDown={(e) => handleKeyDown(index, e)}
-          onPaste={handlePaste}
-          disabled={disabled}
-          className={`w-14 h-14 text-center text-xl font-bold border-2 border-neutral-200 rounded-xl focus:ring-4 outline-none transition-all disabled:bg-neutral-50 disabled:cursor-not-allowed ${focusBorderClass} ${focusRingClass} ${hoverBorderClass}`}
-        />
-      ))}
+    <div className="relative flex gap-2 justify-center w-full max-w-xs mx-auto group">
+      {/* Visual Boxes */}
+      {Array.from({ length }).map((_, index) => {
+        const isActive = isFocused && value.length === index;
+        const isFilled = index < value.length;
+        
+        return (
+          <div
+            key={index}
+            className={`w-14 h-14 flex items-center justify-center text-xl font-bold border-2 rounded-xl transition-all ${
+              disabled ? 'bg-neutral-50 border-neutral-200 text-neutral-400' : 'bg-white text-neutral-900'
+            } ${
+              isActive && !disabled
+                ? focusBorderClass
+                : isFilled
+                ? 'border-neutral-400'
+                : 'border-neutral-200'
+            }`}
+          >
+            {value[index] || ''}
+            {isActive && !disabled && (
+              <span className="w-[2px] h-6 bg-current animate-pulse ml-[1px]" />
+            )}
+          </div>
+        );
+      })}
+
+      {/* Invisible Input overlay */}
+      <input
+        ref={inputRef}
+        type="tel"
+        inputMode="numeric"
+        maxLength={length}
+        value={value}
+        onChange={handleChange}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        disabled={disabled}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-text z-10 disabled:cursor-not-allowed"
+        autoComplete="one-time-code"
+      />
     </div>
   );
 }
-

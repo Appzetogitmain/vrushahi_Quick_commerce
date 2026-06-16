@@ -405,11 +405,8 @@ const OrderSchema = new Schema<IOrder>(
 // Generate order number before validation
 OrderSchema.pre("validate", async function (this: IOrder, next) {
   if (!this.orderNumber) {
-    const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0");
-    this.orderNumber = `ORD${timestamp}${random}`;
+    const random8Digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+    this.orderNumber = `ORD-${random8Digits}`;
   }
   next();
 });

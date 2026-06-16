@@ -53,6 +53,7 @@ export default function ProductDetail() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [variantError, setVariantError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -107,9 +108,9 @@ export default function ProductDetail() {
               "Standard",
           });
 
-          // Initialize variations
+          // Initialize variations - auto-select first variant instead of requiring manual selection
           if (productData.variations && productData.variations.length > 0) {
-            setSelectedVariantIndex(-1);
+            setSelectedVariantIndex(0); // Default to first variant for better UX
           } else {
             setSelectedVariantIndex(0);
           }
@@ -364,10 +365,6 @@ export default function ProductDetail() {
     if (!isAvailableAtLocation) {
       // Show alert if trying to add item outside delivery area
       alert("This product is not available for delivery at your location.");
-      return;
-    }
-    if (variations.length > 0 && selectedVariantIndex === -1) {
-      alert("Please select a variant.");
       return;
     }
     if (!isVariantAvailable && variantStock !== 0) {
@@ -713,7 +710,7 @@ export default function ProductDetail() {
               {variations.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select Variant</span>
+                    <span className="text-[10px] font-bold text-neutral-800 uppercase tracking-wider">Select {product.variationType || 'Variant'}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {variations.map((variant: any, index: number) => {
@@ -726,6 +723,7 @@ export default function ProductDetail() {
                           disabled={isOutOfStock}
                           onClick={() => {
                             setSelectedVariantIndex(index);
+                            setVariantError(null);
                             if (variant.image) {
                               const imgIndex = allImages.findIndex((img: any) => img === variant.image);
                               if (imgIndex !== -1) {
@@ -745,6 +743,16 @@ export default function ProductDetail() {
                       );
                     })}
                   </div>
+                  {variantError && (
+                    <div className="mt-3 text-[11px] font-medium text-red-600 bg-red-50/80 px-3 py-2 rounded-lg border border-red-100 flex items-center gap-2 w-fit animate-in fade-in slide-in-from-top-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      {variantError}
+                    </div>
+                  )}
                 </div>
               )}
 

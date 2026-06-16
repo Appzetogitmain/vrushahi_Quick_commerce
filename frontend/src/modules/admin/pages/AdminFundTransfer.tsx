@@ -105,6 +105,8 @@ export default function AdminFundTransfer() {
         fetchDeliveryBoys();
     }, [fetchDeliveryBoys]);
 
+    // Note: Scroll lock is now handled in DeliverySettlementModal
+
     const handleExport = () => {
         // Implementation for export
         const headers = ['Date', 'Type', 'Details', 'Amount', 'Status'];

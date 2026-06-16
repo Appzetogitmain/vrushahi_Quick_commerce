@@ -108,6 +108,10 @@ export default function AdminBrand() {
       setUploadError("Please enter a brand name");
       return;
     }
+    if (!/[a-zA-Z0-9]/.test(brandName)) {
+      setUploadError("Brand name cannot contain only special characters");
+      return;
+    }
     if (!brandImageFile && !editingId) {
       setUploadError("Brand image is required");
       return;

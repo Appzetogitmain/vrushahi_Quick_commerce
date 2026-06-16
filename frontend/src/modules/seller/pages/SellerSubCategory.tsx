@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAllSubcategories, SubCategory } from '../../../services/api/categoryService';
 
 export default function SellerSubCategory() {
+    const navigate = useNavigate();
     const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -12,6 +14,8 @@ export default function SellerSubCategory() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [isApiPaginated, setIsApiPaginated] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
 
     // Fetch subcategories from API
     useEffect(() => {
@@ -25,6 +29,7 @@ export default function SellerSubCategory() {
                     sortBy: sortColumn || 'subcategoryName',
                     sortOrder: sortDirection,
                 };
+                if (searchTerm) params.search = searchTerm;
 
                 const response = await getAllSubcategories(params);
                 if (response.success && response.data) {
@@ -49,7 +54,7 @@ export default function SellerSubCategory() {
         };
 
         fetchSubcategories();
-    }, [currentPage, rowsPerPage, sortColumn, sortDirection]);
+    }, [currentPage, rowsPerPage, sortColumn, sortDirection, searchTerm]);
 
     // Client-side sorting (if API doesn't handle it)
     let sortedSubcategories = [...subcategories];
@@ -88,6 +93,30 @@ export default function SellerSubCategory() {
         }
     };
 
+    const handleExport = () => {
+        const headers = ['ID', 'Category Name', 'Subcategory Name', 'Total Product'];
+        const csvContent = [
+            headers.join(','),
+            ...displayedSubcategories.map(sub => [
+                sub._id || sub.id,
+                `"${sub.categoryName}"`,
+                `"${sub.subcategoryName}"`,
+                sub.totalProduct || 0
+            ].join(','))
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `subcategories_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setIsExportDropdownOpen(false);
+    };
+
     const SortIcon = ({ column }: { column: string }) => (
         <span className="text-neutral-300 text-[10px]">
             {sortColumn === column ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
@@ -98,9 +127,20 @@ export default function SellerSubCategory() {
         <div className="flex flex-col h-full">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-neutral-800">View SubCategory</h1>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-full transition-colors"
+                        title="Go Back"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h1 className="text-2xl font-semibold text-neutral-800">View SubCategory</h1>
+                </div>
                 <div className="text-sm text-blue-500">
-                    <span className="cursor-pointer hover:underline">Home</span> <span className="text-neutral-400">/</span> <span className="text-neutral-600">Dashboard</span>
+                    <Link to="/seller" className="cursor-pointer hover:underline">Home</Link> <span className="text-neutral-400">/</span> <Link to="/seller" className="text-neutral-600 hover:underline cursor-pointer">Dashboard</Link>
                 </div>
             </div>
 
@@ -111,7 +151,7 @@ export default function SellerSubCategory() {
                 </div>
 
                 {/* Controls */}
-                <div className="p-4 flex justify-between items-center border-b border-neutral-100">
+                <div className="p-4 flex justify-between items-center border-b border-neutral-100 flex-wrap gap-4">
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-neutral-600">Show</span>
                         <select
@@ -127,6 +167,43 @@ export default function SellerSubCategory() {
                             <option value={50}>50 entries</option>
                             <option value={100}>100 entries</option>
                         </select>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                                className="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Export
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            
+                            {isExportDropdownOpen && (
+                                <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-neutral-200 z-10">
+                                    <button 
+                                        onClick={handleExport}
+                                        className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 first:rounded-t-md last:rounded-b-md"
+                                    >
+                                        CSV
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="px-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48 placeholder-neutral-400"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                placeholder="Search:"
+                            />
+                        </div>
                     </div>
                 </div>
 

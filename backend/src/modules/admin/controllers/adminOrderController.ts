@@ -163,6 +163,15 @@ export const updateOrderStatus = asyncHandler(
       });
     }
 
+    const existingOrder = await Order.findById(id);
+    if (!existingOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+    const previousStatus = existingOrder.status;
+
     const updateData: any = { status };
     if (adminNotes) updateData.adminNotes = adminNotes;
 
@@ -188,6 +197,15 @@ export const updateOrderStatus = asyncHandler(
         success: false,
         message: "Order not found",
       });
+    }
+
+    if ((status === "Cancelled" || status === "Rejected") && previousStatus !== "Cancelled" && previousStatus !== "Rejected") {
+      try {
+        const { restoreProductStock } = require("../../../services/orderService");
+        await restoreProductStock(order._id.toString());
+      } catch (err) {
+        console.error("Error restoring stock on admin cancellation:", err);
+      }
     }
 
     if (status === "Delivered") {

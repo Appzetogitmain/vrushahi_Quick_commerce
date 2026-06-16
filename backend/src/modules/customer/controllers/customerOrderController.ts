@@ -1031,6 +1031,13 @@ export const createReturnRequest = async (req: Request, res: Response) => {
                 });
             }
         } else if (refundMethod === "UPI") {
+            const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/;
+            if (!upiId || !upiRegex.test(upiId)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter a valid UPI ID format (e.g., yourname@bank)."
+                });
+            }
             if (upiId) {
                 customer.bankDetails = {
                     ...(customer.bankDetails || {}),
@@ -1055,7 +1062,7 @@ export const createReturnRequest = async (req: Request, res: Response) => {
             reason,
             description,
             images: images || [],
-            refundMethod: refundMethod || "UPI",
+            refundMethod: refundMethod === "Bank Account" ? "Bank" : (refundMethod || "UPI"),
             quantity: returnQuantity,
             status: "Pending"
         });

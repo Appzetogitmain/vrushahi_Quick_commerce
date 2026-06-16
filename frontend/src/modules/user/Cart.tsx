@@ -101,7 +101,11 @@ export default function Cart() {
           </div>
           {cart.items.length > 0 && (
             <button
-              onClick={clearCart}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear your cart?')) {
+                  clearCart();
+                }
+              }}
               className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors bg-red-50 px-4 py-2 rounded-xl"
             >
               Clear All

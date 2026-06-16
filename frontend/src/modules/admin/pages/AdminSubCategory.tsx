@@ -137,6 +137,10 @@ export default function AdminSubCategory() {
       setUploadError("Please enter a subcategory name");
       return;
     }
+    if (!/[a-zA-Z0-9]/.test(subcategoryName)) {
+      setUploadError("Subcategory name cannot contain only special characters");
+      return;
+    }
     if (!subcategoryImageFile && !editingId) {
       setUploadError("Subcategory image is required");
       return;

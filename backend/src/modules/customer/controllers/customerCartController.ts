@@ -21,10 +21,19 @@ const calculateItemPrice = (product: any, variationSelector: any) => {
     }
 
     if (variationId && product.variations?.length) {
+        // Try matching by _id, title, value, or name
         variation = product.variations.find((v: any) =>
             (v._id && v._id.toString() === variationId.toString()) ||
-            (v.id && v.id === variationId)
+            (v.id && v.id === variationId) ||
+            (v.title && v.title === variationId) ||
+            (v.value && v.value === variationId) ||
+            (v.name && v.name === variationId)
         );
+    }
+
+    // Fallback: if product has variations but none matched, use first variant
+    if (!variation && product.variations?.length > 0) {
+        variation = product.variations[0];
     }
 
     let finalPrice = variation?.price || product.price || 0;
@@ -164,7 +173,7 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -182,6 +191,34 @@ export const getCart = async (req: Request, res: Response) => {
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
+                // ======== AUTO-FIX: null variation for products with variations ========
+                if ((!item.variation || item.variation === null) && product.variations && product.variations.length > 0) {
+                    const firstVariant = product.variations[0] as any;
+                    const resolvedVariation = firstVariant._id?.toString() || firstVariant.title || firstVariant.value || firstVariant.name;
+                    if (resolvedVariation) {
+                        // Check if another cart item already has this resolved variation
+                        const duplicateItem = await CartItem.findOne({
+                            cart: cart._id,
+                            product: product._id,
+                            variation: resolvedVariation,
+                            _id: { $ne: item._id }
+                        });
+                        if (duplicateItem) {
+                            // Merge: add this item's quantity to the existing one, then delete this item
+                            duplicateItem.quantity += item.quantity;
+                            await duplicateItem.save();
+                            await CartItem.findByIdAndDelete(item._id);
+                            cart.items = cart.items.filter((id: any) => id.toString() !== item._id.toString());
+                            await cart.save();
+                            continue; // Skip this item, it's been merged
+                        } else {
+                            // Fix in place
+                            item.variation = resolvedVariation;
+                            await CartItem.findByIdAndUpdate(item._id, { variation: resolvedVariation });
+                        }
+                    }
+                }
+
                 const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString());
                 
                 const processedItem = {
@@ -299,24 +336,88 @@ export const addToCart = async (req: Request, res: Response) => {
             }
         }
 
-        // Check if item already exists in cart
+        // ======== VARIANT AUTO-RESOLUTION ========
+        // If product has variations but no variation was specified, auto-resolve to the first variant
+        let resolvedVariation = variation;
+        if (product.variations && product.variations.length > 0) {
+            if (!resolvedVariation) {
+                // Auto-resolve to first variant's identifier (_id, title, or value)
+                const firstVariant = product.variations[0] as any;
+                resolvedVariation = firstVariant._id?.toString() || firstVariant.title || firstVariant.value || firstVariant.name;
+            }
+            
+            // Also check: does an old cart item exist for this product with variation=null?
+            // If so, fix it by assigning the resolved variation (prevents duplicates)
+            const staleNullItem = await CartItem.findOne({
+                cart: cart._id,
+                product: productId,
+                variation: null
+            });
+            if (staleNullItem && resolvedVariation) {
+                // Fix the stale item by assigning the resolved variation
+                staleNullItem.variation = resolvedVariation;
+                await staleNullItem.save();
+            }
+        }
+
+        // Check if item already exists in cart (with the resolved variation)
         let cartItem = await CartItem.findOne({
             cart: cart._id,
             product: productId,
-            variation: variation || null
+            variation: resolvedVariation || null
         });
 
+        // Also try to find by matching variation title/value against _id or vice versa
+        // This handles the case where one entry uses ObjectId and another uses title string
+        if (!cartItem && resolvedVariation && product.variations && product.variations.length > 0) {
+            // Find which variant the resolvedVariation refers to
+            const matchedVariant = product.variations.find((v: any) =>
+                v._id?.toString() === resolvedVariation ||
+                v.title === resolvedVariation ||
+                v.value === resolvedVariation ||
+                v.name === resolvedVariation
+            ) as any;
+
+            if (matchedVariant) {
+                // Try to find by any of this variant's identifiers
+                const possibleValues = [
+                    matchedVariant._id?.toString(),
+                    matchedVariant.title,
+                    matchedVariant.value,
+                    matchedVariant.name
+                ].filter(Boolean);
+
+                cartItem = await CartItem.findOne({
+                    cart: cart._id,
+                    product: productId,
+                    variation: { $in: possibleValues }
+                });
+
+                // If found under a different identifier, normalize it
+                if (cartItem && cartItem.variation !== resolvedVariation) {
+                    cartItem.variation = resolvedVariation;
+                    await cartItem.save();
+                }
+            }
+        }
+
         if (cartItem) {
+            if (product.maxOrderLimit && (cartItem.quantity + quantity) > product.maxOrderLimit) {
+                return res.status(400).json({ success: false, message: `Maximum order limit of ${product.maxOrderLimit} reached for this item` });
+            }
             // Update quantity
             cartItem.quantity += quantity;
             await cartItem.save();
         } else {
+            if (product.maxOrderLimit && quantity > product.maxOrderLimit) {
+                return res.status(400).json({ success: false, message: `Maximum order limit of ${product.maxOrderLimit} reached for this item` });
+            }
             // Create new cart item
             cartItem = await CartItem.create({
                 cart: cart._id,
                 product: productId,
                 quantity,
-                variation
+                variation: resolvedVariation
             });
             cart.items.push(cartItem._id as any);
         }
@@ -330,7 +431,7 @@ export const addToCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -409,6 +510,10 @@ export const updateCartItem = async (req: Request, res: Response) => {
             });
         }
 
+        if (product.maxOrderLimit && quantity > product.maxOrderLimit) {
+            return res.status(400).json({ success: false, message: `Maximum order limit of ${product.maxOrderLimit} reached for this item` });
+        }
+
         cartItem.quantity = quantity;
         await cartItem.save();
 
@@ -419,7 +524,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -485,7 +590,7 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });

@@ -78,27 +78,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const mapApiItemsToState = (apiItems: any[]): ExtendedCartItem[] => {
     return apiItems
       .filter((item: any) => item.product) // Safety filter
-      .map((item: any) => ({
-        id: item._id, // Store CartItem ID
-        product: {
-          id: item.product._id, // Map _id to id
-          name: item.product.productName || item.product.name,
-          price: item.product.price,
-          mrp: item.product.mrp,
-          discPrice: item.product.discPrice,
-          variations: item.product.variations,
-          imageUrl: item.product.mainImage || item.product.imageUrl || item.product.variations?.find((v: any) => !!v.image)?.image,
-          pack: item.product.pack || '1 unit',
-          categoryId: item.product.category || '',
-          description: item.product.description,
-          variantId: item.variation, // Preserving variation ID/value
-          tax: item.product.tax // Map tax object from API
-        },
-        quantity: item.quantity,
-        variant: item.variation, // Also preserve it here for order placement
-        isDeliverable: item.isDeliverable
-      }));
+      .map((item: any) => {
+        // Resolve the full variant object from the stored variation identifier
+        let resolvedVariant: any = null;
+        let resolvedVariantTitle = '';
+        if (item.variation && item.product.variations?.length > 0) {
+          resolvedVariant = item.product.variations.find((v: any) =>
+            v._id?.toString() === item.variation ||
+            v.title === item.variation ||
+            v.value === item.variation ||
+            v.name === item.variation
+          );
+          if (resolvedVariant) {
+            resolvedVariantTitle = resolvedVariant.title || resolvedVariant.value || resolvedVariant.name || '';
+          }
+        }
+
+        return {
+          id: item._id, // Store CartItem ID
+          product: {
+            id: item.product._id, // Map _id to id
+            name: item.product.productName || item.product.name,
+            price: resolvedVariant?.price || item.product.price,
+            mrp: item.product.mrp,
+            discPrice: resolvedVariant?.discPrice || item.product.discPrice,
+            variations: item.product.variations,
+            imageUrl: resolvedVariant?.image || item.product.mainImage || item.product.imageUrl || item.product.variations?.find((v: any) => !!v.image)?.image,
+            pack: resolvedVariantTitle || item.product.pack || '1 unit',
+            categoryId: item.product.category || '',
+            description: item.product.description,
+            variantId: item.variation, // Preserving variation ID/value
+            variantTitle: resolvedVariantTitle || item.variation, // Resolved title for display
+            selectedVariant: resolvedVariant, // Full variant object
+            tax: item.product.tax, // Map tax object from API
+            maxOrderLimit: item.product.maxOrderLimit // Preserve maxOrderLimit
+          },
+          quantity: item.quantity,
+          variant: item.variation, // Also preserve it here for order placement
+          isDeliverable: item.isDeliverable
+        };
+      });
   };
+
 
   // Sync to localStorage whenever items change
   useEffect(() => {
@@ -196,13 +217,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Get consistent product ID - MongoDB returns _id, frontend expects id
     const productId = product._id || product.id;
 
+    // If product has variations but no variant was selected, default to the first one
+    let targetVariantId = (product as any).variantId || (product as any).selectedVariant?._id;
+    let targetVariantTitle = (product as any).variantTitle || (product as any).pack;
+    let selectedVariant = (product as any).selectedVariant;
+    
+    if (!targetVariantId && product.variations && product.variations.length > 0) {
+      selectedVariant = product.variations[0];
+      targetVariantId = (selectedVariant as any)._id;
+      targetVariantTitle = (selectedVariant as any).title || (selectedVariant as any).name || (selectedVariant as any).value || product.pack || "Standard";
+    }
+
     // Normalize product to always have 'id' property for consistency
     const normalizedProduct: Product = {
       ...product,
       id: productId,
       name: product.name || product.productName || 'Product',
       imageUrl: product.imageUrl || product.mainImage || product.variations?.find((v: any) => !!v.image)?.image,
-    };
+      variantId: targetVariantId,
+      selectedVariant: selectedVariant,
+      variantTitle: targetVariantTitle,
+      maxOrderLimit: product.maxOrderLimit,
+    } as any;
+
+    // Check max order limit before proceeding
+    const existingItemForLimitCheck = items.find((item) => {
+      if (!item?.product) return false;
+      const itemProductId = String(item.product.id || item.product._id);
+      if (itemProductId !== String(productId)) return false;
+      const itemProxy = item.product as any;
+      const targetVarId = String(targetVariantId || "");
+      const targetVarTitle = String(targetVariantTitle || "");
+      if (targetVarId || targetVarTitle) {
+        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
+        return (targetVarId && itemVariantId === targetVarId) ||
+               (targetVarTitle && itemVariantTitle === targetVarTitle);
+      }
+      return true;
+    });
+
+    if (existingItemForLimitCheck && product.maxOrderLimit && existingItemForLimitCheck.quantity >= product.maxOrderLimit) {
+      showToast(`Maximum order limit of ${product.maxOrderLimit} reached for this item`, 'error');
+      return;
+    }
 
     // Trigger fly-to-cart animation
     let sourcePosition: { x: number; y: number } | undefined;
@@ -221,20 +279,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prevItems) => {
       const validItems = prevItems.filter(item => item?.product);
       
-      const variantId = (product as any).variantId || (product as any).selectedVariant?._id;
-      const variantTitle = (product as any).variantTitle || (product as any).pack;
+      const variantId = targetVariantId;
+      const variantTitle = targetVariantTitle;
 
       const existingItem = validItems.find((item) => {
         const itemProductId = String(item.product.id || item.product._id);
         if (itemProductId !== String(productId)) return false;
         const itemProxy = item.product as any;
-        const targetVariantId = String(variantId || "");
-        const targetVariantTitle = String(variantTitle || "");
-        if (targetVariantId || targetVariantTitle) {
+        const targetVarId = String(variantId || "");
+        const targetVarTitle = String(variantTitle || "");
+        if (targetVarId || targetVarTitle) {
           const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
           const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
-          return (targetVariantId && itemVariantId === targetVariantId) ||
-                 (targetVariantTitle && itemVariantTitle === targetVariantTitle);
+          return (targetVarId && itemVariantId === targetVarId) ||
+                 (targetVarTitle && itemVariantTitle === targetVarTitle);
         }
         return true;
       });
@@ -244,7 +302,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           item === existingItem ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...validItems, { product: normalizedProduct, quantity: 1 }];
+      return [...validItems, { product: normalizedProduct, quantity: 1, variant: variantTitle || variantId }];
     });
 
     // Prevent concurrent API operations on the same product
@@ -261,7 +319,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const performSync = async () => {
         try {
           // Pass variation info to API if available
-          const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
+          const variation = targetVariantId || targetVariantTitle;
           const response = await apiAddToCart(
             productId,
             1,
@@ -413,32 +471,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Create a unique operation key for this product/variant combination
-    const operationKey = variantId ? `${productId}-${variantId}` : (variantTitle ? `${productId}-${variantTitle}` : productId);
-
-    // Optimistically update state IMMEDIATELY to keep UI responsive
-    const previousItems = [...items];
-    setItems((prevItems) =>
-      prevItems.filter(item => item?.product).map((item) => {
-        const isTarget = String(item.product.id || item.product._id) === String(productId) &&
-          (!variantId || String((item.product as any).variantId) === String(variantId));
-
-        if (isTarget) {
-          return { ...item, quantity };
-        }
-        return item;
-      })
-    );
-
-    // Prevent concurrent API operations on the same product
-    if (pendingOperationsRef.current.has(operationKey)) {
-      // Mark that we need to sync the latest quantity once current op finishes
-      needsSyncRef.current.set(operationKey, quantity);
-      return;
-    }
-    pendingOperationsRef.current.add(operationKey);
-
-    // Find the item to get its CartItemID (needed for API call)
+    // Find the item to check maxOrderLimit before doing anything
     const itemToUpdate = items.find(item => {
       if (!item?.product) return false;
       const itemProductId = String(item.product.id || item.product._id);
@@ -459,11 +492,88 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return true;
     });
 
+    if (itemToUpdate) {
+      if (itemToUpdate.product.maxOrderLimit && quantity > itemToUpdate.product.maxOrderLimit) {
+        showToast(`Maximum order limit of ${itemToUpdate.product.maxOrderLimit} reached for this item`, 'error');
+        return;
+      }
+
+      let availableStock = itemToUpdate.product.stock;
+      const productVariations = itemToUpdate.product.variations || [];
+      const itemProxy = itemToUpdate.product as any;
+      const targetVariantId = String(variantId || itemProxy.variantId || itemProxy.selectedVariant?._id || itemToUpdate.variant || "");
+      const targetVariantTitle = String(variantTitle || itemProxy.variantTitle || itemProxy.pack || "");
+      
+      let matchedVariant = null;
+      if (productVariations.length > 0 && (targetVariantId || targetVariantTitle)) {
+          matchedVariant = productVariations.find((v: any) => 
+            String(v._id) === targetVariantId || String(v.value || v.title || v.name || v.pack) === targetVariantTitle
+          );
+      } else if (itemProxy.selectedVariant) {
+          matchedVariant = itemProxy.selectedVariant;
+      }
+      
+      if (matchedVariant && typeof matchedVariant.stock === 'number') {
+          availableStock = matchedVariant.stock;
+      }
+
+      if (typeof availableStock === 'number' && quantity > availableStock) {
+        showToast(`Only ${availableStock} items left in stock`, 'error');
+        return;
+      }
+    }
+
+    // Create a unique operation key for this product/variant combination
+    const operationKey = variantId ? `${productId}-${variantId}` : (variantTitle ? `${productId}-${variantTitle}` : productId);
+
+    // Optimistically update state IMMEDIATELY to keep UI responsive
+    const previousItems = [...items];
+    setItems((prevItems) =>
+      prevItems.filter(item => item?.product).map((item) => {
+        const isTarget = String(item.product.id || item.product._id) === String(productId) &&
+          (!variantId || String((item.product as any).variantId || item.variant || (item.product as any).selectedVariant?._id) === String(variantId));
+
+        if (isTarget) {
+          return { ...item, quantity };
+        }
+        return item;
+      })
+    );
+
+    // Prevent concurrent API operations on the same product
+    if (pendingOperationsRef.current.has(operationKey)) {
+      // Mark that we need to sync the latest quantity once current op finishes
+      needsSyncRef.current.set(operationKey, quantity);
+      return;
+    }
+    pendingOperationsRef.current.add(operationKey);
+
+    // Find the item to get its CartItemID (needed for API call)
+    const apiItemToUpdate = items.find(item => {
+      if (!item?.product) return false;
+      const itemProductId = String(item.product.id || item.product._id);
+      const targetProductId = String(productId);
+      if (itemProductId !== targetProductId) return false;
+
+      const itemProxy = item.product as any;
+      const targetVariantId = String(variantId || "");
+      const targetVariantTitle = String(variantTitle || "");
+
+      if (targetVariantId || targetVariantTitle) {
+        const itemVariantId = String(itemProxy.variantId || itemProxy.selectedVariant?._id || "");
+        const itemVariantTitle = String(itemProxy.variantTitle || itemProxy.pack || "");
+        return (targetVariantId && itemVariantId === targetVariantId) ||
+               (targetVariantTitle && itemVariantTitle === targetVariantTitle);
+      }
+
+      return true;
+    });
+
     // Only sync to API if user is authenticated and item has CartItemID
-    if (isAuthenticated && user?.userType === 'Customer' && itemToUpdate?.id) {
+    if (isAuthenticated && user?.userType === 'Customer' && apiItemToUpdate?.id) {
       try {
         const response = await apiUpdateCartItem(
-          itemToUpdate.id,
+          apiItemToUpdate.id,
           quantity,
           location?.latitude,
           location?.longitude

@@ -21,6 +21,9 @@ export interface DeliveryDashboardStats {
     pendingOrdersList: any[];
     policeVerificationForm?: string;
     policeVerificationDeadline?: string;
+    isCashLimitReached?: boolean;
+    cashLimit?: number;
+    pendingAdminPayout?: number;
 }
 
 // --- Dashboard ---

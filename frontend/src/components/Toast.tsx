@@ -22,13 +22,13 @@ export default function Toast({ message, isVisible, onClose, duration = 3000, ty
   return (
     <AnimatePresence>
       {isVisible && (
-        <div className="fixed top-20 left-0 right-0 z-[100] flex justify-center pointer-events-none">
+        <div className="fixed top-4 left-4 right-4 md:left-0 md:right-0 z-[100] flex justify-center pointer-events-none">
           <motion.div
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className={`px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 pointer-events-auto ${
+            className={`px-4 py-2.5 max-w-md w-full md:w-auto rounded-lg shadow-2xl flex items-center gap-2 pointer-events-auto ${
               type === 'success' ? 'bg-green-600' : 
               type === 'error' ? 'bg-red-600' : 
               'bg-blue-600'
@@ -81,7 +81,7 @@ export default function Toast({ message, isVisible, onClose, duration = 3000, ty
                 <line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
             )}
-            <span className="font-semibold text-base">{message}</span>
+            <span className="font-semibold text-sm">{message}</span>
           </motion.div>
         </div>
       )}

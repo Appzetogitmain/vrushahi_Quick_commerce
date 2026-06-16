@@ -87,6 +87,20 @@ export default function AdminManageDeliveryBoy() {
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated, token, currentPage, rowsPerPage, searchTerm, statusFilter, availabilityFilter, sortColumn, sortDirection]);
+    // Prevent scroll when modal is open
+    useEffect(() => {
+        if (showDetailModal || showRejectModal) {
+            document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        };
+    }, [showDetailModal, showRejectModal]);
 
     const handleSort = (column: string) => {
         // Map frontend column names to backend field names
@@ -446,7 +460,7 @@ export default function AdminManageDeliveryBoy() {
                                 <label className="text-sm text-neutral-700 whitespace-nowrap">Search:</label>
                                 <input
                                     type="text"
-                                    className="px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none min-w-[200px]"
+                                    className="px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none w-full sm:min-w-[280px]"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
@@ -944,7 +958,7 @@ export default function AdminManageDeliveryBoy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-neutral-500 uppercase">Account Number</p>
-                                        <p className="font-medium">{selectedDeliveryBoy.bankAccountNumber || 'N/A'}</p>
+                                        <p className="font-medium">{selectedDeliveryBoy.accountNumber || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-neutral-500 uppercase">IFSC Code</p>

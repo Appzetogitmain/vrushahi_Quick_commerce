@@ -126,6 +126,14 @@ export const getAuthToken = (): string | null => {
 };
 
 export const removeAuthToken = () => {
+  const token = localStorage.getItem('fcm_token_web');
+  if (token) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    api.delete('/fcm-tokens/remove', {
+      data: { token, platform: isMobile ? 'mobile' : 'web' }
+    }).catch(err => console.warn('Failed to unregister FCM token on logout:', err));
+  }
+
   localStorage.removeItem("authToken");
   localStorage.removeItem("userData");
   localStorage.removeItem("fcm_token_web"); // Clear FCM registration cache on logout

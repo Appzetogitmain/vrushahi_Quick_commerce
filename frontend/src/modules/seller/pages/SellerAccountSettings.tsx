@@ -122,6 +122,7 @@ const SellerAccountSettings = () => {
     fssaiLicNo: '',
     taxName: '',
     taxNumber: '',
+    tanNumber: '',
     accountName: '',
     bankName: '',
     branch: '',
@@ -276,8 +277,20 @@ const SellerAccountSettings = () => {
         }
       }
 
-      if (sellerData.mobile && sellerData.mobile.length !== 10) {
+      if (!sellerData.mobile) {
+        showToast('Mobile number is required', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.mobile.length !== 10) {
         showToast('Mobile number must be exactly 10 digits', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (!/^[6-9]\d{9}$/.test(sellerData.mobile)) {
+        showToast('Please enter a valid phone number', 'error');
         setSaveLoading(false);
         return;
       }
@@ -297,26 +310,50 @@ const SellerAccountSettings = () => {
       }
 
       // Validate Bank Details
-      if (sellerData.accountName && !/^[a-zA-Z\s]+$/.test(sellerData.accountName)) {
-        showToast('Account holder name should only contain alphabets', 'error');
+      if (!sellerData.accountNumber || !/^\d{9,18}$/.test(sellerData.accountNumber)) {
+        showToast('Bank Account Number is required and must be 9-18 digits (numbers only)', 'error');
         setSaveLoading(false);
         return;
       }
 
-      if (sellerData.bankName && !/^[a-zA-Z\s]+$/.test(sellerData.bankName)) {
-        showToast('Bank name should only contain alphabets', 'error');
+      if (!sellerData.accountName || !/^[a-zA-Z\s.]{2,100}$/.test(sellerData.accountName)) {
+        showToast('Account Holder Name is required (2-100 characters, letters and spaces)', 'error');
         setSaveLoading(false);
         return;
       }
 
-      if (sellerData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc)) {
-        showToast('Please enter a valid IFSC code (e.g. SBIN0012345)', 'error');
+      if (!sellerData.bankName || !/^[a-zA-Z\s]{2,}$/.test(sellerData.bankName)) {
+        showToast('Bank Name is required and must be at least 2 characters', 'error');
         setSaveLoading(false);
         return;
       }
 
-      if (sellerData.accountNumber && (sellerData.accountNumber.length < 9 || sellerData.accountNumber.length > 18)) {
-        showToast('Please enter a valid Bank Account Number (9-18 digits)', 'error');
+      if (!sellerData.ifsc || !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc)) {
+        showToast('IFSC Code is required and must be exactly 11 characters (e.g., SBIN0012345)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (!sellerData.upiId || !/^[a-zA-Z0-9._-]+@[a-zA-Z]{2,}$/.test(sellerData.upiId)) {
+        showToast('UPI ID is required and must be in valid format (e.g., name@bank)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (!sellerData.panCard || !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(sellerData.panCard)) {
+        showToast('PAN Number is required and must be exactly 10 characters (e.g., ABCDE1234F)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/.test(sellerData.taxNumber)) {
+        showToast('GSTIN is invalid. Must be exactly 15 characters (e.g., 22AAAAA0000A1Z5)', 'error');
+        setSaveLoading(false);
+        return;
+      }
+
+      if (sellerData.tanNumber && !/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/.test(sellerData.tanNumber)) {
+        showToast('TAN is invalid. Must be exactly 10 characters (e.g., ABCD12345E)', 'error');
         setSaveLoading(false);
         return;
       }
@@ -857,6 +894,7 @@ const SellerAccountSettings = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
                             <InputGroup label="PAN Card Number" name="panCard" value={sellerData.panCard} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="Tax Number (GST)" name="taxNumber" value={sellerData.taxNumber} onChange={handleInputChange} disabled={!isEditing} />
+                            <InputGroup label="TAN Number" name="tanNumber" value={sellerData.tanNumber} onChange={handleInputChange} disabled={!isEditing} />
                             <InputGroup label="FSSAI License No." name="fssaiLicNo" value={sellerData.fssaiLicNo} onChange={handleInputChange} disabled={!isEditing} placeholder="For food categories" />
                           </div>
                         </section>

@@ -45,6 +45,7 @@ export interface Product {
   fssaiLicNo?: string;
   isReturnable?: boolean;
   maxReturnDays?: number;
+  maxOrderLimit?: number;
   sellerId?: string;
   seller?: string | { _id: string; storeName: string };
   isAvailable?: boolean;

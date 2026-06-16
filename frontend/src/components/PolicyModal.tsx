@@ -20,13 +20,24 @@ export default function PolicyModal({ isOpen, onClose, type, titleSearch }: Poli
           setLoading(true);
           const response = await getPublicPolicies(type);
           if (response.success && response.data && response.data.length > 0) {
+            let foundPolicy;
             if (titleSearch) {
-              const found = response.data.find((p) =>
+              foundPolicy = response.data.find((p) =>
                 p.title.toLowerCase().includes(titleSearch.toLowerCase())
-              );
-              setPolicy(found || response.data[0]);
+              ) || response.data[0];
             } else {
-              setPolicy(response.data[0]);
+              foundPolicy = response.data[0];
+            }
+
+            if (foundPolicy) {
+              const strippedContent = foundPolicy.content.replace(/(<([^>]+)>)/gi, "").trim();
+              
+              if (strippedContent.startsWith('http://') || strippedContent.startsWith('https://')) {
+                window.open(strippedContent, '_blank');
+                onClose();
+              } else {
+                setPolicy(foundPolicy);
+              }
             }
           }
         } catch (err) {

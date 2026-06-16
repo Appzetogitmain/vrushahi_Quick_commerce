@@ -20,6 +20,7 @@ export default function AdminReceivedOrders() {
   const [loading, setLoading] = useState(true);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paginationData, setPaginationData] = useState({ total: 0, pages: 1 });
 
   // Fetch orders on component mount
   useEffect(() => {
@@ -57,6 +58,12 @@ export default function AdminReceivedOrders() {
         const response = await getOrdersByStatus('Received', params);
         if (response.success) {
           setOrders(response.data);
+        
+          if ((response as any).pagination) {
+            setPaginationData((response as any).pagination);
+          } else {
+            setPaginationData({ total: response.data.length, pages: 1 });
+          }
         }
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -175,10 +182,10 @@ export default function AdminReceivedOrders() {
     return filtered;
   }, [orders, sortField, sortDirection]);
 
-  const totalPages = Math.ceil(filteredAndSortedOrders.length / parseInt(entriesPerPage));
+  const totalPages = paginationData.pages || 1;
   const startIndex = (currentPage - 1) * parseInt(entriesPerPage);
-  const endIndex = startIndex + parseInt(entriesPerPage);
-  const paginatedOrders = filteredAndSortedOrders.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + parseInt(entriesPerPage), paginationData.total);
+  const paginatedOrders = filteredAndSortedOrders;
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -282,9 +289,18 @@ export default function AdminReceivedOrders() {
                           value={from ? (() => { const p=from.split('/'); return p.length===3 ? p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0') : '' })() : ''}
                           onChange={(e) => {
                             const d = e.target.value;
-                            if(!d) { setDateRange(to ? ' - '+to : ''); } else {
-                              const [y,m,day] = d.split('-');
-                              setDateRange(m+'/'+day+'/'+y + ' - ' + (to || ''));
+                            if (!d) {
+                              setDateRange(to ? ' - ' + to : '');
+                            } else {
+                              const [y, m, day] = d.split('-');
+                              if (to) {
+                                const p = to.split('/');
+                                const toDateStr = p.length === 3 ? `${p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}` : '';
+                                if (toDateStr && d > toDateStr) {
+                                  return; // Prevent selecting date after to date
+                                }
+                              }
+                              setDateRange(m + '/' + day + '/' + y + ' - ' + (to || ''));
                             }
                             setCurrentPage(1);
                           }}
@@ -294,11 +310,21 @@ export default function AdminReceivedOrders() {
                         <input
                           type="date"
                           value={to ? (() => { const p=to.split('/'); return p.length===3 ? p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0') : '' })() : ''}
+                          min={from ? (() => { const p=from.split('/'); return p.length===3 ? p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0') : '' })() : undefined}
                           onChange={(e) => {
                             const d = e.target.value;
-                            if(!d) { setDateRange(from ? from+' - ' : ''); } else {
-                              const [y,m,day] = d.split('-');
-                              setDateRange((from || '') + ' - ' + m+'/'+day+'/'+y);
+                            if (!d) {
+                              setDateRange(from ? from + ' - ' : '');
+                            } else {
+                              const [y, m, day] = d.split('-');
+                              if (from) {
+                                const p = from.split('/');
+                                const fromDateStr = p.length === 3 ? `${p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}` : '';
+                                if (fromDateStr && d < fromDateStr) {
+                                  return; // Prevent selecting date before from date
+                                }
+                              }
+                              setDateRange((from || '') + ' - ' + m + '/' + day + '/' + y);
                             }
                             setCurrentPage(1);
                           }}

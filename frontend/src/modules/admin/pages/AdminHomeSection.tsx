@@ -760,9 +760,12 @@ export default function AdminHomeSection() {
                                 <span className="text-sm text-neutral-600">Show</span>
                                 <input
                                     type="number"
+                                    min="1"
                                     value={rowsPerPage}
                                     onChange={(e) => {
-                                        setRowsPerPage(Number(e.target.value));
+                                        const val = Number(e.target.value);
+                                        if (val < 1) return;
+                                        setRowsPerPage(val);
                                         setCurrentPage(1);
                                     }}
                                     className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none"

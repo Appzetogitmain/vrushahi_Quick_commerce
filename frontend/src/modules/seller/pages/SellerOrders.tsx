@@ -140,7 +140,7 @@ export default function SellerOrders() {
         return 'bg-yellow-100 text-yellow-800';
       case 'Accepted':
         return 'bg-blue-100 text-blue-800';
-      case 'On the way':
+      case 'Out for Delivery':
         return 'bg-purple-100 text-purple-800';
       case 'Delivered':
         return 'bg-green-100 text-green-800';
@@ -156,8 +156,19 @@ export default function SellerOrders() {
       {/* Header Section */}
       <div className="bg-white border-b border-neutral-200 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-          {/* Page Title */}
-          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Orders List</h1>
+          {/* Page Title & Back Button */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-full transition-colors"
+              title="Go Back"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Orders List</h1>
+          </div>
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -193,7 +204,9 @@ export default function SellerOrders() {
                       type="date"
                       value={fromDate}
                       onChange={(e) => {
-                        setFromDate(e.target.value);
+                        const newFrom = e.target.value;
+                        if (toDate && newFrom && newFrom > toDate) return;
+                        setFromDate(newFrom);
                         setCurrentPage(1);
                       }}
                       className="text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none"
@@ -204,8 +217,11 @@ export default function SellerOrders() {
                     <input
                       type="date"
                       value={toDate}
+                      min={fromDate}
                       onChange={(e) => {
-                        setToDate(e.target.value);
+                        const newTo = e.target.value;
+                        if (fromDate && newTo && newTo < fromDate) return;
+                        setToDate(newTo);
                         setCurrentPage(1);
                       }}
                       className="text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none"
@@ -241,7 +257,7 @@ export default function SellerOrders() {
                   <option>All Status</option>
                   <option>Pending</option>
                   <option>Accepted</option>
-                  <option>On the way</option>
+                  <option>Out for Delivery</option>
                   <option>Delivered</option>
                   <option>Cancelled</option>
                 </select>
@@ -277,7 +293,7 @@ export default function SellerOrders() {
                     setCurrentPage(1);
                   }}
                   className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                  placeholder="Search by Order ID, Status, or Amount"
+                  placeholder="Search by Order ID, Customer Name, or Phone"
                 />
               </div>
 

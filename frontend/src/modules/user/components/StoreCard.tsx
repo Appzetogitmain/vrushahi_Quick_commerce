@@ -68,10 +68,14 @@ export default function StoreCard({ store }: StoreCardProps) {
                     </h3>
                     
                     <div className="flex items-center gap-2">
-                        {store.rating && (
+                        {store.rating && Number(store.rating) > 0 ? (
                             <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/30">
                                 <span className="text-amber-500 text-[10px]">★</span>
-                                <span className="text-amber-700 text-[10px] font-black">{store.rating}</span>
+                                <span className="text-amber-700 text-[10px] font-black">{Number(store.rating).toFixed(1)}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-0.5 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200/30">
+                                <span className="text-sky-600 text-[10px] font-black uppercase tracking-widest">New</span>
                             </div>
                         )}
                         <span className="text-neutral-300">|</span>

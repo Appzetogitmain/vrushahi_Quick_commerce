@@ -836,7 +836,7 @@ export default function OrderDetail() {
     }
 
     if (returnRefundMethod === "UPI") {
-      const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+      const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/;
       if (!upiId || !upiRegex.test(upiId)) {
         setReturnError("Please enter a valid UPI ID (e.g. yourname@upi)");
         return;
@@ -1045,6 +1045,18 @@ export default function OrderDetail() {
       setShowOtpModal(false);
     }
   }, [otpRequested, orderStatus]);
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    if (showReturnModal || showCancelModal || showOtpModal || showRatingOverlay) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showReturnModal, showCancelModal, showOtpModal, showRatingOverlay]);
 
   // Delivery Promise Logic (24 mins)
   useEffect(() => {
@@ -1841,7 +1853,7 @@ export default function OrderDetail() {
                             type="text"
                             placeholder="e.g. username@upi"
                             value={upiId}
-                            onChange={(e) => setUpiId(e.target.value)}
+                            onChange={(e) => setUpiId(e.target.value.replace(/[^a-zA-Z0-9.\-_@]/g, '').toLowerCase())}
                             className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-4 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                           />
                           <p className="text-[10px] text-neutral-400 ml-1">Format: yourname@bankname</p>
@@ -1856,7 +1868,7 @@ export default function OrderDetail() {
                               type="text"
                               placeholder="e.g. 123456789012"
                               value={bankDetails.accountNumber}
-                              onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                              onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value.replace(/\D/g, '').slice(0, 18) })}
                               className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                             />
                           </div>
@@ -1868,7 +1880,7 @@ export default function OrderDetail() {
                               type="text"
                               placeholder="e.g. SBIN0001234"
                               value={bankDetails.ifscCode}
-                              onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value.toUpperCase() })}
+                              onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 11) })}
                               className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all uppercase"
                             />
                           </div>
@@ -1880,7 +1892,7 @@ export default function OrderDetail() {
                               type="text"
                               placeholder="e.g. Rahul Sharma"
                               value={bankDetails.accountName}
-                              onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                              onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                               className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                             />
                           </div>
@@ -1892,7 +1904,7 @@ export default function OrderDetail() {
                               type="text"
                               placeholder="e.g. State Bank of India"
                               value={bankDetails.bankName}
-                              onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                              onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
                               className="w-full bg-neutral-50/50 border border-neutral-200 rounded-2xl p-3 text-xs font-bold text-neutral-800 placeholder-neutral-400 focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                             />
                           </div>

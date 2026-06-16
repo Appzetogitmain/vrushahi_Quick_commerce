@@ -52,6 +52,12 @@ export default function AdminProfile() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
+
+        // Allow only alphabetic characters and spaces for firstName and lastName
+        if ((name === 'firstName' || name === 'lastName') && !/^[A-Za-z\s]*$/.test(value)) {
+            return;
+        }
+
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 

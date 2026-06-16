@@ -251,6 +251,26 @@ export default function DeliveryDashboard() {
       {/* Header */}
       <DeliveryHeader />
       
+      {/* Cash Limit Warning Banner */}
+      {stats?.isCashLimitReached && (
+        <div className="px-4 py-3 flex items-center justify-between border-b bg-red-600 text-white border-red-700">
+          <div className="flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span className="text-xs font-bold uppercase tracking-tight leading-tight">
+              Cash Limit Reached - New Orders Blocked
+            </span>
+          </div>
+          <button 
+            onClick={() => navigate('/delivery/wallet')}
+            className="text-[10px] font-black uppercase px-2 py-1 rounded border bg-white text-red-600 border-white shrink-0 ml-2"
+          >
+            Pay Now
+          </button>
+        </div>
+      )}
+
       {/* Police Verification Warning Banner */}
       {!stats?.policeVerificationForm && stats?.policeVerificationDeadline && (
         <div className={`px-4 py-3 flex items-center justify-between border-b ${isPvExpired ? 'bg-red-600 text-white border-red-700' : 'bg-amber-50 text-amber-800 border-amber-100'}`}>
@@ -280,8 +300,8 @@ export default function DeliveryDashboard() {
           leftLabel="Daily Collection"
           leftValue={`₹ ${stats?.dailyCollection?.toLocaleString('en-IN') || '0'}`}
           rightIcon={cashBalanceIcon}
-          rightLabel="Cash Balance"
-          rightValue={`₹ ${stats?.cashBalance?.toFixed(2) || '0.00'}`}
+          rightLabel="Amount Owed"
+          rightValue={`₹ ${stats?.pendingAdminPayout?.toFixed(2) || '0.00'}`}
           accentColor="#FFC94A"
         />
 

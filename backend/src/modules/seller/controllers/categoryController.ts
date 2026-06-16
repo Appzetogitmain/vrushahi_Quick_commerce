@@ -31,9 +31,15 @@ export const getCategories = asyncHandler(
     // Get subcategory and product counts for each category
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
-        const subcategoryCount = await SubCategory.countDocuments({
+        const subcategoryCountOld = await SubCategory.countDocuments({
           category: category._id,
         });
+
+        const subcategoryCountNew = await Category.countDocuments({
+          parentId: category._id,
+        });
+        
+        const subcategoryCount = subcategoryCountOld + subcategoryCountNew;
 
         const productCount = await Product.countDocuments({
           category: category._id, // Note: Product model uses 'category', not 'categoryId'
@@ -71,10 +77,15 @@ export const getCategoryById = asyncHandler(
       });
     }
 
-    // Get counts
-    const subcategoryCount = await Category.countDocuments({
+    const subcategoryCountOld = await SubCategory.countDocuments({
+      category: category._id,
+    });
+
+    const subcategoryCountNew = await Category.countDocuments({
       parentId: category._id,
     });
+    
+    const subcategoryCount = subcategoryCountOld + subcategoryCountNew;
 
     const productCount = await Product.countDocuments({
       categoryId: category._id,

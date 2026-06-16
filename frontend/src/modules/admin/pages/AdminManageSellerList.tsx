@@ -4,7 +4,7 @@ import SellerServiceMap from '../components/SellerServiceMap';
 
 interface Seller {
     _id: string;
-    id?: number; // For backward compatibility with existing code
+    id?: string; // For consistent seller IDs
     name: string;
     sellerName: string;
     storeName: string;
@@ -46,13 +46,14 @@ interface Seller {
     };
     requireProductApproval?: boolean;
     viewCustomerDetails?: boolean;
+    storeImage?: string;
 }
 
 // Helper function to convert backend seller to frontend format
 const mapSellerToFrontend = (seller: SellerType): Seller => {
     return {
         _id: seller._id,
-        id: parseInt(seller._id.slice(-6), 16) || 0, // Generate a numeric ID from MongoDB _id
+        id: 'SEL-' + seller._id.slice(-6).toUpperCase(), // Generate consistent ID
         name: seller.sellerName,
         sellerName: seller.sellerName,
         storeName: seller.storeName,
@@ -89,6 +90,7 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         workingHours: seller.workingHours,
         requireProductApproval: seller.requireProductApproval,
         viewCustomerDetails: seller.viewCustomerDetails,
+        storeImage: seller.storeImage,
     };
 };
 
@@ -153,6 +155,18 @@ export default function AdminManageSellerList() {
         fetchSellers();
     }, []);
 
+    // Prevent background scroll when modal is open
+    useEffect(() => {
+        if (isModalOpen || isEditModalOpen || isPreviewModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isModalOpen, isEditModalOpen, isPreviewModalOpen]);
+
     const handleSort = (column: string) => {
         if (sortColumn === column) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -169,13 +183,16 @@ export default function AdminManageSellerList() {
     );
 
     // Filter sellers
-    let filteredSellers = sellers.filter(seller =>
-        seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.phone.includes(searchTerm) ||
-        seller.mobile.includes(searchTerm)
-    );
+    let filteredSellers = sellers.filter(seller => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            (seller.name && seller.name.toLowerCase().includes(searchLower)) ||
+            (seller.storeName && seller.storeName.toLowerCase().includes(searchLower)) ||
+            (seller.email && seller.email.toLowerCase().includes(searchLower)) ||
+            (seller.phone && seller.phone.toLowerCase().includes(searchLower)) ||
+            (seller.mobile && seller.mobile.toLowerCase().includes(searchLower))
+        );
+    });
 
     // Sort sellers
     if (sortColumn) {
@@ -248,8 +265,8 @@ export default function AdminManageSellerList() {
         document.body.removeChild(link);
     };
 
-    const handleEdit = (id: number | string) => {
-        const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
+    const handleEdit = (id: string) => {
+        const sellerId = id;
         const seller = sellers.find(s => s._id === sellerId);
         if (seller) {
             setEditingSeller(seller);
@@ -280,8 +297,8 @@ export default function AdminManageSellerList() {
         }
     };
 
-    const handleApprove = async (id: number | string) => {
-        const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
+    const handleApprove = async (id: string) => {
+        const sellerId = id;
         if (!sellerId) return;
 
         try {
@@ -308,8 +325,8 @@ export default function AdminManageSellerList() {
         }
     };
 
-    const handleReject = async (id: number | string) => {
-        const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
+    const handleReject = async (id: string) => {
+        const sellerId = id;
         if (!sellerId) return;
 
         const reason = window.prompt('Enter rejection reason (mandatory):');
@@ -348,8 +365,8 @@ export default function AdminManageSellerList() {
         setEditingSeller(null);
     };
 
-    const handleDelete = async (id: number | string) => {
-        const sellerId = typeof id === 'number' ? sellers.find(s => s.id === id)?._id : id;
+    const handleDelete = async (id: string) => {
+        const sellerId = id;
         if (!sellerId) return;
 
         if (window.confirm('Are you sure you want to delete this seller?')) {
@@ -486,16 +503,15 @@ export default function AdminManageSellerList() {
                                 )}
                             </div>
                             <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
                                 <input
                                     type="text"
-                                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
+                                    className="px-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value.trimStart());
                                         setCurrentPage(1);
                                     }}
-                                    placeholder=""
+                                    placeholder="Search:"
                                 />
                             </div>
                         </div>
@@ -575,7 +591,7 @@ export default function AdminManageSellerList() {
                                 <tbody>
                                     {displayedSellers.map((seller) => (
                                         <tr key={seller._id} className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700 border-b border-neutral-200">
-                                            <td className="p-4 align-middle">{seller.id || seller._id.slice(-6)}</td>
+                                            <td className="p-4 align-middle">{seller.id}</td>
                                             <td className="p-4 align-middle">{seller.name}</td>
                                             <td className="p-4 align-middle">{seller.storeName}</td>
                                             <td className="p-4 align-middle">
@@ -1082,10 +1098,31 @@ export default function AdminManageSellerList() {
                                 )}
 
                                 {/* Identity & Verification Documents */}
-                                {(editingSeller.idProof || editingSeller.profile || editingSeller.addressProof || editingSeller.fssaiLicNo || editingSeller.businessLicense) && (
+                                {(editingSeller.idProof || editingSeller.profile || editingSeller.addressProof || editingSeller.fssaiLicNo || editingSeller.businessLicense || editingSeller.storeImage) && (
                                     <div className="bg-neutral-50 rounded-lg p-4">
                                         <h4 className="text-sm font-semibold text-neutral-700 mb-3">Identity & Verification</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                            {editingSeller.storeImage && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">Real Store Image</label>
+                                                    {editingSeller.storeImage.endsWith('.pdf') ? (
+                                                        <a href={editingSeller.storeImage} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center justify-center w-full h-32 bg-white border border-neutral-200 rounded-lg text-teal-600 hover:text-teal-700">
+                                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
+                                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                                <polyline points="14 2 14 8 20 8"></polyline>
+                                                            </svg>
+                                                            <span className="text-xs font-bold uppercase">View PDF</span>
+                                                        </a>
+                                                    ) : (
+                                                        <img 
+                                                            src={editingSeller.storeImage} 
+                                                            alt="Real Store Image" 
+                                                            className="w-full h-32 object-cover rounded-lg border border-neutral-200 cursor-pointer hover:opacity-80 transition-opacity" 
+                                                            onClick={() => handleImagePreview(editingSeller.storeImage!)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
                                             {editingSeller.businessLicense && (
                                                 <div>
                                                     <label className="text-xs text-neutral-500 block mb-2">Business License</label>

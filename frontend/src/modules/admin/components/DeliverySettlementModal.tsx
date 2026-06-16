@@ -25,6 +25,8 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       setFormData({
         deliveryBoyId: '',
         amount: '',
@@ -32,7 +34,15 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
         referenceId: '',
         notes: ''
       });
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,7 +98,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3">
           {/* Delivery Boy Selection */}
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5 text-left">Select Delivery Partner *</label>
@@ -96,7 +106,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
               required
               value={formData.deliveryBoyId}
               onChange={(e) => setFormData({ ...formData, deliveryBoyId: e.target.value })}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
+              className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
             >
               <option value="">Choose a partner</option>
               {deliveryBoys.map(d => (
@@ -119,12 +129,12 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="0.00"
-                className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
+                className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-500 mb-1.5 text-left">Current Balance</label>
-              <div className="px-4 py-2.5 bg-neutral-100 border border-neutral-200 rounded-xl text-neutral-600 font-medium text-center">
+              <div className="px-3 py-2 text-sm bg-neutral-100 border border-neutral-200 rounded-lg text-neutral-600 font-medium text-center">
                 ₹{maxAvailable.toLocaleString()}
               </div>
             </div>
@@ -139,7 +149,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
                   key={method}
                   type="button"
                   onClick={() => setFormData({ ...formData, paymentMethod: method })}
-                  className={`py-2 text-sm rounded-xl border-2 transition-all ${
+                  className={`py-1.5 text-sm rounded-lg border-2 transition-all ${
                     formData.paymentMethod === method
                       ? 'border-teal-600 bg-teal-600 text-white'
                       : 'border-neutral-100 bg-neutral-50 text-neutral-600 hover:border-neutral-200'
@@ -159,7 +169,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
               value={formData.referenceId}
               onChange={(e) => setFormData({ ...formData, referenceId: e.target.value })}
               placeholder="UTR number, Txn ID, etc."
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
+              className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
             />
           </div>
 
@@ -171,7 +181,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
               placeholder="Any additional remarks..."
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none resize-none"
+              className="w-full px-3 py-2 text-sm bg-neutral-50 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none resize-none"
             ></textarea>
           </div>
 
@@ -179,7 +189,7 @@ const DeliverySettlementModal: React.FC<DeliverySettlementModalProps> = ({ isOpe
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold text-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-100"
+              className="w-full py-2.5 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-100"
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">

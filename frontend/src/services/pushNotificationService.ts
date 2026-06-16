@@ -165,6 +165,28 @@ export async function registerFCMToken(forceUpdate = false) {
     }
 }
 
+// Unregister FCM token from backend
+export async function unregisterFCMToken() {
+    try {
+        const token = localStorage.getItem('fcm_token_web');
+        if (!token) return;
+
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const platform = isMobile ? 'mobile' : 'web';
+
+        const response = await api.delete('/fcm-tokens/remove', {
+            data: { token, platform }
+        });
+
+        if (response.data.success) {
+            console.log(`✅ FCM token unregistered from backend`);
+            localStorage.removeItem('fcm_token_web');
+        }
+    } catch (error) {
+        console.error('❌ Error unregistering FCM token:', error);
+    }
+}
+
 // Setup foreground notification handler
 export function setupForegroundNotificationHandler(handler?: (payload: any) => void) {
     if (!messaging) return;

@@ -114,6 +114,21 @@ export default function Checkout() {
 
   // Removed redirect if empty to prevent silent kicks when location changes cause items to be filtered out.
 
+  // Prevent background scroll when modals are open
+  useEffect(() => {
+    if (showCancellationPolicy || showCouponSheet) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+      document.documentElement.style.overflow = "unset";
+    };
+  }, [showCancellationPolicy, showCouponSheet]);
+
   // Load addresses and coupons
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -1331,7 +1346,8 @@ export default function Checkout() {
                       e.stopPropagation();
                       const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
                       const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                      updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
+                      const productId = item.product?._id || item.product?.id;
+                      updateQuantity(productId, item.quantity - 1, variantId, variantTitle);
                     }}
                     className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-100 transition-colors font-bold"
                   >
@@ -1345,7 +1361,8 @@ export default function Checkout() {
                       e.stopPropagation();
                       const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
                       const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                      updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
+                      const productId = item.product?._id || item.product?.id;
+                      updateQuantity(productId, item.quantity + 1, variantId, variantTitle);
                     }}
                     className="w-8 h-full flex items-center justify-center text-[#ff3269] hover:bg-pink-100 transition-colors font-bold"
                   >

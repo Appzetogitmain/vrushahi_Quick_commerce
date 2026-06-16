@@ -1,6 +1,7 @@
 import Order from "../models/Order";
 import { IOrderItem } from "../models/OrderItem";
 import Inventory from "../models/Inventory";
+import Product from "../models/Product";
 import { distributeCommissions } from "./commissionService";
 import { clearOrderCache } from "../socket/socketService";
 
@@ -77,6 +78,39 @@ const restoreInventory = async (items: IOrderItem[]) => {
       inventory.availableStock =
         inventory.currentStock - inventory.reservedStock;
       await inventory.save();
+    }
+  }
+};
+
+/**
+ * Restore actual product stock when order is cancelled or rejected
+ */
+export const restoreProductStock = async (orderId: string) => {
+  const order = await Order.findById(orderId).populate("items");
+  if (!order || !order.items) return;
+
+  for (const item of order.items) {
+    const orderItem = item as any; // populated OrderItem
+    if (orderItem && orderItem.product) {
+      const product = await Product.findById(orderItem.product);
+      if (product) {
+        if (orderItem.variation) {
+          const variationIndex = product.variations?.findIndex(
+            (v: any) =>
+              v.value === orderItem.variation ||
+              v.title === orderItem.variation ||
+              v.pack === orderItem.variation
+          );
+
+          if (variationIndex !== undefined && variationIndex !== -1 && product.variations) {
+            product.variations[variationIndex].stock += orderItem.quantity;
+          } else if (product.variations && product.variations.length > 0) {
+            product.variations[0].stock += orderItem.quantity;
+          }
+        }
+        product.stock += orderItem.quantity;
+        await product.save();
+      }
     }
   }
 };

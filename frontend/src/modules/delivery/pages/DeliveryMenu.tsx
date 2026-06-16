@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { useAuth } from '../../../context/AuthContext';
@@ -11,7 +12,7 @@ export default function DeliveryMenu() {
     { id: 'menu-1', title: 'Profile', route: '/delivery/profile' },
     { id: 'menu-wallet', title: 'Wallet & Payouts', route: '/delivery/wallet' },
     { id: 'menu-3', title: 'Settings', route: '/delivery/settings' },
-    { id: 'menu-4', title: 'Help & Support', route: '/delivery/help' },
+    { id: 'menu-4', title: 'Help & Support', route: '/delivery/support' },
     { id: 'menu-5', title: 'About', route: '/delivery/about' },
     { id: 'menu-6', title: 'Logout', route: '/delivery/login' },
   ];
@@ -23,6 +24,15 @@ export default function DeliveryMenu() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
             <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+          </svg>
+        );
+
+      case 'menu-wallet': // Wallet & Payouts
+        return (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         );
 
@@ -110,15 +120,19 @@ export default function DeliveryMenu() {
     }
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const handleMenuClick = (route: string) => {
     if (route === '/delivery/login') {
-      // Properly logout using AuthContext to clear all auth state
-      logout();
-      navigate(route);
+      setShowLogoutModal(true);
     } else {
-      // Navigate to the selected route
       navigate(route);
     }
+  };
+
+  const confirmLogout = () => {
+    logout();
+    navigate('/delivery/login');
   };
 
   return (
@@ -170,6 +184,59 @@ export default function DeliveryMenu() {
         )}
       </div>
       <DeliveryBottomNav />
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16 17L21 12L16 7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M21 12H9"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">Log Out?</h3>
+              <p className="text-neutral-500 text-sm">
+                Are you sure you want to log out of your account? You will need to login again to accept orders.
+              </p>
+            </div>
+            <div className="p-4 bg-neutral-50 border-t border-neutral-100 flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-3 bg-white border border-neutral-200 text-neutral-700 rounded-xl font-bold text-sm hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors shadow-lg shadow-red-600/20"
+              >
+                Yes, Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

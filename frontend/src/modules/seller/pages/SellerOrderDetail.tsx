@@ -14,7 +14,7 @@ export default function SellerOrderDetail() {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [orderStatus, setOrderStatus] = useState<string>("Out For Delivery");
+  const [orderStatus, setOrderStatus] = useState<string>("Out for Delivery");
 
   const fetchOrderDetail = async () => {
     if (!id) return;
@@ -401,6 +401,7 @@ export default function SellerOrderDetail() {
         return "bg-green-100 text-green-800 border border-green-400";
       case "Cancelled":
         return "bg-red-100 text-red-800 border border-red-400";
+      case "Out for Delivery":
       case "Out For Delivery":
         return "bg-blue-600 text-white border border-blue-700";
       case "Received":
@@ -474,7 +475,7 @@ export default function SellerOrderDetail() {
                     orderStatus === "Delivered"
                   }>
                   <option value="Accepted">Accepted</option>
-                  <option value="On the way">On the way</option>
+                  <option value="Out for Delivery">Out for Delivery</option>
                   <option value="Delivered">Delivered</option>
                   <option value="Cancelled">Cancelled</option>
                   {orderStatus === "Rejected" && (

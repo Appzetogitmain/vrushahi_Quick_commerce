@@ -116,16 +116,16 @@ export default function AdminDeliveryAppPolicy() {
                 <div className="p-4 sm:p-6">
                   <div>
                     <label className="block text-sm font-bold text-neutral-800 mb-2">
-                      Policy Text <span className="text-red-500">*</span>
+                      Policy URL <span className="text-red-500">*</span>
                     </label>
-                    <textarea
+                    <input
+                      type="url"
                       name="policyContent"
                       value={policyContent}
                       onChange={(e) => setPolicyContent(e.target.value)}
-                      placeholder={`Enter ${selectedType} content...`}
-                      rows={20}
+                      placeholder={`Enter ${selectedType} URL (e.g., https://example.com/policy)`}
                       required
-                      className="w-full px-4 py-3 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-y font-mono leading-relaxed"
+                      className="w-full px-4 py-3 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     />
                   </div>
                 </div>

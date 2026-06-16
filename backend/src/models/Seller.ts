@@ -15,6 +15,7 @@ export interface ISeller extends Document {
   taxName?: string;
   address: string;
   taxNumber?: string;
+  tanNumber?: string;
   storeDescription?: string;
   storeBanner?: string;
   fssaiLicNo?: string;
@@ -153,6 +154,10 @@ const SellerSchema = new Schema<ISeller>(
       type: String,
       trim: true,
     },
+    tanNumber: {
+      type: String,
+      trim: true,
+    },
     storeDescription: {
       type: String,
       trim: true,
@@ -277,8 +282,6 @@ const SellerSchema = new Schema<ISeller>(
     },
     commission: {
       type: Number,
-      required: [true, 'Commission is required'],
-      default: 0,
       min: [0, 'Commission cannot be negative'],
     },
 

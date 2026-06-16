@@ -113,6 +113,39 @@ export const updateSeller = asyncHandler(
     // Remove password from update data if present
     delete updateData.password;
 
+    // Validate mobile number
+    if (updateData.mobile !== undefined) {
+      if (!updateData.mobile) {
+        return res.status(400).json({
+          success: false,
+          message: "Mobile number is required",
+        });
+      }
+
+      if (updateData.mobile.length !== 10) {
+        return res.status(400).json({
+          success: false,
+          message: "Mobile number must be exactly 10 digits",
+        });
+      }
+
+      if (!/^[6-9]\d{9}$/.test(updateData.mobile)) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter a valid phone number",
+        });
+      }
+
+      // Check for duplicates
+      const existingSeller = await Seller.findOne({ mobile: updateData.mobile, _id: { $ne: id } });
+      if (existingSeller) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number is already in use by another seller.",
+        });
+      }
+    }
+
     // Handle location update (convert lat/lng to GeoJSON)
     if (updateData.latitude && updateData.longitude) {
       const latitude = parseFloat(updateData.latitude);

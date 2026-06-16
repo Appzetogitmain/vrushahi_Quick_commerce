@@ -71,9 +71,9 @@ export const getOrderItemCommissionRate = async (
         // 4. Check Seller specific rate
         const finalSellerId = sellerId || product.seller.toString();
         const seller = await Seller.findById(finalSellerId);
-        if (seller && seller.commissionRate !== undefined && seller.commissionRate !== null) {
+        if (seller && seller.commission !== undefined && seller.commission !== null) {
             return {
-                rate: seller.commissionRate,
+                rate: seller.commission,
                 sourceType: "SELLER",
                 sourceId: seller._id.toString(),
                 sourceLabel: `Seller Override: ${seller.storeName || seller.sellerName}`
@@ -107,8 +107,8 @@ export const getSellerCommissionRate = async (
         }
 
         // Use individual rate if set, otherwise use global default
-        if (seller.commissionRate !== undefined && seller.commissionRate !== null) {
-            return seller.commissionRate;
+        if (seller.commission !== undefined && seller.commission !== null) {
+            return seller.commission;
         }
 
         const settings = await AppSettings.findOne();

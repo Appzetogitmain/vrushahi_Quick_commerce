@@ -174,14 +174,24 @@ export default function SellerReturnRequest() {
                                 <input
                                     type="date"
                                     value={fromDate}
-                                    onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+                                    onChange={(e) => {
+                        const newFrom = e.target.value;
+                        if (toDate && newFrom && newFrom > toDate) return;
+                        setFromDate(newFrom);
+                        setCurrentPage(1);
+                      }}
                                     className="px-3 py-1.5 bg-white border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 focus:ring-1 focus:ring-green-500 focus:border-green-500 focus:outline-none transition-shadow shadow-sm"
                                 />
                                 <label className="text-sm font-medium text-neutral-600">To:</label>
                                 <input
                                     type="date"
                                     value={toDate}
-                                    onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+                                    onChange={(e) => {
+                        const newTo = e.target.value;
+                        if (fromDate && newTo && newTo < fromDate) return;
+                        setToDate(newTo);
+                        setCurrentPage(1);
+                      }}
                                     className="px-3 py-1.5 bg-white border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 focus:ring-1 focus:ring-green-500 focus:border-green-500 focus:outline-none transition-shadow shadow-sm"
                                 />
                                 <button

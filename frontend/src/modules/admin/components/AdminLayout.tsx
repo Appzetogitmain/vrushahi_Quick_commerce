@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 
@@ -12,6 +12,57 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  // Global scroll lock for all modals in Admin
+  useEffect(() => {
+    const checkModals = () => {
+      // Find all potential modal overlays
+      const overlays = document.querySelectorAll('.fixed.inset-0');
+      let isModalVisible = false;
+      
+      overlays.forEach(overlay => {
+        // Skip if it's the mobile sidebar overlay on desktop
+        if (overlay.classList.contains('lg:hidden') && window.innerWidth >= 1024) {
+          return;
+        }
+        
+        const style = window.getComputedStyle(overlay);
+        if (style.display !== 'none') {
+          // Check if it has a background color to act as overlay
+          if (overlay.className.includes('bg-') || overlay.className.includes('z-')) {
+              isModalVisible = true;
+          }
+        }
+      });
+
+      if (isModalVisible) {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      }
+    };
+
+    const observer = new MutationObserver(checkModals);
+    observer.observe(document.body, { 
+      childList: true, 
+      subtree: true, 
+      attributes: true, 
+      attributeFilter: ['class', 'style'] 
+    });
+
+    // Handle window resize for lg:hidden check
+    window.addEventListener('resize', checkModals);
+    checkModals();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', checkModals);
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-neutral-50">

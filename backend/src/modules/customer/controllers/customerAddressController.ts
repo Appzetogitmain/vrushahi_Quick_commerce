@@ -4,7 +4,7 @@ import Address from "../../../models/Address";
 // Add a new address
 export const addAddress = async (req: Request, res: Response) => {
     try {
-        const { name, fullName, phone, flat, street, city, state, pincode, landmark, type, isDefault, latitude, longitude } = req.body;
+        const { name, fullName, phone, flat, street, city, state, pincode, landmark, type, latitude, longitude } = req.body;
         const userId = req.user!.userId;
 
         const finalName = fullName || name;
@@ -18,10 +18,8 @@ export const addAddress = async (req: Request, res: Response) => {
 
         const fullAddress = flat ? `${flat}, ${street}` : street;
 
-        if (isDefault) {
-            // If this is default, unsettle others
-            await Address.updateMany({ customer: userId }, { isDefault: false });
-        }
+        // Always make the newly added address the default
+        await Address.updateMany({ customer: userId }, { isDefault: false });
 
         // Always create a new address
         const newAddress = new Address({
@@ -36,7 +34,7 @@ export const addAddress = async (req: Request, res: Response) => {
             latitude,
             longitude,
             type: type || 'Home',
-            isDefault: isDefault || false,
+            isDefault: true,
         });
 
         await newAddress.save();
@@ -77,7 +75,7 @@ export const getMyAddresses = async (req: Request, res: Response) => {
 export const updateAddress = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, fullName, phone, flat, street, city, state, pincode, landmark, type, isDefault, latitude, longitude } = req.body;
+        const { name, fullName, phone, flat, street, city, state, pincode, landmark, type, latitude, longitude } = req.body;
         const userId = req.user!.userId;
 
         const finalName = fullName || name;
@@ -101,10 +99,9 @@ export const updateAddress = async (req: Request, res: Response) => {
             updateData.address = req.body.address;
         }
 
-        if (isDefault) {
-            await Address.updateMany({ customer: userId }, { isDefault: false });
-            updateData.isDefault = true;
-        }
+        // Always make the edited address the default
+        await Address.updateMany({ customer: userId }, { isDefault: false });
+        updateData.isDefault = true;
 
         const address = await Address.findOneAndUpdate(
             { _id: id, customer: userId },

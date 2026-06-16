@@ -91,28 +91,36 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
         // Only send notification for NEW tokens that haven't been notified recently
         if (isNewToken && (now - lastNotified > cooldownMs)) {
             recentlyNotifiedTokens.set(token, now);
-            try {
-                await sendPushNotification([token], {
-                    title: 'Login Successful',
-                    body: 'Welcome back to vrushahi! You have successfully logged in.',
-                    data: {
-                        type: 'login_success',
-                        link: '/',
-                        timestamp: new Date().toISOString()
-                    }
-                });
-                console.log(`[${new Date().toISOString()}] Login notification sent to NEW token: ${token.substring(0, 10)}...`);
+            /* 
+               [FIX]: Commented out automatic "Login Successful" notification.
+               FCM tokens can be rotated/refreshed by Firebase in the background. 
+               Sending a push notification here causes users to receive a "Login successful" 
+               notification without actively logging in. 
+               If login notifications are desired, they should be triggered directly 
+               from the respective auth controllers (e.g., verifySmsOtp, login).
+            */
+            // try {
+            //     await sendPushNotification([token], {
+            //         title: 'Login Successful',
+            //         body: 'Welcome back to vrushahi! You have successfully logged in.',
+            //         data: {
+            //             type: 'login_success',
+            //             link: '/',
+            //             timestamp: new Date().toISOString()
+            //         }
+            //     });
+            //     console.log(`[${new Date().toISOString()}] Login notification sent to NEW token: ${token.substring(0, 10)}...`);
 
-                // Cleanup map occasionally to prevent memory leaks
-                if (recentlyNotifiedTokens.size > 1000) {
-                    const expiry = Date.now() - (cooldownMs * 5);
-                    for (const [t, time] of recentlyNotifiedTokens.entries()) {
-                        if (time < expiry) recentlyNotifiedTokens.delete(t);
-                    }
-                }
-            } catch (pushError) {
-                console.error('Failed to send login notification:', pushError);
-            }
+            //     // Cleanup map occasionally to prevent memory leaks
+            //     if (recentlyNotifiedTokens.size > 1000) {
+            //         const expiry = Date.now() - (cooldownMs * 5);
+            //         for (const [t, time] of recentlyNotifiedTokens.entries()) {
+            //             if (time < expiry) recentlyNotifiedTokens.delete(t);
+            //         }
+            //     }
+            // } catch (pushError) {
+            //     console.error('Failed to send login notification:', pushError);
+            // }
         } else {
             if (!isNewToken) {
                 console.log(`[${new Date().toISOString()}] Notification suppressed: Token already registered (re-registration)`);

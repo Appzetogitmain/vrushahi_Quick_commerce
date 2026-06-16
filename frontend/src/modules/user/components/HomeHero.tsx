@@ -10,7 +10,7 @@ import { Category } from "../../../types/domain";
 import { getHeaderCategoriesPublic } from "../../../services/api/headerCategoryService";
 import { getIconByName } from "../../../utils/iconLibrary";
 import CartIconButton from "../../../components/CartIconButton";
-import logoImg from "../../../assets/WhatsApp Image 2026-05-20 at 12.50.35.jpeg";
+import logoImg from "@assets/LogoLatest.png";
 gsap.registerPlugin(ScrollTrigger);
 
 // Helper function to convert RGB string to RGBA
@@ -105,12 +105,12 @@ export default function HomeHero({
     if (userLocation?.address) {
       // Shorten the address if it's too long for a "small" concise look
       const addr = userLocation.address;
-      return addr.length > 35 ? `${addr.substring(0, 35)}...` : addr;
+      return addr.length > 20 ? `${addr.substring(0, 20)}...` : addr;
     }
     // Fallback to city, state format if available
     if (userLocation?.city && userLocation?.state) {
       const cityState = `${userLocation.city}, ${userLocation.state}`;
-      return cityState.length > 35 ? `${cityState.substring(0, 35)}...` : cityState;
+      return cityState.length > 20 ? `${cityState.substring(0, 20)}...` : cityState;
     }
     // Fallback to city only
     if (userLocation?.city) {
@@ -369,7 +369,7 @@ export default function HomeHero({
         marginBottom: 0,
       }}>
       {/* Top section - Delivery Info */}
-      <div className="">
+      <div className="pt-8 md:pt-0">
         <div
           ref={topSectionRef}
           className="px-4 md:px-6 lg:px-8 pt-4 md:pt-4 pb-0">
@@ -380,18 +380,18 @@ export default function HomeHero({
               className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer group"
             >
               
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-row items-center min-w-0 gap-3">
                 <div className={`flex items-center group-hover:opacity-70 transition-opacity`}>
                   <img src={logoImg} alt="Vrushahi" className="h-8 md:h-10 object-contain" />
                 </div>
                 {locationDisplayText && (
-                  <div className={`flex items-center gap-1 text-xs mt-0.5 group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>
+                  <div className={`flex items-center gap-1 text-xs group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" 
                         fill={isHome ? "rgba(0,0,0,0.6)" : "currentColor"} 
                       />
                     </svg>
-                    <span className="truncate pr-2">
+                    <span className="truncate pr-2 max-w-[150px]">
                       {locationDisplayText}
                     </span>
                   </div>
@@ -484,20 +484,6 @@ export default function HomeHero({
                 );
               })}
             </div>
-            {/* Right side icon in search bar */}
-            {isHome ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" />
-                <path d="M12 8v8" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" strokeLinecap="round" />
-                <path d="M8 12h8" stroke={scrollProgress > 0.5 ? "#2E1065" : "#4B3F9A"} strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
-                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9z" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" />
-                <path d="M12 8v8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
-                <path d="M8 12h8" stroke={scrollProgress > 0.5 ? "#9ca3af" : "#6b7280"} strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            )}
           </div>
         </div>
 

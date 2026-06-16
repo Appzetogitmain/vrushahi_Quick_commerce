@@ -21,13 +21,19 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
   if (typeof variationSelector === 'number') {
     variation = product.variations?.[variationSelector];
   } else if (typeof variationSelector === 'string') {
-    variation = product.variations?.find((v: any) => (v._id === variationSelector || v.id === variationSelector));
+    // Match by _id, id, title, value, or name
+    variation = product.variations?.find((v: any) =>
+      v._id === variationSelector ||
+      v._id?.toString() === variationSelector ||
+      v.id === variationSelector ||
+      v.title === variationSelector ||
+      v.value === variationSelector ||
+      v.name === variationSelector
+    );
   }
 
-  // Fallback to first variation if no specific one selected/found but variations exist
-  // Only if variationSelector was NOT provided (undefined). If it was provided but not found, we probably shouldn't default to 0?
-  // Current behavior was: if index undefined, use index 0.
-  if (!variation && product.variations?.length > 0 && variationSelector === undefined) {
+  // Fallback to first variation if no match found but variations exist
+  if (!variation && product.variations?.length > 0) {
     variation = product.variations[0];
   }
 

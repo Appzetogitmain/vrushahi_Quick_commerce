@@ -322,8 +322,14 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
         // 3. Distribute funds to sellers (process pending COD payouts)
         await processPendingCODPayouts(deliveryBoyId, amount, session);
 
-        // Update delivery boy pending amount
+        // Calculate proportional reduction for cashCollected
+        const currentCashCollected = deliveryBoy.cashCollected || 0;
+        const ratio = currentPending > 0 ? currentCashCollected / currentPending : 1;
+        const cashEquivalent = Math.round(amount * ratio * 100) / 100;
+
+        // Update delivery boy pending amount and cash collected
         deliveryBoy.pendingAdminPayout = Math.max(0, currentPending - amount);
+        deliveryBoy.cashCollected = Math.max(0, currentCashCollected - cashEquivalent);
         
         // 4. Check for unblocking
         const settings = await AppSettings.getSettings();

@@ -75,8 +75,16 @@ export default function DeliveryHelp() {
             <h3 className="text-neutral-900 font-semibold">Contact Us</h3>
           </div>
           <div className="divide-y divide-neutral-200">
-            {contacts.map((option, index) => (
-              <div key={index} className="p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors">
+            {contacts.map((option, index) => {
+              const href = option.icon === 'phone' ? `tel:${option.value}` : option.icon === 'email' ? `mailto:${option.value}` : '#';
+              
+              return (
+              <a 
+                key={index} 
+                href={href}
+                onClick={(e) => { if (href === '#') e.preventDefault(); }}
+                className="p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors cursor-pointer"
+              >
                 <div>
                   <p className="text-neutral-900 text-sm font-medium mb-1">{option.label}</p>
                   <p className="text-neutral-500 text-xs">{option.value}</p>
@@ -84,8 +92,8 @@ export default function DeliveryHelp() {
                 <div className="p-2 bg-neutral-100 rounded-full">
                   {getIcon(option.icon)}
                 </div>
-              </div>
-            ))}
+              </a>
+            )})}
           </div>
         </div>
 

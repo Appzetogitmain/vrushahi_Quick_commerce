@@ -58,10 +58,9 @@ export const getOrders = asyncHandler(
     // Search filter
     if (search) {
       query.$or = [
-        { orderId: { $regex: search, $options: "i" } },
-        { invoiceNumber: { $regex: search, $options: "i" } },
-        { 'deliveryAddress.name': { $regex: search, $options: "i" } },
-        { 'deliveryAddress.phone': { $regex: search, $options: "i" } },
+        { orderNumber: { $regex: search as string, $options: "i" } },
+        { customerName: { $regex: search as string, $options: "i" } },
+        { customerPhone: { $regex: search as string, $options: "i" } },
       ];
     }
 
@@ -74,13 +73,22 @@ export const getOrders = asyncHandler(
     const sort: any = {};
     sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
 
-    // Get orders with populated customer and delivery info
     const orders = await Order.find(query)
       .populate("customer", "name email phone")
       .populate("deliveryBoy", "name mobile")
       .sort(sort)
       .skip(skip)
       .limit(limitNum);
+
+    // Get seller's items for these orders to calculate the correct amount
+    const orderIds = orders.map(o => o._id);
+    const sellerItems = await OrderItem.find({ order: { $in: orderIds }, seller: sellerId });
+    const sellerItemsByOrder = sellerItems.reduce((acc, item) => {
+      const oId = item.order.toString();
+      if (!acc[oId]) acc[oId] = 0;
+      acc[oId] += item.total || 0;
+      return acc;
+    }, {} as Record<string, number>);
 
     // Get total count for pagination
     const total = await Order.countDocuments(query);
@@ -94,7 +102,7 @@ export const getOrders = asyncHandler(
         : order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       orderDate: order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       status: order.status === 'On the way' ? 'On the way' : order.status,
-      amount: order.total,
+      amount: sellerItemsByOrder[order._id.toString()] || 0,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',
       deliveryBoyName: (order.deliveryBoy as any)?.name || '',
@@ -201,7 +209,7 @@ export const getOrderById = asyncHandler(
         product: item.productName || 'Unknown Product',
         soldBy: (item.seller as any)?.storeName || 'N/A',
         unit: unit,
-        price: item.basePrice !== undefined ? item.basePrice : (item.unitPrice || 0),
+        price: item.basePrice ? item.basePrice : (item.unitPrice || 0),
         tax: item.taxAmount || 0,
         taxPercent: item.taxPercentage || 0,
         taxName: item.taxName,
@@ -254,7 +262,7 @@ export const updateOrderStatus = asyncHandler(
     const { status } = req.body;
 
     // Validate allowed status updates for seller
-    const allowedStatuses = ['Accepted', 'On the way', 'Delivered', 'Cancelled', 'Rejected'];
+    const allowedStatuses = ['Accepted', 'Out for Delivery', 'Delivered', 'Cancelled', 'Rejected'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -292,6 +300,15 @@ export const updateOrderStatus = asyncHandler(
     const previousStatus = order.status;
     order.status = status;
     await order.save();
+
+    if ((status === "Cancelled" || status === "Rejected") && previousStatus !== "Cancelled" && previousStatus !== "Rejected") {
+      try {
+        const { restoreProductStock } = require("../../../services/orderService");
+        await restoreProductStock(order._id.toString());
+      } catch (err) {
+        console.error("Error restoring stock on seller cancellation:", err);
+      }
+    }
 
     // Trigger delivery notification if seller accepts the order
     if (status === 'Accepted' && previousStatus !== 'Accepted') {

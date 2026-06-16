@@ -289,6 +289,8 @@ export default function CategoryFormModal({
 
     if (!formData.name.trim()) {
       newErrors.name = "Category name is required";
+    } else if (!/[a-zA-Z0-9]/.test(formData.name)) {
+      newErrors.name = "Category name cannot contain only special characters";
     }
 
     if (Number(formData.order) < 0 || formData.order === "") {

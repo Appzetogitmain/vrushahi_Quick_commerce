@@ -201,9 +201,28 @@ export default function AdminSellerTransaction() {
             </select>
             
             <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg px-3 py-1.5">
-              <input type="date" value={dateRange.from} onChange={e => setDateRange({...dateRange, from: e.target.value})} className="text-xs outline-none bg-transparent" />
+              <input 
+                type="date" 
+                value={dateRange.from} 
+                onChange={e => {
+                  const newFrom = e.target.value;
+                  if (dateRange.to && newFrom && newFrom > dateRange.to) return;
+                  setDateRange({...dateRange, from: newFrom});
+                }} 
+                className="text-xs outline-none bg-transparent" 
+              />
               <span className="text-neutral-300">|</span>
-              <input type="date" value={dateRange.to} onChange={e => setDateRange({...dateRange, to: e.target.value})} className="text-xs outline-none bg-transparent" />
+              <input 
+                type="date" 
+                value={dateRange.to} 
+                min={dateRange.from || undefined}
+                onChange={e => {
+                  const newTo = e.target.value;
+                  if (dateRange.from && newTo && newTo < dateRange.from) return;
+                  setDateRange({...dateRange, to: newTo});
+                }} 
+                className="text-xs outline-none bg-transparent" 
+              />
             </div>
           </div>
 

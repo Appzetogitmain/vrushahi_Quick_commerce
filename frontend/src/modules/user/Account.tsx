@@ -128,9 +128,9 @@ export default function Account() {
     }
   }, [user, navigate, authLogout]);
 
-  // Lock background scroll when Delete Modal is active
+  // Lock background scroll when modals are active
   useEffect(() => {
-    if (deleteStep > 0) {
+    if (deleteStep > 0 || showEditModal) {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
     } else {
@@ -141,7 +141,7 @@ export default function Account() {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
     };
-  }, [deleteStep]);
+  }, [deleteStep, showEditModal]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Not set";
@@ -704,7 +704,7 @@ export default function Account() {
                       type="text"
                       required
                       value={editData.name}
-                      onChange={(e) => setEditData({...editData, name: e.target.value})}
+                      onChange={(e) => setEditData({...editData, name: e.target.value.replace(/[^a-zA-Z\s]/g, '')})}
                       placeholder="Enter Full Name"
                       className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/10 focus:border-purple-600 transition-all"
                     />
@@ -725,6 +725,7 @@ export default function Account() {
                     <input
                       type="date"
                       value={editData.dateOfBirth}
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setEditData({...editData, dateOfBirth: e.target.value})}
                       className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600/10 focus:border-purple-600 transition-all"
                     />

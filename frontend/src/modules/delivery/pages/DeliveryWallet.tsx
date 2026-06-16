@@ -58,6 +58,18 @@ export default function DeliveryWallet() {
     const [razorpayQR, setRazorpayQR] = useState<any>(null);
     const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
+    // Prevent body scroll when modals are open
+    useEffect(() => {
+        if (showWithdrawModal || showPayoutModal) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [showWithdrawModal, showPayoutModal]);
+
     useEffect(() => {
         fetchWalletData();
     }, []);

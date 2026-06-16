@@ -195,7 +195,7 @@ export default function SellerStore() {
                             <svg className="fill-current w-5 h-5 md:w-8 md:h-8" viewBox="0 0 24 24">
                                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z" />
                             </svg>
-                            <span className="text-base md:text-2xl font-black text-neutral-900">{seller.rating ? Number(seller.rating).toFixed(1) : '4.2'}</span>
+                            <span className="text-base md:text-2xl font-black text-neutral-900">{seller.rating && seller.rating > 0 ? Number(seller.rating).toFixed(1) : 'New'}</span>
                         </div>
                     </div>
                 </div>

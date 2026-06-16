@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import { getNotifications, Notification } from "../../../services/api/admin/adminNotificationService";
+import { getNotifications, Notification, markMultipleAsRead } from "../../../services/api/admin/adminNotificationService";
 import vrushahiLogo from "@assets/LogoLatest.png";
 
 interface AdminHeaderProps {
@@ -18,6 +18,7 @@ export default function AdminHeader({
   const { logout } = useAuth();
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname.includes(path);
@@ -66,9 +67,9 @@ export default function AdminHeader({
 
   return (
     <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-3 sm:gap-0">
+      <div className="flex flex-row items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4">
         {/* Logo and Hamburger Menu */}
-        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Hamburger Menu Button */}
           <button
             onClick={onMenuClick}
@@ -109,7 +110,7 @@ export default function AdminHeader({
           {/* Kosil Logo */}
           <button
             onClick={handleLogoClick}
-            className="hover:opacity-80 transition-opacity">
+            className="">
             <img
               src={vrushahiLogo}
               alt="vrushahi"
@@ -156,7 +157,15 @@ export default function AdminHeader({
           {/* Notifications Button */}
           <div className="relative" ref={notificationsRef}>
             <button
-              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
+              onClick={() => {
+                const isOpening = !showNotificationsDropdown;
+                setShowNotificationsDropdown(isOpening);
+                if (isOpening && unreadNotifications.length > 0) {
+                  const unreadIds = unreadNotifications.map((n) => n._id);
+                  markMultipleAsRead({ notificationIds: unreadIds }).catch(console.error);
+                  setUnreadNotifications([]);
+                }
+              }}
               className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors relative"
               aria-label="Notifications">
               <svg
@@ -242,7 +251,7 @@ export default function AdminHeader({
 
           {/* Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
             aria-label="Logout">
             <svg
@@ -262,6 +271,34 @@ export default function AdminHeader({
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50">
+              <h3 className="text-lg font-semibold text-neutral-900">Confirm Logout</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-neutral-600">Are you sure you want to log out of your session?</p>
+            </div>
+            <div className="px-6 py-4 border-t border-neutral-200 flex justify-end gap-3 bg-neutral-50">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -586,7 +586,7 @@ export default function AdminDashboard() {
             </h3>
             <GaugeChart
               value={stats.avgCompletedOrderValue}
-              maxValue={521}
+              maxValue={Math.max(500, Math.ceil(stats.avgCompletedOrderValue * 1.5))}
               label="Average Order Value"
             />
           </div>
@@ -952,7 +952,7 @@ export default function AdminDashboard() {
                   displayedTopSellers.map((seller) => (
                     <tr key={seller.sellerId} className="hover:bg-neutral-50">
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                        {seller.sellerId}
+                        {'SEL-' + seller.sellerId.slice(-6).toUpperCase()}
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                         {seller.sellerName}

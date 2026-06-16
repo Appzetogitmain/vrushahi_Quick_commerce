@@ -351,7 +351,7 @@ export default function CheckoutAddress() {
           <input
             type="text"
             value={address.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
+            onChange={(e) => handleInputChange('name', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
             className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.name ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Enter your name"
@@ -382,7 +382,7 @@ export default function CheckoutAddress() {
           <input
             type="text"
             value={address.flat}
-            onChange={(e) => handleInputChange('flat', e.target.value)}
+            onChange={(e) => handleInputChange('flat', e.target.value.replace(/^[^a-zA-Z0-9]+/, ''))}
             className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.flat ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Flat/House No."
@@ -397,7 +397,7 @@ export default function CheckoutAddress() {
           <input
             type="text"
             value={address.street}
-            onChange={(e) => handleInputChange('street', e.target.value)}
+            onChange={(e) => handleInputChange('street', e.target.value.replace(/^[^a-zA-Z0-9]+/, ''))}
             className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.street ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="Street/Area"
@@ -412,7 +412,7 @@ export default function CheckoutAddress() {
           <input
             type="text"
             value={address.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
+            onChange={(e) => handleInputChange('city', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
             className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.city ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="City"
@@ -427,7 +427,7 @@ export default function CheckoutAddress() {
           <input
             type="text"
             value={address.state || ''}
-            onChange={(e) => handleInputChange('state', e.target.value)}
+            onChange={(e) => handleInputChange('state', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
             className={`w-full px-4 py-3 bg-white border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all ${errors.state ? 'border-red-500' : 'border-neutral-200'
               }`}
             placeholder="State"
