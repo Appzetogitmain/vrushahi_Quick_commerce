@@ -75,11 +75,6 @@ export default function PolicyModal({ isOpen, onClose, type, titleSearch }: Poli
               <h3 className="text-xl font-bold text-neutral-900">
                 {loading ? "Loading Policy..." : policy?.title || "Policy Details"}
               </h3>
-              {!loading && policy?.version && (
-                <p className="text-xs text-neutral-400 mt-0.5 font-medium uppercase tracking-wider">
-                  Version {policy.version}
-                </p>
-              )}
             </div>
             <button
               onClick={onClose}
@@ -102,7 +97,7 @@ export default function PolicyModal({ isOpen, onClose, type, titleSearch }: Poli
             ) : policy ? (
               <div className="prose prose-neutral max-w-none">
                 <div className="whitespace-pre-wrap text-neutral-700 leading-relaxed text-[15px] space-y-4">
-                  {policy.content.replace(/^(?:Last\s+Updated|Last\s+updated)\s*:\s*[^\n]*\n*/i, "").trim()}
+                  {policy.content.replace(/\n*Last\s+Updated\s*:\s*[^\n]*/gi, "").trim()}
                 </div>
                 <div className="mt-12 pt-8 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-medium">
                   <span>VRUSHAHI QUICK COMMERCE</span>

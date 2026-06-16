@@ -44,11 +44,6 @@ export default function DeliveryPrivacyPolicy() {
           <h1 className="text-xl font-bold text-neutral-900">
             Privacy Policy
           </h1>
-          {!loading && policy?.version && (
-            <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider mt-0.5">
-              Version {policy.version}
-            </p>
-          )}
         </div>
       </div>
 
@@ -63,7 +58,7 @@ export default function DeliveryPrivacyPolicy() {
           ) : policy ? (
             <div className="prose prose-neutral max-w-none">
               <div className="whitespace-pre-wrap text-neutral-700 leading-relaxed text-[15px] space-y-4">
-                {policy.content.replace(/^(?:Last\s+Updated|Last\s+updated)\s*:\s*[^\n]*\n*/i, "").trim()}
+                {policy.content.replace(/\n*Last\s+Updated\s*:\s*[^\n]*/gi, "").trim()}
               </div>
               <div className="mt-12 pt-8 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-neutral-400 font-medium">
                 <span>VRUSHAHI DELIVERY PARTNER APP</span>

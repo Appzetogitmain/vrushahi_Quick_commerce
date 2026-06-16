@@ -149,7 +149,7 @@ const menuItems: MenuItem[] = [
   { label: "Return", path: "/seller/return" },
   { label: "FAQs", path: "/seller/faqs" },
   { label: "Settings", path: "/seller/account-settings" },
-  { label: "Privacy Policy", path: "/policy?type=seller&title=Privacy Policy" },
+  { label: "Privacy Policy", path: "/seller/privacy-policy" },
   { label: "Terms and Conditions", path: "/policy?type=seller&title=Terms of Service" },
   { label: "Support", path: "/seller/support" },
 ];
