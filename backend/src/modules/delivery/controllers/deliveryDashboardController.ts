@@ -5,6 +5,7 @@ import Order from "../../../models/Order";
 import FAQ from "../../../models/FAQ";
 import AppSettings from "../../../models/AppSettings";
 import mongoose from "mongoose";
+import Return from "../../../models/Return";
 
 /**
  * Get Dashboard Stats
@@ -169,6 +170,26 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     const riderCashLimit = deliveryPartner.cashLimit || settings.riderCashLimit || 500;
     const isCashLimitReached = deliveryPartner.pendingAdminPayout >= riderCashLimit;
 
+    // Fetch total return items currently with the rider (custody is "With Rider" or status is "Picked Up")
+    const returnItemsCount = await Return.aggregate([
+        {
+            $match: {
+                deliveryBoy: objectId,
+                $or: [
+                    { productCustody: "With Rider" },
+                    { pickupStatus: "Picked Up" }
+                ]
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalQty: { $sum: "$quantity" }
+            }
+        }
+    ]);
+    const returnItems = returnItemsCount[0]?.totalQty || 0;
+
     return res.status(200).json({
         success: true,
         data: {
@@ -180,7 +201,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             pendingOrders: result.pendingOrders,
             allOrders: result.allOrdersToday,
             returnOrders: result.returnOrdersToday,
-            returnItems: 0, // Need 'OrderItem' logic for this, keeping 0 for now
+            returnItems: returnItems,
             todayEarning: todayEarning,
             totalEarning: totalEarning,
             pendingOrdersList: formattedPendingList,

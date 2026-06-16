@@ -106,7 +106,10 @@ export default function DeliveryPendingOrders() {
                   <p className="text-neutral-600 text-xs mb-2 line-clamp-2">{order.address}</p>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-neutral-500 text-xs">
-                      {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                      {(() => {
+                        const totalQty = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0;
+                        return `${totalQty} item${totalQty !== 1 ? 's' : ''}`;
+                      })()}
                     </p>
                     <p className="text-neutral-900 font-bold">₹ {order.totalAmount}</p>
                   </div>

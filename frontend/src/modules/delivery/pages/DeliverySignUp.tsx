@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 import {
   register,
@@ -52,6 +53,17 @@ export default function DeliverySignUp() {
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [isCityLoading, setIsCityLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
   const [showPolicy, setShowPolicy] = useState(false);
   const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'delivery' });
 
@@ -346,7 +358,9 @@ export default function DeliverySignUp() {
           const otpRes = await sendOTP(formData.mobile);
           if (otpRes.sessionId) setSessionId(otpRes.sessionId);
           setShowOTP(true);
+          setResendTimer(30);
         } catch (otpErr: any) {
+
           showToast(otpErr.message || "Registration successful but failed to send OTP.", "error");
         }
       }
@@ -865,16 +879,23 @@ export default function DeliverySignUp() {
                     try {
                       const res = await sendOTP(formData.mobile);
                       if (res.sessionId) setSessionId(res.sessionId);
+                      setResendTimer(30);
+                      showToast("OTP resent successfully", "success");
                     } catch (err: any) {
                       showToast(err.message || "Failed to resend OTP.", "error");
                     } finally {
                       setLoading(false);
                     }
                   }}
-                  disabled={loading}
-                  className="flex-1 max-w-[10rem] py-6 rounded-[1.25rem] font-bold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]">
-                  {loading ? "Resending..." : "Resend"}
+                  disabled={loading || resendTimer > 0}
+                  className={`flex-1 max-w-[10rem] py-6 rounded-[1.25rem] font-bold text-sm transition-all ${
+                    resendTimer > 0
+                      ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700 shadow-[0_10px_20px_rgba(22,163,74,0.2)]"
+                  }`}>
+                  {loading ? "Resending..." : resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
                 </button>
+
               </div>
             </div>
 

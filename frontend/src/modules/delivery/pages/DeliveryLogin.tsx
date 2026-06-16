@@ -21,6 +21,17 @@ export default function DeliveryLogin() {
   const [isNotRegistered, setIsNotRegistered] = useState(false);
   const [showPolicy, setShowPolicy] = useState(false);
   const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'delivery' });
+  const [resendTimer, setResendTimer] = useState(0);
+
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
 
   // Clear any existing token on mount to prevent role conflicts
   useEffect(() => {
@@ -39,7 +50,9 @@ export default function DeliveryLogin() {
       if (response.success && response.sessionId) {
         setSessionId(response.sessionId);
         setShowOTP(true);
+        setResendTimer(30);
       } else {
+
         setError(response.message || "Failed to initiate OTP");
       }
     } catch (err: any) {
@@ -206,10 +219,15 @@ export default function DeliveryLogin() {
                 </button>
                 <button
                   onClick={handleMobileLogin}
-                  disabled={loading}
-                  className="flex-1 max-w-[10rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]">
-                  {loading ? "Verifying..." : "Resend"}
+                  disabled={loading || resendTimer > 0}
+                  className={`flex-1 max-w-[10rem] py-3 rounded-[1rem] font-semibold text-sm transition-all ${
+                    resendTimer > 0
+                      ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]"
+                  }`}>
+                  {loading ? "Resending..." : resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend"}
                 </button>
+
               </div>
             </div>
           )}

@@ -49,7 +49,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     if (ifscCode) delivery.ifscCode = ifscCode;
     if (upiId !== undefined) delivery.upiId = upiId;
     if (policeVerificationForm) {
-        if (delivery.policeVerificationForm && delivery.policeVerificationForm.trim() !== "") {
+        if (delivery.policeVerificationForm && delivery.policeVerificationForm.trim() !== "" && delivery.policeVerificationForm !== policeVerificationForm) {
             return res.status(400).json({
                 success: false,
                 message: "Police verification form has already been submitted."
