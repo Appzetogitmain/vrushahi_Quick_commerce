@@ -145,11 +145,49 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Use mobile as password if not provided
   const registrationPassword = password || mobile;
 
+  if (!/^[a-zA-Z\s]+$/.test(name)) {
+    return res.status(400).json({
+      success: false,
+      message: "Name should only contain alphabets",
+    });
+  }
+
+  if (city && !/^[a-zA-Z\s]+$/.test(city)) {
+    return res.status(400).json({
+      success: false,
+      message: "City should only contain alphabets",
+    });
+  }
+
+  if (pincode && !/^\d{6}$/.test(pincode)) {
+    return res.status(400).json({
+      success: false,
+      message: "Pincode must be exactly 6 digits",
+    });
+  }
+
   if (!/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
       success: false,
       message: "Valid 10-digit mobile number is required",
     });
+  }
+
+  if (accountName && !/^[a-zA-Z\s]+$/.test(accountName)) {
+    return res.status(400).json({
+      success: false,
+      message: "Account holder name should only contain alphabets",
+    });
+  }
+
+  if (vehicleType && vehicleType !== "Bicycle") {
+    const cleanVehicleNum = (vehicleNumber || "").replace(/[ -]/g, "").toUpperCase();
+    if (!cleanVehicleNum || !/^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$/.test(cleanVehicleNum)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid vehicle number (e.g. MP04 AB 1234)",
+      });
+    }
   }
 
   // Check if delivery partner already exists
@@ -190,7 +228,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     bankName,
     accountNumber,
     ifscCode,
-    vehicleNumber,
+    vehicleNumber: vehicleType === "Bicycle" ? undefined : vehicleNumber,
     vehicleType,
     policeVerificationForm,
     policeVerificationDeadline,

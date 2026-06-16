@@ -6,6 +6,8 @@ export interface AppConfig {
         gst: number;
     };
     estimatedDeliveryTime: string;
+    contactEmail?: string;
+    contactPhone?: string;
 }
 
 import api from './api/config';

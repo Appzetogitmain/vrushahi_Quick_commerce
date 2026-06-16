@@ -102,7 +102,7 @@ export default function PolicyModal({ isOpen, onClose, type, titleSearch }: Poli
             ) : policy ? (
               <div className="prose prose-neutral max-w-none">
                 <div className="whitespace-pre-wrap text-neutral-700 leading-relaxed text-[15px] space-y-4">
-                  {policy.content}
+                  {policy.content.replace(/^(?:Last\s+Updated|Last\s+updated)\s*:\s*[^\n]*\n*/i, "").trim()}
                 </div>
                 <div className="mt-12 pt-8 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-400 font-medium">
                   <span>VRUSHAHI QUICK COMMERCE</span>

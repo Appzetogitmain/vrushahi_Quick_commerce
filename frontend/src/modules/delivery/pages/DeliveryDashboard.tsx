@@ -379,6 +379,7 @@ export default function DeliveryDashboard() {
             title="Total return item have"
             value={stats?.returnItems || 0}
             accentColor="#3b82f6"
+            onClick={() => navigate('/delivery/orders/return')}
           />
         </div>
 

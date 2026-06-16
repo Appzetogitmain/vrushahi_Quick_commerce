@@ -84,7 +84,7 @@ export default function PolicyPage() {
         ) : policy ? (
           <div className="prose max-w-none">
             <div className="whitespace-pre-wrap text-neutral-700 leading-relaxed text-[15px]">
-              {policy.content}
+              {policy.content.replace(/^(?:Last\s+Updated|Last\s+updated)\s*:\s*[^\n]*\n*/i, "").trim()}
             </div>
             <div className="mt-12 pt-8 border-t border-neutral-100 text-xs text-neutral-400">
               Last updated: {policy.updatedAt ? new Date(policy.updatedAt).toLocaleDateString('en-IN', {

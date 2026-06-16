@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../services/api/config";
 
 interface SupportSettings {
@@ -7,6 +8,7 @@ interface SupportSettings {
 }
 
 export default function SellerSupport() {
+  const navigate = useNavigate();
   const [settings, setSettings] = useState<SupportSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,11 +37,37 @@ export default function SellerSupport() {
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Support & Contact</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Get in touch with us if you need any assistance with your seller account.
-          </p>
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2.5 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-all active:scale-95 shadow-sm"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18L9 12L15 6" />
+            </svg>
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Support & Contact</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Get in touch with us if you need any assistance with your seller account.
+            </p>
+          </div>
+        </div>
+
+        {/* Top Info Banner */}
+        <div className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-3xl p-6 sm:p-8 text-white mb-8 shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10" />
+          <div className="relative z-10 max-w-2xl">
+            <span className="text-[10px] bg-white/20 px-3 py-1.5 rounded-full font-bold uppercase tracking-widest">
+              Seller Help Desk
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black mt-3 mb-2">
+              Need help managing your store?
+            </h2>
+            <p className="text-teal-50/90 text-sm leading-relaxed">
+              Our support team is dedicated to assisting you with order processing, store settings, payouts, inventory updates, and account approvals. Get quick resolutions to keep your store operating smoothly.
+            </p>
+          </div>
         </div>
 
         {loading ? (

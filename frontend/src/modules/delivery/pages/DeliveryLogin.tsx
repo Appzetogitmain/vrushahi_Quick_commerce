@@ -232,8 +232,7 @@ export default function DeliveryLogin() {
               and{" "}
               <button
                 onClick={() => {
-                  setPolicyType({ type: 'delivery', title: 'Privacy' });
-                  setShowPolicy(true);
+                  navigate('/delivery/privacy-policy');
                 }}
                 className="text-green-600 hover:underline font-bold"
               >
@@ -243,7 +242,7 @@ export default function DeliveryLogin() {
           </div>
 
           {/* Sign Up Link */}
-          <div className="text-center pt-6 border-t border-neutral-100">
+          <div className="text-center pt-6 pb-8 border-t border-neutral-100">
             <p className="text-sm text-neutral-500 font-medium">
               Don't have a delivery partner account?{" "}
               <button

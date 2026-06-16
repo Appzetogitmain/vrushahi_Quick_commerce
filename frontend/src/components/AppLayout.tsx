@@ -54,7 +54,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Check if location is required for current route
   const requiresLocation = () => {
-    const publicRoutes = ['/login', '/signup', '/seller/login', '/seller/signup', '/delivery/login', '/delivery/signup', '/admin/login', '/policy'];
+    const publicRoutes = [
+      '/login', 
+      '/signup', 
+      '/seller/login', 
+      '/seller/signup', 
+      '/delivery/login', 
+      '/delivery/signup', 
+      '/admin/login', 
+      '/policy',
+      '/delivery/privacy-policy',
+      '/delivery/support',
+      '/support',
+      '/about-us',
+      '/faq',
+      '/privacy-policy',
+      '/seller/support',
+      '/seller/privacy-policy'
+    ];
     if (publicRoutes.includes(location.pathname)) {
       return false;
     }
@@ -227,7 +244,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {showLocationRequest && (
-            <LocationPermissionRequest onLocationGranted={() => setShowLocationRequest(false)} skipable={false} title="Location Required" />
+            <LocationPermissionRequest onLocationGranted={() => setShowLocationRequest(false)} skipable={true} title="Location Required" />
           )}
 
           {showLocationChangeModal && (

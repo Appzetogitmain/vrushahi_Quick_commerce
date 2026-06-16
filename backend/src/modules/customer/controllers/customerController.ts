@@ -277,8 +277,8 @@ export const getAppConfig = asyncHandler(async (_req: Request, res: Response) =>
         gst: settings.gstRate || 0
       },
       appName: settings.appName,
-      contactEmail: settings.contactEmail,
-      contactPhone: settings.contactPhone,
+      contactEmail: settings.supportEmail || settings.contactEmail,
+      contactPhone: settings.supportPhone || settings.contactPhone,
       deliveryConfig: settings.deliveryConfig
     }
   });

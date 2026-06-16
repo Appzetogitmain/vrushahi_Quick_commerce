@@ -124,7 +124,11 @@ export default function DeliverySettings() {
   };
 
   const handleShowPolicy = (title: string) => {
-    navigate(`/policy?type=delivery&title=${encodeURIComponent(title)}`);
+    if (title === 'Privacy Policy') {
+      navigate('/delivery/privacy-policy');
+    } else {
+      navigate(`/policy?type=delivery&title=${encodeURIComponent(title)}`);
+    }
   };
 
   const settingsOptions = [

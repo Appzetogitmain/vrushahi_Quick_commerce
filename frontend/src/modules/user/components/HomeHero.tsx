@@ -382,7 +382,7 @@ export default function HomeHero({
               
               <div className="flex flex-row items-center min-w-0 gap-3">
                 <div className={`flex items-center group-hover:opacity-70 transition-opacity`}>
-                  <img src={logoImg} alt="Vrushahi" className="h-8 md:h-10 object-contain" />
+                  <img src={logoImg} alt="Vrushahi" className="h-10 md:h-14 object-contain scale-[1.25] origin-left" />
                 </div>
                 {locationDisplayText && (
                   <div className={`flex items-center gap-1 text-xs group-hover:opacity-70 transition-colors ${isHome ? 'text-black/80 font-medium' : 'opacity-90'}`}>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { getHelpSupport } from '../../../services/api/delivery/deliveryService';
 import { Phone, Mail, MessageCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 
 // Icon mapping helper using Lucide React
 const getIcon = (iconName: string) => {
@@ -14,6 +15,7 @@ const getIcon = (iconName: string) => {
 
 export default function DeliveryHelp() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [faqs, setFaqs] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function DeliveryHelp() {
     return (
       <div className="min-h-screen bg-neutral-100 flex items-center justify-center pb-20">
         <p className="text-neutral-500">Loading help content...</p>
-        <DeliveryBottomNav />
+        {isAuthenticated && <DeliveryBottomNav />}
       </div>
     );
   }
@@ -136,7 +138,7 @@ export default function DeliveryHelp() {
         </div>
 
       </div>
-      <DeliveryBottomNav />
+      {isAuthenticated && <DeliveryBottomNav />}
     </div>
   );
 }

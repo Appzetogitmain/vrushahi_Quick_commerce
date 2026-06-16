@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useAppConfig } from "../../services/configService";
 
 export default function Support() {
   const navigate = useNavigate();
+  const { config, loading } = useAppConfig();
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
@@ -55,7 +57,7 @@ export default function Support() {
 
             {/* Privacy Policy */}
             <button
-              onClick={() => navigate("/policy?type=customer&title=Privacy Policy")}
+              onClick={() => navigate("/privacy-policy")}
               className="w-full flex items-center justify-between px-4 md:px-6 py-4 hover:bg-neutral-50 md:hover:bg-purple-50/20 transition-all duration-200 cursor-pointer group">
               <div className="flex items-center gap-3 md:gap-4">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-neutral-500 md:text-neutral-400 group-hover:text-purple-600 transition-colors duration-200">
@@ -103,6 +105,49 @@ export default function Support() {
 
           </div>
         </div>
+
+        {/* Contact Info Card */}
+        {(!loading && (config.contactPhone || config.contactEmail)) && (
+          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <h3 className="text-base font-bold text-neutral-900 mb-4">Contact Us</h3>
+            <div className="space-y-4">
+              {config.contactPhone && (
+                <a 
+                  href={`tel:${config.contactPhone}`} 
+                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-purple-50/40 transition-colors group"
+                >
+                  <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-100 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Call Support</p>
+                    <p className="text-sm font-bold text-neutral-800 mt-0.5">{config.contactPhone}</p>
+                  </div>
+                </a>
+              )}
+
+              {config.contactEmail && (
+                <a 
+                  href={`mailto:${config.contactEmail}`} 
+                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-purple-50/40 transition-colors group"
+                >
+                  <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 group-hover:bg-purple-100 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Email Support</p>
+                    <p className="text-sm font-bold text-neutral-800 mt-0.5">{config.contactEmail}</p>
+                  </div>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

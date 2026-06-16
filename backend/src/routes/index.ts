@@ -70,6 +70,10 @@ router.use("/auth/delivery", deliveryAuthRoutes);
 // FCM Token Routes
 router.use("/fcm-tokens", fcmTokenRoutes);
 
+// Public Delivery routes (support FAQs & contact details)
+import { getHelpSupport } from "../modules/delivery/controllers/deliveryDashboardController";
+router.get("/delivery/public/help", getHelpSupport);
+
 // Delivery routes (protected)
 router.use(
   "/delivery",

@@ -71,17 +71,39 @@ export default function DeliverySignUp() {
         ...prev,
         [name]: value.toUpperCase().slice(0, 11),
       }));
-    } else if (name === "accountNumber" || name === "pincode") {
+    } else if (name === "pincode") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/\D/g, "").slice(0, 6),
+      }));
+    } else if (name === "accountNumber") {
       setFormData((prev) => ({
         ...prev,
         [name]: value.replace(/\D/g, ""),
       }));
+    } else if (name === "name" || name === "city") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/[^a-zA-Z\s]/g, ""),
+      }));
     } else if (name === "accountName" || name === "bankName") {
+      const allowedChars = name === "accountName" ? value.replace(/[^a-zA-Z\s]/g, "") : value;
       // Capitalize first letter of each word
-      const formattedValue = value.replace(/\b\w/g, (char) => char.toUpperCase());
+      const formattedValue = allowedChars.replace(/\b\w/g, (char) => char.toUpperCase());
       setFormData((prev) => ({
         ...prev,
         [name]: formattedValue,
+      }));
+    } else if (name === "vehicleType") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        vehicleNumber: value === "Bicycle" ? "" : prev.vehicleNumber,
+      }));
+    } else if (name === "vehicleNumber") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().replace(/[^A-Z0-9\s]/g, "").slice(0, 13),
       }));
     } else {
       setFormData((prev) => ({
@@ -247,6 +269,14 @@ export default function DeliverySignUp() {
     if (formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 18)) {
       showToast("Please enter a valid Bank Account Number (9-18 digits)", "error");
       return;
+    }
+
+    if (formData.vehicleType && formData.vehicleType !== "Bicycle") {
+      const cleanVehicleNum = (formData.vehicleNumber || "").replace(/[ -]/g, "").toUpperCase();
+      if (!cleanVehicleNum || !/^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$/.test(cleanVehicleNum)) {
+        showToast("Please enter a valid vehicle number (e.g. MP04 AB 1234)", "error");
+        return;
+      }
     }
 
 
@@ -574,20 +604,32 @@ export default function DeliverySignUp() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Vehicle Number
-                  </label>
-                  <input
-                    type="text"
-                    name="vehicleNumber"
-                    value={formData.vehicleNumber}
-                    onChange={handleInputChange}
-                    placeholder="Enter vehicle number (e.g. MP04 AB 1234)"
-                    className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
-                    disabled={loading}
-                  />
-                </div>
+                {formData.vehicleType !== "Bicycle" && (
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      Vehicle Number
+                    </label>
+                    <input
+                      type="text"
+                      name="vehicleNumber"
+                      value={formData.vehicleNumber}
+                      onChange={handleInputChange}
+                      onBlur={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const cleanVehicleNum = val.replace(/[ -]/g, "").toUpperCase();
+                          if (!/^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$/.test(cleanVehicleNum)) {
+                            showToast("Please enter a valid vehicle number (e.g. MP04 AB 1234)", "error");
+                          }
+                        }
+                      }}
+                      placeholder="Enter vehicle number (e.g. MP04 AB 1234)"
+                      maxLength={13}
+                      className="w-full px-4 py-3 text-sm bg-neutral-50/50 border border-green-600/20 rounded-xl focus:outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all duration-300"
+                      disabled={loading}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Bank Information */}
@@ -748,7 +790,7 @@ export default function DeliverySignUp() {
                   and{" "}
                   <button 
                     type="button" 
-                    onClick={() => handleShowPolicy('Privacy Policy')}
+                    onClick={() => navigate('/delivery/privacy-policy')}
                     className="text-green-600 hover:underline font-bold"
                   >
                     Privacy Policy

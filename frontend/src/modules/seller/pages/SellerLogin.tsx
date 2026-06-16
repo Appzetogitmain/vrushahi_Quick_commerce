@@ -252,8 +252,7 @@ export default function SellerLogin() {
               and{" "}
               <button
                 onClick={() => {
-                  setPolicyType({ type: 'seller', title: 'Privacy' });
-                  setShowPolicy(true);
+                  navigate("/seller/privacy-policy");
                 }}
                 className="text-green-600 hover:underline font-bold"
               >

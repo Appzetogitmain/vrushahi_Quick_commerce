@@ -45,6 +45,7 @@ const AddressBook = lazy(() => import("./modules/user/AddressBook"));
 const SellerStore = lazy(() => import("./modules/user/SellerStore"));
 const Stores = lazy(() => import("./modules/user/Stores"));
 const PolicyPage = lazy(() => import("./modules/user/PolicyPage"));
+const CustomerPrivacyPolicy = lazy(() => import("./modules/user/CustomerPrivacyPolicy"));
 
 // Lazy load delivery routes
 const DeliveryLayout = lazy(
@@ -95,6 +96,9 @@ const DeliveryHelp = lazy(
 );
 const DeliveryAbout = lazy(
   () => import("./modules/delivery/pages/DeliveryAbout"),
+);
+const DeliveryPrivacyPolicy = lazy(
+  () => import("./modules/delivery/pages/DeliveryPrivacyPolicy"),
 );
 const DeliverySellersInRange = lazy(
   () => import("./modules/delivery/pages/DeliverySellersInRange"),
@@ -147,6 +151,7 @@ const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 const SellerFAQ = lazy(() => import("./modules/seller/pages/SellerFAQ"));
 const SellerSupport = lazy(() => import("./modules/seller/pages/SellerSupport"));
+const SellerPrivacyPolicy = lazy(() => import("./modules/seller/pages/SellerPrivacyPolicy"));
 const SellerCustomers = lazy(() => import("./modules/seller/pages/SellerCustomers"));
 
 // Lazy load admin routes
@@ -364,6 +369,40 @@ function AppContent() {
                                 <AdminLogin />
                               </Suspense>
                             </PublicRoute>
+                          }
+                        />
+
+                        <Route
+                          path="/delivery/support"
+                          element={
+                            <Suspense fallback={<IconLoader forceShow />}>
+                              <DeliveryHelp />
+                            </Suspense>
+                          }
+                        />
+                        <Route
+                          path="/delivery/privacy-policy"
+                          element={
+                            <Suspense fallback={<IconLoader forceShow />}>
+                              <DeliveryPrivacyPolicy />
+                            </Suspense>
+                          }
+                        />
+
+                        <Route
+                          path="/seller/support"
+                          element={
+                            <Suspense fallback={<IconLoader forceShow />}>
+                              <SellerSupport />
+                            </Suspense>
+                          }
+                        />
+                        <Route
+                          path="/seller/privacy-policy"
+                          element={
+                            <Suspense fallback={<IconLoader forceShow />}>
+                              <SellerPrivacyPolicy />
+                            </Suspense>
                           }
                         />
 
@@ -749,6 +788,7 @@ function AppContent() {
                                   <Route path="/" element={<Home />} />
                                   <Route path="/stores" element={<Stores />} />
                                   <Route path="/policy" element={<PolicyPage />} />
+                                  <Route path="/privacy-policy" element={<CustomerPrivacyPolicy />} />
                                   <Route
                                     path="/user/home"
                                     element={<Home />}
@@ -795,11 +835,7 @@ function AppContent() {
                                   />
                                   <Route
                                     path="/support"
-                                    element={
-                                      <ProtectedRoute requiredUserType="Customer">
-                                        <Support />
-                                      </ProtectedRoute>
-                                    }
+                                    element={<Support />}
                                   />
                                   <Route path="/faq" element={<FAQ />} />
                                   <Route
