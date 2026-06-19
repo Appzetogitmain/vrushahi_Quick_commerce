@@ -58,15 +58,28 @@ export default function DeliveryWallet() {
     const [razorpayQR, setRazorpayQR] = useState<any>(null);
     const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
-    // Prevent body scroll when modals are open
+    // Prevent body/main scroll when modals are open
     useEffect(() => {
+        const mainElement = document.querySelector("main");
         if (showWithdrawModal || showPayoutModal) {
             document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+            if (mainElement) {
+                mainElement.style.overflow = "hidden";
+            }
         } else {
-            document.body.style.overflow = "unset";
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
+            if (mainElement) {
+                mainElement.style.overflow = "";
+            }
         }
         return () => {
-            document.body.style.overflow = "unset";
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
+            if (mainElement) {
+                mainElement.style.overflow = "";
+            }
         };
     }, [showWithdrawModal, showPayoutModal]);
 
