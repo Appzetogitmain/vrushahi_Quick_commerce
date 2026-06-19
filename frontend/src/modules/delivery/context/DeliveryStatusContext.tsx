@@ -109,9 +109,15 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
   const handleLocationError = (error: GeolocationPositionError) => {
     let message = "An unknown error occurred with location services";
     switch (error.code) {
-      case error.PERMISSION_DENIED:
-        message = "Location permission denied. Please enable it in settings.";
+      case error.PERMISSION_DENIED: {
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isIOS) {
+          message = "Location permission denied. Please go to Settings -> Apps -> vrumarket delivery -> Location -> Allow.";
+        } else {
+          message = "Location permission denied. Please enable it in settings.";
+        }
         break;
+      }
       case error.POSITION_UNAVAILABLE:
         message = "Location information is unavailable.";
         break;

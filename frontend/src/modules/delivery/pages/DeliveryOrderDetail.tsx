@@ -389,11 +389,17 @@ export default function DeliveryOrderDetail() {
                 (error: GeolocationPositionError) => {
                     // Handle different error types
                     switch (error.code) {
-                        case error.PERMISSION_DENIED:
+                        case error.PERMISSION_DENIED: {
                             locationPermissionDeniedRef.current = true;
-                            setLocationError('Location permission denied. Please enable location access in your browser settings to track delivery.');
-                            console.warn('Location permission denied. Please enable location access in your browser settings.');
+                            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                            if (isIOS) {
+                                setLocationError('Location permission denied. Please go to Settings -> Apps -> vrumarket delivery -> Location -> Allow.');
+                            } else {
+                                setLocationError('Location permission denied. Please enable location access in your browser settings to track delivery.');
+                            }
+                            console.warn('Location permission denied.');
                             break;
+                        }
                         case error.POSITION_UNAVAILABLE:
                             setLocationError('Location information unavailable. Please check your device settings.');
                             console.warn('Location information unavailable. Please check your device settings.');
