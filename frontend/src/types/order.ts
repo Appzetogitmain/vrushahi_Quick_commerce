@@ -42,6 +42,9 @@ export interface Order {
   gstin?: string;
   couponCode?: string;
   giftPackaging?: boolean;
+  isParent?: boolean;
+  parentOrder?: string;
+  childOrders?: string[];
 }
 
 

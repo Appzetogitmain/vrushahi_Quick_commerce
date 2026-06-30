@@ -243,13 +243,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </>
           )}
 
-          {/* {showLocationRequest && (
+          {showLocationRequest && (
             <LocationPermissionRequest onLocationGranted={() => setShowLocationRequest(false)} skipable={true} title="Location Required" />
           )}
 
           {showLocationChangeModal && (
             <LocationPermissionRequest onLocationGranted={() => setShowLocationChangeModal(false)} skipable={true} isChangeMode={true} title="Change Location" />
-          )} */}
+          )}
         </div>
       </div>
     </div>

@@ -26,6 +26,58 @@ const getRazorpayInstance = () => {
 };
 
 /**
+ * Propagate payment status to child orders if parent order is paid
+ */
+const propagatePaymentSuccess = async (
+    order: any,
+    paymentId: string,
+    paidVia: "CASH" | "ONLINE_QR" | undefined,
+    io: any,
+    session?: mongoose.ClientSession
+) => {
+    if (order.isParent && order.childOrders?.length) {
+        const childOrders = session
+            ? await Order.find({ _id: { $in: order.childOrders } }).session(session)
+            : await Order.find({ _id: { $in: order.childOrders } });
+
+        for (const child of childOrders) {
+            child.paymentStatus = 'Paid';
+            child.paymentId = paymentId;
+            if (paidVia) {
+                child.paidVia = paidVia;
+                child.qrPaymentStatus = 'Paid';
+            }
+            const previousStatus = child.status;
+            if (child.status === 'Pending') {
+                child.status = 'Received';
+            }
+            
+            if (session) {
+                await child.save({ session });
+            } else {
+                await child.save();
+            }
+
+            // Notify sellers of child order after payment
+            if (previousStatus === 'Pending' && child.status === 'Received' && io) {
+                try {
+                    const populatedChild = await Order.findById(child._id).populate({
+                        path: 'items',
+                        populate: { path: 'seller' }
+                    }).lean();
+                    if (populatedChild) {
+                        const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                        await notifySellersOfOrderUpdate(io, populatedChild, 'NEW_ORDER');
+                    }
+                } catch (notifyError) {
+                    console.error("Error notifying seller of child order after payment:", notifyError);
+                }
+            }
+        }
+    }
+};
+
+/**
  * Create a Razorpay order
  */
 export const createRazorpayOrder = async (
@@ -307,13 +359,22 @@ export const capturePayment = async (
         }
         await order.save({ session });
 
+        // Propagate payment success to child orders (multi-store support)
+        await propagatePaymentSuccess(order, razorpayPaymentId, undefined, io, session);
+
         await session.commitTransaction();
 
         // Trigger creation of Pending commissions in the background after transaction commits successfully
         (async () => {
             try {
                 const { createPendingCommissions } = await import('./commissionService');
-                await createPendingCommissions(orderId);
+                if (order.isParent && order.childOrders?.length) {
+                    for (const childId of order.childOrders) {
+                        await createPendingCommissions(childId.toString());
+                    }
+                } else {
+                    await createPendingCommissions(orderId);
+                }
             } catch (commError) {
                 console.error("Failed to create pending commissions after payment:", commError);
             }
@@ -503,6 +564,9 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
 
             await order.save();
 
+            // Propagate payment success to child orders (multi-store support)
+            await propagatePaymentSuccess(order, razorpayPaymentId, orderIdFromNotes ? 'ONLINE_QR' : undefined, io);
+
             // Notify sellers if status changed to Received
             if (previousStatus === 'Pending' && order.status === 'Received' && io) {
                 try {
@@ -652,6 +716,9 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
         }
 
         await order.save();
+
+        // Propagate payment success to child orders (multi-store support)
+        await propagatePaymentSuccess(order, razorpayPaymentId, 'ONLINE_QR', io);
 
         // Notify sellers if status changed to Received
         if (previousStatus === 'Pending' && order.status === 'Received' && io) {

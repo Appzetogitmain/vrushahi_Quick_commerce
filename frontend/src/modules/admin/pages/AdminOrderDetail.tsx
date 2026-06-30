@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getOrderById, updateOrderStatus, Order } from '../../../services/api/admin/adminOrderService';
+import { getOrderById, updateOrderStatus, processAdminRefund, Order } from '../../../services/api/admin/adminOrderService';
 
 export default function AdminOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -9,6 +9,9 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [updating, setUpdating] = useState(false);
+  const [refundReference, setRefundReference] = useState('');
+  const [refundNotes, setRefundNotes] = useState('');
+  const [processingRefund, setProcessingRefund] = useState(false);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -51,6 +54,30 @@ export default function AdminOrderDetail() {
       alert(err.response?.data?.message || 'Failed to update order status');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  // Handle process manual refund
+  const handleProcessRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order || !refundReference.trim()) return;
+
+    setProcessingRefund(true);
+    try {
+      const response = await processAdminRefund(order._id, {
+        refundReference: refundReference.trim(),
+        refundNotes: refundNotes.trim(),
+      });
+      if (response.success && response.data) {
+        setOrder(response.data);
+        alert('Refund processed successfully');
+      } else {
+        alert(response.message || 'Failed to process refund');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error processing refund');
+    } finally {
+      setProcessingRefund(false);
     }
   };
 
@@ -369,6 +396,127 @@ export default function AdminOrderDetail() {
               )}
             </div>
           </div>
+
+          {/* Refund Information */}
+          {(order.adminRefundStatus === 'Pending' || order.adminRefundStatus === 'Refunded') && (
+            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+              <h2 className="text-lg font-semibold mb-4 text-red-600">Refund Information</h2>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <span className="text-neutral-600">Refund Status:</span>
+                  <span className={`ml-2 font-bold px-2 py-0.5 rounded text-xs ${
+                    order.adminRefundStatus === 'Refunded'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {order.adminRefundStatus}
+                  </span>
+                </div>
+
+                {/* Customer Bank/UPI details */}
+                {order.adminRefundStatus === 'Pending' && (
+                  <div className="bg-neutral-50 rounded p-3 border border-neutral-200 space-y-2">
+                    <span className="block font-bold text-xs text-neutral-700 uppercase tracking-wider">
+                      Customer Settlement Details
+                    </span>
+
+                    {(() => {
+                      const bankDetails = (customer as any)?.bankDetails;
+
+                      if (!bankDetails || (!bankDetails.accountNumber && !bankDetails.upiId)) {
+                        return (
+                          <p className="text-xs text-amber-600 italic">
+                            No bank/UPI details registered. Contact customer manually.
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-2 text-xs">
+                          {bankDetails.upiId && (
+                            <div className="bg-blue-50 border border-blue-200 p-2 rounded">
+                              <span className="font-semibold text-neutral-500">UPI ID:</span>
+                              <span className="block font-bold text-blue-700 select-all">{bankDetails.upiId}</span>
+                            </div>
+                          )}
+                          {bankDetails.accountNumber && (
+                            <div className="space-y-1">
+                              <div>
+                                <span className="font-semibold text-neutral-500">Name:</span> {bankDetails.accountName || 'N/A'}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-neutral-500">Bank:</span> {bankDetails.bankName || 'N/A'}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-neutral-500">A/C No:</span> <span className="font-bold select-all">{bankDetails.accountNumber}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-neutral-500">IFSC:</span> <span className="font-bold select-all">{bankDetails.ifscCode}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Form to process refund */}
+                {order.adminRefundStatus === 'Pending' ? (
+                  <form onSubmit={handleProcessRefund} className="space-y-3 pt-2 border-t">
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 uppercase mb-1">
+                        Refund Reference ID <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={refundReference}
+                        onChange={(e) => setRefundReference(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-neutral-300 rounded text-xs"
+                        placeholder="Enter UPI / Bank TXN Ref ID"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 uppercase mb-1">
+                        Refund Notes
+                      </label>
+                      <textarea
+                        value={refundNotes}
+                        onChange={(e) => setRefundNotes(e.target.value)}
+                        className="w-full px-2 py-1.5 border border-neutral-300 rounded text-xs"
+                        placeholder="Notes (optional)"
+                        rows={2}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={processingRefund}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white rounded py-2 text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {processingRefund ? 'Processing...' : 'Confirm & Mark Refunded'}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-neutral-50 border p-3 rounded space-y-2 text-xs">
+                    <div>
+                      <span className="font-semibold text-neutral-600">Refunded At:</span>{' '}
+                      {formatDate(order.adminRefundedAt)}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-neutral-600">Reference ID:</span>{' '}
+                      <span className="font-mono bg-neutral-100 px-1 py-0.5 rounded font-bold">{order.adminRefundReference}</span>
+                    </div>
+                    {order.adminRefundNotes && (
+                      <div>
+                        <span className="font-semibold text-neutral-600">Notes:</span> {order.adminRefundNotes}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

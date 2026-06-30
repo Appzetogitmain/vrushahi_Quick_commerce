@@ -106,6 +106,17 @@ export interface IOrder extends Document {
   cancelledAt?: Date;
   cancelledBy?: mongoose.Types.ObjectId;
 
+  // Parent/Child Orders for Multi-store checkout
+  isParent?: boolean;
+  parentOrder?: mongoose.Types.ObjectId;
+  childOrders?: mongoose.Types.ObjectId[];
+
+  // Manual Refund Tracking
+  adminRefundStatus?: "Not Applicable" | "Pending" | "Refunded";
+  adminRefundReference?: string;
+  adminRefundedAt?: Date;
+  adminRefundNotes?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -396,6 +407,40 @@ const OrderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: "Admin",
     },
+
+    // Parent/Child Orders for Multi-store checkout
+    isParent: {
+      type: Boolean,
+      default: false,
+    },
+    parentOrder: {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+    },
+    childOrders: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Order",
+      },
+    ],
+
+    // Manual Refund Tracking
+    adminRefundStatus: {
+      type: String,
+      enum: ["Not Applicable", "Pending", "Refunded"],
+      default: "Not Applicable",
+    },
+    adminRefundReference: {
+      type: String,
+      default: "",
+    },
+    adminRefundedAt: {
+      type: Date,
+    },
+    adminRefundNotes: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
@@ -407,6 +452,36 @@ OrderSchema.pre("validate", async function (this: IOrder, next) {
   if (!this.orderNumber) {
     const random8Digits = Math.floor(10000000 + Math.random() * 90000000).toString();
     this.orderNumber = `ORD-${random8Digits}`;
+  }
+  next();
+});
+
+// Pre-save hook to trigger manual refund tracking for online paid orders
+OrderSchema.pre("save", function (next) {
+  const order = this as any;
+  if (order.isModified("status") && ["Cancelled", "Rejected", "Failed"].includes(order.status)) {
+    if (order.paymentMethod === "Online" && order.paymentStatus === "Paid" && order.adminRefundStatus === "Not Applicable") {
+      order.adminRefundStatus = "Pending";
+
+      // Trigger admin broadcast notification
+      (async () => {
+        try {
+          const { sendBroadcastNotification } = require("../services/notificationService");
+          await sendBroadcastNotification(
+            "Admin",
+            "Pending Manual Refund",
+            `Order #${order.orderNumber} requires a manual refund of ₹${order.total.toFixed(2)} due to status '${order.status}'.`,
+            {
+              type: "Payment",
+              link: "/admin/orders/pending-refund",
+              priority: "High"
+            }
+          );
+        } catch (err) {
+          console.error("Failed to trigger admin notification for manual refund:", err);
+        }
+      })();
+    }
   }
   next();
 });

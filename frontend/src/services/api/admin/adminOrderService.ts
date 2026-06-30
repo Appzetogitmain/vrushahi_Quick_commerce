@@ -77,6 +77,10 @@ export interface Order {
   createdAt?: string;
   updatedAt?: string;
   commissions?: any[];
+  adminRefundStatus?: "Not Applicable" | "Pending" | "Refunded";
+  adminRefundReference?: string;
+  adminRefundedAt?: string;
+  adminRefundNotes?: string;
 }
 
 export interface GetOrdersParams {
@@ -90,6 +94,7 @@ export interface GetOrdersParams {
   search?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  adminRefundStatus?: string;
 }
 
 export interface UpdateOrderStatusData {
@@ -218,5 +223,19 @@ export const exportOrders = async (
     params,
     responseType: "blob",
   });
+  return response.data;
+};
+
+/**
+ * Process manual refund for an order
+ */
+export const processAdminRefund = async (
+  id: string,
+  data: { refundReference: string; refundNotes?: string }
+): Promise<ApiResponse<Order>> => {
+  const response = await api.post<ApiResponse<Order>>(
+    `/admin/orders/${id}/process-refund`,
+    data
+  );
   return response.data;
 };

@@ -150,6 +150,10 @@ export const createOrder = async (req: Request, res: Response) => {
             items: []
         });
 
+        // Generate orderNumber early to support child order numbers
+        const random8Digits = Math.floor(10000000 + Math.random() * 90000000).toString();
+        newOrder.orderNumber = `ORD-${random8Digits}`;
+
         let calculatedSubtotal = 0;
         let calculatedTax = 0;
         const orderItemIds: mongoose.Types.ObjectId[] = [];
@@ -409,6 +413,70 @@ export const createOrder = async (req: Request, res: Response) => {
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
 
+        // --- SPLIT LOGIC FOR MULTIPLE SELLERS ---
+        const uniqueSellers = Array.from(sellerIds);
+        const N = uniqueSellers.length;
+        const childOrders: mongoose.Types.ObjectId[] = [];
+
+        if (N > 1) {
+            newOrder.isParent = true;
+
+            const childShipping = Number((deliveryFee / N).toFixed(2));
+            const childPlatformFee = Number((platformFee / N).toFixed(2));
+
+            for (let i = 0; i < N; i++) {
+                const sellerId = uniqueSellers[i];
+                const itemsForSeller = await OrderItem.find({
+                    _id: { $in: orderItemIds },
+                    seller: new mongoose.Types.ObjectId(sellerId)
+                }).session(session || null);
+
+                const childSubtotal = itemsForSeller.reduce((sum, item) => sum + (item.total || 0), 0);
+                const childTax = itemsForSeller.reduce((sum, item) => sum + (item.taxAmount || 0), 0);
+                const childTotal = childSubtotal + childShipping + childPlatformFee;
+
+                const childOrderNumber = `${newOrder.orderNumber}-${i + 1}`;
+
+                const childOrder = new Order({
+                    orderNumber: childOrderNumber,
+                    customer: newOrder.customer,
+                    customerName: newOrder.customerName,
+                    customerEmail: newOrder.customerEmail,
+                    customerPhone: newOrder.customerPhone,
+                    deliveryAddress: newOrder.deliveryAddress,
+                    paymentMethod: newOrder.paymentMethod,
+                    paymentStatus: newOrder.paymentStatus,
+                    status: newOrder.status,
+                    deliveryDistanceKm: newOrder.deliveryDistanceKm,
+                    subtotal: Number(childSubtotal.toFixed(2)),
+                    tax: Number(childTax.toFixed(2)),
+                    shipping: childShipping,
+                    platformFee: childPlatformFee,
+                    total: Number(childTotal.toFixed(2)),
+                    isParent: false,
+                    parentOrder: newOrder._id,
+                    items: itemsForSeller.map(item => item._id)
+                });
+
+                if (session) {
+                    await childOrder.save({ session });
+                } else {
+                    await childOrder.save();
+                }
+
+                for (const item of itemsForSeller) {
+                    item.order = childOrder._id as mongoose.Types.ObjectId;
+                    if (session) {
+                        await item.save({ session });
+                    } else {
+                        await item.save();
+                    }
+                }
+
+                childOrders.push(childOrder._id as mongoose.Types.ObjectId);
+            }
+            newOrder.childOrders = childOrders;
+        }
 
         if (session) {
             await newOrder.save({ session });
@@ -423,22 +491,34 @@ export const createOrder = async (req: Request, res: Response) => {
             await newOrder.save();
         }
 
-
         // Emit notification to sellers immediately
         try {
             const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
             if (io) {
-                // Reload order with populated items/sellers for the notification service
-                const savedOrder = await Order.findById(newOrder._id).populate({
-                    path: 'items',
-                    populate: { path: 'seller' }
-                }).lean();
-                
-                if (savedOrder && !Array.isArray(savedOrder) && (savedOrder as any).status === 'Received') {
-                    // Notify sellers immediately
-                    await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+                if (newOrder.isParent && newOrder.childOrders?.length) {
+                    for (const childId of newOrder.childOrders) {
+                        const savedChild = await Order.findById(childId).populate({
+                            path: 'items',
+                            populate: { path: 'seller' }
+                        }).lean();
+                        
+                        if (savedChild && (savedChild as any).status === 'Received') {
+                            await notifySellersOfOrderUpdate(io, savedChild as any, 'NEW_ORDER');
+                            console.log(`📢 Real-time notification sent to Seller for child order ${(savedChild as any).orderNumber}.`);
+                        }
+                    }
+                } else {
+                    // Reload order with populated items/sellers for the notification service
+                    const savedOrder = await Order.findById(newOrder._id).populate({
+                        path: 'items',
+                        populate: { path: 'seller' }
+                    }).lean();
                     
-                    console.log(`📢 Real-time notification sent to Sellers for order ${newOrder.orderNumber}. (Riders will be notified when seller accepts)`);
+                    if (savedOrder && !Array.isArray(savedOrder) && (savedOrder as any).status === 'Received') {
+                        // Notify sellers immediately
+                        await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+                        console.log(`📢 Real-time notification sent to Sellers for order ${newOrder.orderNumber}. (Riders will be notified when seller accepts)`);
+                    }
                 }
             }
         } catch (notificationError) {
@@ -498,7 +578,7 @@ export const getMyOrders = async (req: Request, res: Response) => {
         const userId = req.user!.userId;
         const { status, page = 1, limit = 10 } = req.query;
 
-        const query: any = { customer: userId };
+        const query: any = { customer: userId, isParent: { $ne: true } };
 
         if (status) {
             query.status = status; // Note: Model field is 'status', not 'orderStatus'
@@ -599,8 +679,12 @@ export const getOrderById = async (req: Request, res: Response) => {
             });
         }
 
-        // Fetch associated return requests for this order
-        const returns = await Return.find({ order: id, customer: userId });
+        // Fetch associated return requests for this order or its children (if parent order)
+        const orderIdsForReturns = [order._id];
+        if (order.isParent && order.childOrders?.length) {
+            orderIdsForReturns.push(...order.childOrders);
+        }
+        const returns = await Return.find({ order: { $in: orderIdsForReturns }, customer: userId });
         const returnMap = returns.reduce((acc: any, ret: any) => {
             acc[ret.orderItem.toString()] = {
                 id: ret._id,
@@ -629,7 +713,24 @@ export const getOrderById = async (req: Request, res: Response) => {
         const orderObj = order.toObject();
 
         let displayStatus = orderObj.status;
-        if (returns && returns.length > 0) {
+        if (order.isParent) {
+            const childOrders = await Order.find({ parentOrder: order._id });
+            const childStatuses = childOrders.map(o => o.status);
+            
+            if (childStatuses.length > 0) {
+                if (childStatuses.every(s => s === 'Cancelled' || s === 'Rejected')) {
+                    displayStatus = 'Cancelled';
+                } else if (childStatuses.every(s => s === 'Delivered')) {
+                    displayStatus = 'Delivered';
+                } else if (childStatuses.some(s => ['Shipped', 'Out for Delivery', 'Delivered'].includes(s))) {
+                    displayStatus = 'Shipped';
+                } else if (childStatuses.some(s => s === 'Accepted' || s === 'Processed')) {
+                    displayStatus = 'Processed';
+                } else {
+                    displayStatus = 'Received';
+                }
+            }
+        } else if (returns && returns.length > 0) {
             const lastRet = returns[returns.length - 1];
             if (lastRet.status === 'Pending') displayStatus = 'Return Pending';
             else if (lastRet.status === 'Approved' || lastRet.status === 'Processing') displayStatus = 'Return Approved';

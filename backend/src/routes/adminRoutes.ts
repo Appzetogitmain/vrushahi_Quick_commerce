@@ -144,6 +144,7 @@ router.get("/orders/status/:status", orderController.getOrdersByStatus);
 router.get("/orders/:id", orderController.getOrderById);
 router.patch("/orders/:id/status", orderController.updateOrderStatus);
 router.patch("/orders/:id/assign-delivery", orderController.assignDeliveryBoy);
+router.post("/orders/:id/process-refund", orderController.processRefund);
 router.get("/orders/export/csv", orderController.exportOrders);
 
 // ==================== Return Request Routes ====================

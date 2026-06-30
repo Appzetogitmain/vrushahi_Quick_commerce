@@ -32,12 +32,14 @@ export const getAllOrders = asyncHandler(
       search,
       sortBy = "orderDate",
       sortOrder = "desc",
+      adminRefundStatus,
     } = req.query;
 
-    const query: any = {};
+    const query: any = { isParent: { $ne: true } };
 
     if (status) query.status = status;
     if (paymentStatus) query.paymentStatus = paymentStatus;
+    if (adminRefundStatus) query.adminRefundStatus = adminRefundStatus;
     if (dateFrom || dateTo) {
       query.orderDate = {};
       if (dateFrom) query.orderDate.$gte = new Date(dateFrom as string);
@@ -98,7 +100,7 @@ export const getOrderById = asyncHandler(
     const { id } = req.params;
 
     const order = await Order.findById(id)
-      .populate("customer", "name email phone")
+      .populate("customer", "name email phone bankDetails")
       .populate("deliveryBoy", "name mobile email")
       .populate({
         path: "items",
@@ -125,11 +127,23 @@ export const getOrderById = asyncHandler(
     const commissions = await Commission.find({ order: id })
       .populate("seller", "sellerName storeName");
 
+    const orderObj = order.toObject();
+    const customer = orderObj.customer as any;
+    if (customer && customer.bankDetails) {
+      customer.bankDetails = {
+        accountName: decrypt(customer.bankDetails.accountName || ""),
+        accountNumber: decrypt(customer.bankDetails.accountNumber || ""),
+        bankName: decrypt(customer.bankDetails.bankName || ""),
+        ifscCode: decrypt(customer.bankDetails.ifscCode || ""),
+        upiId: decrypt(customer.bankDetails.upiId || ""),
+      };
+    }
+
     return res.status(200).json({
       success: true,
       message: "Order fetched successfully",
       data: {
-        ...order.toObject(),
+        ...orderObj,
         commissions
       },
     });
@@ -172,22 +186,23 @@ export const updateOrderStatus = asyncHandler(
     }
     const previousStatus = existingOrder.status;
 
-    const updateData: any = { status };
-    if (adminNotes) updateData.adminNotes = adminNotes;
+    existingOrder.status = status;
+    if (adminNotes) existingOrder.adminNotes = adminNotes;
 
     if (status === "Delivered") {
-      updateData.deliveredAt = new Date();
+      existingOrder.deliveredAt = new Date();
     }
 
     if (status === "Cancelled") {
-      updateData.cancelledAt = new Date();
-      updateData.cancelledBy = req.user?.userId;
+      existingOrder.cancelledAt = new Date();
+      if (req.user?.userId) {
+        existingOrder.cancelledBy = new mongoose.Types.ObjectId(req.user.userId);
+      }
     }
 
-    const order = await Order.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    })
+    await existingOrder.save();
+
+    const order = await Order.findById(id)
       .populate("customer", "name email phone")
       .populate("deliveryBoy", "name mobile")
       .populate("items");
@@ -335,14 +350,14 @@ export const getOrdersByStatus = asyncHandler(
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const [orders, total] = await Promise.all([
-      Order.find({ status })
+      Order.find({ status, isParent: { $ne: true } })
         .populate("customer", "name email phone")
         .populate("deliveryBoy", "name mobile")
         .populate("items")
         .sort({ orderDate: -1 })
         .skip(skip)
         .limit(parseInt(limit as string)),
-      Order.countDocuments({ status }),
+      Order.countDocuments({ status, isParent: { $ne: true } }),
     ]);
 
     return res.status(200).json({
@@ -781,7 +796,7 @@ export const exportOrders = asyncHandler(
   async (req: Request, res: Response) => {
     const { status, dateFrom, dateTo } = req.query;
 
-    const query: any = {};
+    const query: any = { isParent: { $ne: true } };
     if (status) query.status = status;
     if (dateFrom || dateTo) {
       query.orderDate = {};
@@ -967,6 +982,52 @@ export const rebroadcastReturnPickup = asyncHandler(
       success: true,
       message: "Return pickup re-broadcasted successfully",
       data: returnRequest,
+    });
+  }
+);
+
+/**
+ * Process manual refund for an order
+ */
+export const processRefund = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { refundReference, refundNotes } = req.body;
+
+    if (!refundReference) {
+      return res.status(400).json({
+        success: false,
+        message: "Refund reference is required",
+      });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.adminRefundStatus !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message: `Refund cannot be processed. Current refund status: ${order.adminRefundStatus}`,
+      });
+    }
+
+    order.adminRefundStatus = "Refunded";
+    order.paymentStatus = "Refunded";
+    order.adminRefundReference = refundReference;
+    order.adminRefundNotes = refundNotes || "";
+    order.adminRefundedAt = new Date();
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order refund processed successfully",
+      data: order,
     });
   }
 );

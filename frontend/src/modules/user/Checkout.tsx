@@ -88,6 +88,7 @@ export default function Checkout() {
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online">("COD");
+  const [isMultiSellerCheckout, setIsMultiSellerCheckout] = useState(false);
 
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -501,6 +502,14 @@ export default function Checkout() {
       couponCode: selectedCoupon?.code || undefined,
     };
 
+    // Set multi-seller checkout status before clearing the cart
+    const sellerIds = displayItems.map(item => {
+      const s = item.product?.seller;
+      return typeof s === 'object' && s !== null ? s._id?.toString() : s?.toString();
+    });
+    const uniqueSellers = new Set(sellerIds.filter(Boolean));
+    setIsMultiSellerCheckout(uniqueSellers.size > 1);
+
     try {
       const placedId = await addOrder(order);
       if (placedId) {
@@ -526,7 +535,11 @@ export default function Checkout() {
 
   const handleGoToOrders = () => {
     if (placedOrderId) {
-      navigate(`/orders/${placedOrderId}`);
+      if (isMultiSellerCheckout) {
+        navigate("/orders");
+      } else {
+        navigate(`/orders/${placedOrderId}`);
+      }
     } else {
       navigate("/orders");
     }

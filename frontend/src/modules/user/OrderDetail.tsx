@@ -1,4 +1,4 @@
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "../../components/ui/button";
@@ -769,6 +769,7 @@ const RatingOverlay = ({
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const confirmed = searchParams.get("confirmed") === "true";
   const { getOrderById, fetchOrderById, loading: contextLoading } = useOrders();
@@ -945,6 +946,10 @@ export default function OrderDetail() {
 
       const existingOrder = getOrderById(id);
       if (existingOrder) {
+        if (existingOrder.isParent) {
+          navigate("/orders", { replace: true });
+          return;
+        }
         setOrder(existingOrder);
         setOrderStatus(existingOrder.status);
         setLoading(false);
@@ -958,6 +963,10 @@ export default function OrderDetail() {
       ]);
 
       if (fetchedOrder) {
+        if (fetchedOrder.isParent) {
+          navigate("/orders", { replace: true });
+          return;
+        }
         setOrder(fetchedOrder);
         setOrderStatus(fetchedOrder.status);
       }

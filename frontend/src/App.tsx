@@ -251,6 +251,9 @@ const AdminDeliveredOrders = lazy(
 const AdminCancelledOrders = lazy(
   () => import("./modules/admin/pages/AdminCancelledOrders"),
 );
+const AdminPendingRefundOrders = lazy(
+  () => import("./modules/admin/pages/AdminPendingRefundOrders"),
+);
 const AdminCustomerAppPolicy = lazy(
   () => import("./modules/admin/pages/AdminCustomerAppPolicy"),
 );
@@ -766,6 +769,10 @@ function AppContent() {
                                     <Route
                                       path="orders/cancelled"
                                       element={<AdminCancelledOrders />}
+                                    />
+                                    <Route
+                                      path="orders/pending-refund"
+                                      element={<AdminPendingRefundOrders />}
                                     />
                                     <Route
                                       path="orders/:id"

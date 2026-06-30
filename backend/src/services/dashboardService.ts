@@ -60,20 +60,21 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
         SubCategory.countDocuments().catch(() => 0)
       ]).then(([newCount, oldCount]) => newCount + oldCount).catch(() => 0),
       Product.countDocuments({ status: "Active" }).catch(() => 0),
-      Order.countDocuments().catch(() => 0),
-      Order.countDocuments({ status: "Delivered" }).catch(() => 0),
+      Order.countDocuments({ isParent: { $ne: true } }).catch(() => 0),
+      Order.countDocuments({ status: "Delivered", isParent: { $ne: true } }).catch(() => 0),
       Order.countDocuments({
         status: { $in: ["Received", "Pending", "Processed"] },
+        isParent: { $ne: true }
       }).catch(() => 0),
-      Order.countDocuments({ status: "Cancelled" }).catch(() => 0),
+      Order.countDocuments({ status: "Cancelled", isParent: { $ne: true } }).catch(() => 0),
       Product.countDocuments({ stock: 0, status: "Active" }).catch(() => 0),
       Product.countDocuments({ stock: { $lte: 10, $gt: 0 }, status: "Active" }).catch(() => 0),
       Order.aggregate([
-        { $match: { status: "Delivered", paymentStatus: "Paid" } },
+        { $match: { status: "Delivered", paymentStatus: "Paid", isParent: { $ne: true } } },
         { $group: { _id: null, total: { $sum: { $ifNull: ["$total", 0] } } } },
       ]).catch(() => []),
       Order.aggregate([
-        { $match: { status: "Delivered", paymentStatus: "Paid" } },
+        { $match: { status: "Delivered", paymentStatus: "Paid", isParent: { $ne: true } } },
         { $group: { _id: null, avg: { $avg: { $ifNull: ["$total", 0] } } } },
       ]).catch(() => []),
     ]);
@@ -170,6 +171,7 @@ export const getSalesAnalytics = async (
           status: "Delivered",
           paymentStatus: "Paid",
           orderDate: { $gte: startDate },
+          isParent: { $ne: true }
         },
       },
       {
@@ -186,6 +188,7 @@ export const getSalesAnalytics = async (
           status: "Delivered",
           paymentStatus: "Paid",
           orderDate: { $gte: lastPeriodStart, $lt: startDate },
+          isParent: { $ne: true }
         },
       },
       {
@@ -240,12 +243,14 @@ export const getOrderAnalytics = async (
     const [thisPeriodOrders, lastPeriodOrders] = await Promise.all([
       Order.find({
         orderDate: { $gte: startDate },
+        isParent: { $ne: true }
       })
         .select("orderDate")
         .lean()
         .catch(() => []),
       Order.find({
         orderDate: { $gte: lastPeriodStart, $lt: startDate },
+        isParent: { $ne: true }
       })
         .select("orderDate")
         .lean()
@@ -366,7 +371,8 @@ export const getTodaySales = async (): Promise<{ salesToday: number; salesLastWe
     const todayOrders = await Order.aggregate([
       {
         $match: {
-          orderDate: { $gte: today, $lt: tomorrow }
+          orderDate: { $gte: today, $lt: tomorrow },
+          isParent: { $ne: true }
         }
       },
       {
@@ -381,7 +387,8 @@ export const getTodaySales = async (): Promise<{ salesToday: number; salesLastWe
     const lastWeekOrders = await Order.aggregate([
       {
         $match: {
-          orderDate: { $gte: lastWeekSameDay, $lt: lastWeekNextDay }
+          orderDate: { $gte: lastWeekSameDay, $lt: lastWeekNextDay },
+          isParent: { $ne: true }
         }
       },
       {
@@ -417,6 +424,7 @@ export const getTopSellers = async (
         $match: {
           status: "Delivered",
           paymentStatus: "Paid",
+          isParent: { $ne: true }
         },
       },
       {
@@ -495,7 +503,7 @@ export const getTopSellers = async (
  */
 export const getRecentOrders = async (limit: number = 10) => {
   try {
-    const orders = await Order.find()
+    const orders = await Order.find({ isParent: { $ne: true } })
       .populate("customer", "name email phone")
       .populate("deliveryBoy", "name mobile")
       .sort({ orderDate: -1 })
@@ -532,6 +540,7 @@ export const getSalesByLocation = async () => {
         $match: {
           status: "Delivered",
           paymentStatus: "Paid",
+          isParent: { $ne: true }
         },
       },
       {
