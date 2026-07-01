@@ -121,6 +121,7 @@ export default function AdminManageSellerList() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdatingRadius, setIsUpdatingRadius] = useState(false);
     const [newRadius, setNewRadius] = useState<number>(10);
+    const [isUpdatingCommission, setIsUpdatingCommission] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
@@ -294,6 +295,27 @@ export default function AdminManageSellerList() {
             setTimeout(() => setError(''), 3000);
         } finally {
             setIsUpdatingRadius(false);
+        }
+    };
+
+    const handleUpdateCommission = async () => {
+        if (!editingSeller) return;
+
+        try {
+            setIsUpdatingCommission(true);
+            const response = await updateSeller(editingSeller._id, { commission: editingSeller.commission });
+            if (response.success) {
+                // Also update the seller in the main list
+                setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, commission: editingSeller.commission } : s));
+                setSuccessMessage('Commission updated successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error updating commission:', error);
+            setError('Failed to update commission');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUpdatingCommission(false);
         }
     };
 
@@ -919,8 +941,25 @@ export default function AdminManageSellerList() {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Commission</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.commission.toFixed(2)}%</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Commission (%)</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.01"
+                                                    value={editingSeller.commission || 0}
+                                                    onChange={(e) => setEditingSeller({ ...editingSeller, commission: parseFloat(e.target.value) || 0 })}
+                                                    className="w-full px-2 py-1 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                />
+                                                <button
+                                                    onClick={handleUpdateCommission}
+                                                    disabled={isUpdatingCommission}
+                                                    className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                                                >
+                                                    {isUpdatingCommission ? '...' : 'Save'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

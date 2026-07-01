@@ -112,9 +112,9 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
       case error.PERMISSION_DENIED: {
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         if (isIOS) {
-          message = "Location permission denied. Please go to Settings -> Apps -> vrumarket delivery -> Location -> Allow.";
+          message = "Location permission denied. Please go to Settings -> Apps -> vrumarket -> Location -> Allow.";
         } else {
-          message = "Location permission denied. Please enable it in settings.";
+          message = "Location permission denied. Please go to Settings -> Apps -> vrumarket -> Location -> Allow.";
         }
         break;
       }

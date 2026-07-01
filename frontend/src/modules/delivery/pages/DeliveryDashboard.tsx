@@ -293,6 +293,18 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
+      {/* Location Error Warning Banner */}
+      {locationError && (
+        <div className="px-4 py-3 flex items-center gap-2 bg-red-600 text-white border-b border-red-700">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="text-xs font-bold uppercase tracking-tight leading-tight">
+            {locationError}
+          </span>
+        </div>
+      )}
+
       <div className="px-4 py-4 space-y-4">
         {/* Daily Collection & Cash Balance Bar */}
         <SummaryBar
@@ -339,16 +351,6 @@ export default function DeliveryDashboard() {
               </div>
             )}
           </div>
-          {locationError && isOnline && (
-            <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-600 flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {locationError}
-            </div>
-          )}
         </div>
 
         {/* Dashboard Cards Grid */}
