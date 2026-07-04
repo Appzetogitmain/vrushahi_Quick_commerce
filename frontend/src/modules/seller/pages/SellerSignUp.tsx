@@ -17,7 +17,7 @@ import FileUpload from "../../../components/FileUpload";
 import PolicyModal from "../../../components/PolicyModal";
 import { useToast } from "../../../context/ToastContext";
 import { validateEmail } from "../../../utils/validation";
-import LogoLatest from "@assets/LogoLatest.png";
+const sellerLogo = "/assets/seller-logo-removebg-preview.png";
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6; // 6 is success step
 
@@ -30,6 +30,7 @@ export default function SellerSignUp() {
   const [isOTPVerified, setIsOTPVerified] = useState(false);
   const [showOTPFields, setShowOTPFields] = useState(false);
   const [fssaiError, setFssaiError] = useState<string | null>(null);
+  const [gstError, setGstError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     sellerName: "",
@@ -48,6 +49,7 @@ export default function SellerSignUp() {
     storeImage: "",
     businessLicense: "",
     fssaiLicNo: "",
+    gstNumber: "",
     workingHours: {
       open: "09:00",
       close: "21:00",
@@ -102,6 +104,19 @@ export default function SellerSignUp() {
       setFormData((prev) => ({ ...prev, [name]: numericValue }));
       if (numericValue.length === 14) {
         setFssaiError(null);
+      }
+    } else if (name === "gstNumber") {
+      const cleanVal = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15);
+      setFormData((prev) => ({ ...prev, [name]: cleanVal }));
+      if (cleanVal.length === 15) {
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (gstRegex.test(cleanVal)) {
+          setGstError(null);
+        } else {
+          setGstError("Invalid GST Number format");
+        }
+      } else if (cleanVal.length === 0) {
+        setGstError(null);
       }
     } else if (name === "serviceRadiusKm") {
       const cleanedValue = value.replace(/[^0-9.]/g, "");
@@ -182,6 +197,23 @@ export default function SellerSignUp() {
     }
   };
 
+  const handleGstBlur = () => {
+    if (formData.gstNumber.length > 0 && formData.gstNumber.length !== 15) {
+      setGstError("GST Number must be exactly 15 characters");
+      showToast("GST Number must be exactly 15 characters", "error");
+    } else if (formData.gstNumber.length === 15) {
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstRegex.test(formData.gstNumber)) {
+        setGstError("Invalid GST Number format (e.g. 22AAAAA1111A1Z1)");
+        showToast("Invalid GST Number format", "error");
+      } else {
+        setGstError(null);
+      }
+    } else {
+      setGstError(null);
+    }
+  };
+
   const nextStep = () => {
     // Validation for current step
     if (currentStep === 1) {
@@ -214,10 +246,31 @@ export default function SellerSignUp() {
       if (!formData.profile) return showToast("Please upload owner photo", "error");
       if (!formData.businessLicense) return showToast("Please upload business license", "error");
       if (!formData.storeImage) return showToast("Please upload real store image", "error");
-      const isFood = formData.categories.some(c => c.toLowerCase().includes('food') || c.toLowerCase().includes('restaurant'));
+      
+      // Validate GST Number if provided
+      if (formData.gstNumber) {
+        if (formData.gstNumber.length !== 15) {
+          return showToast("GST Number must be exactly 15 characters", "error");
+        }
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (!gstRegex.test(formData.gstNumber)) {
+          return showToast("Invalid GST Number format", "error");
+        }
+      }
+
+      const isFood = formData.categories.some(c => 
+        c.toLowerCase().includes('food') || 
+        c.toLowerCase().includes('restaurant') ||
+        c.toLowerCase().includes('grocery')
+      );
       if (isFood) {
         if (!formData.fssaiLicNo) return showToast("FSSAI license number is required for food categories", "error");
         if (formData.fssaiLicNo.length !== 14) {
+          setFssaiError("FSSAI License must be exactly 14 digits");
+          return showToast("FSSAI License must be exactly 14 digits", "error");
+        }
+      } else {
+        if (formData.fssaiLicNo && formData.fssaiLicNo.length !== 14) {
           setFssaiError("FSSAI License must be exactly 14 digits");
           return showToast("FSSAI License must be exactly 14 digits", "error");
         }
@@ -328,7 +381,7 @@ export default function SellerSignUp() {
         
         {/* Header */}
         <div className="px-8 pt-10 pb-6 text-center">
-          <img src={LogoLatest} alt="vrushahi" className="h-20 w-auto mx-auto mb-4 object-contain" />
+          <img src={sellerLogo} alt="vrushahi" className="h-32 w-auto mx-auto mb-4 object-contain" />
           <h1 className="text-2xl font-bold text-neutral-800">Explore New Opportunities</h1>
           <p className="text-neutral-500 text-sm mt-1">Hyperlocal Multi-Vendor Onboarding</p>
         </div>
@@ -590,27 +643,47 @@ export default function SellerSignUp() {
                   </div>
                 </div>
                 
-                {isFoodCategory && (
-                  <div className="pt-2 animate-in slide-in-from-top-2 duration-300">
-                    <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">FSSAI License Number <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      name="fssaiLicNo"
-                      value={formData.fssaiLicNo}
-                      onChange={handleInputChange}
-                      onBlur={handleFssaiBlur}
-                      placeholder="14-digit FSSAI number"
-                      className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl focus:ring-4 transition-all ${
-                        fssaiError 
-                          ? 'border-red-500 focus:ring-red-500/20' 
-                          : 'border-neutral-100 focus:ring-green-500/10 focus:border-green-500'
-                      }`}
-                    />
-                    {fssaiError && (
-                      <p className="text-xs text-red-500 mt-1.5 font-medium ml-1">{fssaiError}</p>
-                    )}
-                  </div>
-                )}
+                <div className="pt-2 animate-in slide-in-from-top-2 duration-300">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">GST Number (Optional)</label>
+                  <input
+                    type="text"
+                    name="gstNumber"
+                    value={formData.gstNumber}
+                    onChange={handleInputChange}
+                    onBlur={handleGstBlur}
+                    placeholder="e.g. 22AAAAA1111A1Z1"
+                    className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl focus:ring-4 transition-all ${
+                      gstError 
+                        ? 'border-red-500 focus:ring-red-500/20' 
+                        : 'border-neutral-100 focus:ring-green-500/10 focus:border-green-500'
+                    }`}
+                  />
+                  {gstError && (
+                    <p className="text-xs text-red-500 mt-1.5 font-medium ml-1">{gstError}</p>
+                  )}
+                </div>
+                
+                <div className="pt-2 animate-in slide-in-from-top-2 duration-300">
+                  <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 ml-1">
+                    FSSAI License Number {isFoodCategory ? <span className="text-red-500">*</span> : <span className="text-neutral-400 font-normal">(Optional)</span>}
+                  </label>
+                  <input
+                    type="text"
+                    name="fssaiLicNo"
+                    value={formData.fssaiLicNo}
+                    onChange={handleInputChange}
+                    onBlur={handleFssaiBlur}
+                    placeholder="14-digit FSSAI number"
+                    className={`w-full px-4 py-3 bg-neutral-50 border rounded-xl focus:ring-4 transition-all ${
+                      fssaiError 
+                        ? 'border-red-500 focus:ring-red-500/20' 
+                        : 'border-neutral-100 focus:ring-green-500/10 focus:border-green-500'
+                    }`}
+                  />
+                  {fssaiError && (
+                    <p className="text-xs text-red-500 mt-1.5 font-medium ml-1">{fssaiError}</p>
+                  )}
+                </div>
               </div>
             )}
 

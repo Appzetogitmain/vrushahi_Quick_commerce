@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Seller from "../../../models/Seller";
+import AppSettings from "../../../models/AppSettings";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -226,9 +227,104 @@ export const deleteSeller = asyncHandler(
       });
     }
 
+    // Emit socket event to notify the seller in real-time
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`seller-${id}`).emit("seller-account-deleted", {
+        message: "Your seller account has been deleted by Vrushahi Platform."
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Seller deleted successfully",
+    });
+  }
+);
+
+/**
+ * Block seller
+ */
+export const blockSeller = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Block reason is required",
+      });
+    }
+
+    const seller = await Seller.findById(id);
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+    }
+
+    seller.status = "Blocked";
+    seller.blockReason = reason;
+    await seller.save();
+
+    // Fetch support info for the notification
+    const settings = await AppSettings.findOne();
+    const supportEmail = settings?.supportEmail || "support@vrushahi.com";
+    const supportPhone = settings?.supportPhone || "+91 9999999999";
+
+    // Emit socket event to notify the seller in real-time
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`seller-${id}`).emit("seller-account-blocked", {
+        message: "Your account has been blocked by Vrushahi Platform.",
+        reason: reason,
+        supportEmail,
+        supportPhone,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller blocked successfully",
+    });
+  }
+);
+
+
+/**
+ * Unblock seller
+ */
+export const unblockSeller = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const seller = await Seller.findById(id);
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+    }
+
+    seller.status = "Approved"; // Reverting to Approved status
+    seller.blockReason = undefined;
+    await seller.save();
+
+    // Emit socket event to notify the seller in real-time
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`seller-${id}`).emit("seller-account-unblocked", {
+        message: "Your account has been unblocked by Vrushahi Platform.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller unblocked successfully",
     });
   }
 );

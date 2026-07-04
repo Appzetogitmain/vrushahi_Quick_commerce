@@ -111,3 +111,14 @@ video {
   }
 }
 
+/* Blur backdrop for all fixed overlay backdrops in admin panel */
+.fixed.inset-0[class*="bg-black"],
+.fixed.inset-0[class*="bg-neutral-900"],
+.fixed.inset-0[class*="bg-gray-900"],
+.absolute.inset-0[class*="bg-gray-900"],
+.fixed.inset-0.bg-black {
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+

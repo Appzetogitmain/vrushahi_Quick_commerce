@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import { getNotifications, Notification, markMultipleAsRead } from "../../../services/api/admin/adminNotificationService";
+import { getNotifications, type Notification, markMultipleAsRead } from "../../../services/api/admin/adminNotificationService";
 import vrushahiLogo from "@assets/LogoLatest.png";
 
 interface AdminHeaderProps {
@@ -17,13 +17,18 @@ export default function AdminHeader({
   const location = useLocation();
   const { logout } = useAuth();
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
 
   const isActive = (path: string) => location.pathname.includes(path);
 
   useEffect(() => {
+    // Request push notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
     const handleClickOutside = (event: MouseEvent) => {
       if (
         notificationsRef.current &&
@@ -33,11 +38,31 @@ export default function AdminHeader({
       }
     };
 
-    const fetchUnreadNotifications = async () => {
+    const fetchRecentNotifications = async () => {
       try {
-        const response = await getNotifications({ isRead: false, limit: 10 });
+        const response = await getNotifications({ limit: 10 });
         if (response.success && response.data) {
-          setUnreadNotifications(response.data);
+          const fetchedNotifs = response.data;
+          setNotifications(fetchedNotifs);
+          
+          // Check for new unread notifications to trigger push notifications
+          if ("Notification" in window && Notification.permission === "granted") {
+            fetchedNotifs.forEach(notif => {
+              if (!notif.isRead && !notifiedIdsRef.current.has(notif._id)) {
+                // Show native push notification
+                new window.Notification("Vrushahi Admin: " + notif.title, {
+                  body: notif.message,
+                  icon: vrushahiLogo
+                });
+                notifiedIdsRef.current.add(notif._id);
+              }
+            });
+          } else {
+             // Just track them so we don't spam if permission is granted later
+             fetchedNotifs.forEach(notif => {
+               if (!notif.isRead) notifiedIdsRef.current.add(notif._id);
+             });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch notifications:", err);
@@ -45,10 +70,10 @@ export default function AdminHeader({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    fetchUnreadNotifications();
+    fetchRecentNotifications();
     
-    // Poll every 60 seconds
-    const interval = setInterval(fetchUnreadNotifications, 60000);
+    // Poll every 3 seconds for instant updates
+    const interval = setInterval(fetchRecentNotifications, 3000);
     
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -64,6 +89,8 @@ export default function AdminHeader({
   const handleLogoClick = () => {
     navigate("/admin");
   };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
@@ -160,10 +187,11 @@ export default function AdminHeader({
               onClick={() => {
                 const isOpening = !showNotificationsDropdown;
                 setShowNotificationsDropdown(isOpening);
-                if (isOpening && unreadNotifications.length > 0) {
-                  const unreadIds = unreadNotifications.map((n) => n._id);
+                if (isOpening && unreadCount > 0) {
+                  const unreadIds = notifications.filter(n => !n.isRead).map((n) => n._id);
                   markMultipleAsRead({ notificationIds: unreadIds }).catch(console.error);
-                  setUnreadNotifications([]);
+                  // Optimistically mark them read locally
+                  setNotifications(prev => prev.map(n => unreadIds.includes(n._id) ? { ...n, isRead: true } : n));
                 }
               }}
               className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors relative"
@@ -189,25 +217,35 @@ export default function AdminHeader({
                   strokeLinejoin="round"
                 />
               </svg>
-              {unreadNotifications.length > 0 && (
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
               )}
             </button>
             {showNotificationsDropdown && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-neutral-200 py-2 z-50 max-h-96 overflow-y-auto">
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-neutral-200 py-2 z-50 max-h-96 flex flex-col">
                 <div className="px-4 py-2 border-b border-neutral-200">
                   <h3 className="text-sm font-semibold text-neutral-900">
                     Notifications
                   </h3>
                 </div>
-                <div className="py-4 px-4 text-center text-sm text-neutral-500">
-                  {unreadNotifications.length > 0 ? (
-                    <p>You have {unreadNotifications.length} unread notification{unreadNotifications.length > 1 ? 's' : ''}</p>
+                <div className="overflow-y-auto flex-1 max-h-64 divide-y divide-neutral-100">
+                  {notifications.length > 0 ? (
+                    notifications.map(notif => (
+                      <div key={notif._id} className={`p-3 text-sm ${!notif.isRead ? 'bg-teal-50/50' : 'bg-white'}`}>
+                        <div className="font-semibold text-neutral-800 mb-1">{notif.title}</div>
+                        <div className="text-neutral-600 line-clamp-2">{notif.message}</div>
+                        <div className="text-xs text-neutral-400 mt-1">
+                          {new Date(notif.createdAt || '').toLocaleString()}
+                        </div>
+                      </div>
+                    ))
                   ) : (
-                    <p>No new notifications</p>
+                    <div className="py-4 px-4 text-center text-sm text-neutral-500">
+                      <p>No notifications</p>
+                    </div>
                   )}
                 </div>
-                <div className="px-4 py-2 border-t border-neutral-200">
+                <div className="px-4 py-2 border-t border-neutral-200 bg-neutral-50">
                   <button
                     onClick={() => {
                       navigate("/admin/notification");

@@ -35,12 +35,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }
       });
 
+      const mainElement = document.querySelector('main');
       if (isModalVisible) {
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
+        if (mainElement) {
+          mainElement.style.overflow = 'hidden';
+        }
       } else {
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
+        if (mainElement) {
+          mainElement.style.overflow = '';
+        }
       }
     };
 

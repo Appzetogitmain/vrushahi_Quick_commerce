@@ -389,10 +389,14 @@ export default function AdminNotification() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
+                  {!searchTerm && (
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs pointer-events-none">Search:</span>
+                  )}
                   <input
                     type="text"
-                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-green-500 w-48"
+                    className={`pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-green-500 w-48 ${
+                      searchTerm ? "pl-3" : "pl-14"
+                    }`}
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);

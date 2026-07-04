@@ -19,6 +19,7 @@ export interface ISeller extends Document {
   storeDescription?: string;
   storeBanner?: string;
   fssaiLicNo?: string;
+  gstNumber?: string;
   workingHours?: {
     open: string;
     close: string;
@@ -67,7 +68,7 @@ export interface ISeller extends Document {
   commissionRate?: number; // Alias or specific rate
 
   // Status
-  status: 'Approved' | 'Pending' | 'Rejected' | 'Deleted';
+  status: 'Approved' | 'Pending' | 'Rejected' | 'Deleted' | 'Blocked';
   balance: number;
   lockedBalance: number;
   lifetimeEarnings: number;
@@ -80,6 +81,7 @@ export interface ISeller extends Document {
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
   deletedAt?: Date;
+  blockReason?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -169,6 +171,18 @@ const SellerSchema = new Schema<ISeller>(
     fssaiLicNo: {
       type: String,
       trim: true,
+    },
+    gstNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      validate: {
+        validator: function (v: string) {
+          if (!v) return true;
+          return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v);
+        },
+        message: 'Invalid GST Number format',
+      },
     },
     workingHours: {
       open: { type: String },
@@ -288,10 +302,14 @@ const SellerSchema = new Schema<ISeller>(
     // Status
     status: {
       type: String,
-      enum: ['Approved', 'Pending', 'Rejected', 'Deleted'],
+      enum: ['Approved', 'Pending', 'Rejected', 'Deleted', 'Blocked'],
       default: 'Pending',
     },
     rejectionReason: {
+      type: String,
+      trim: true,
+    },
+    blockReason: {
       type: String,
       trim: true,
     },

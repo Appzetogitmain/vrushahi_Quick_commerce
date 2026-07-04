@@ -8,6 +8,7 @@ import {
 } from "../../../services/otpService";
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
+import { sendBroadcastNotification } from "../../../services/notificationService";
 
 /**
  * Send OTP to seller mobile number
@@ -141,6 +142,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     storeImage,
     businessLicense,
     fssaiLicNo,
+    gstNumber,
     workingHours
   } = req.body;
 
@@ -165,6 +167,47 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
       success: false,
       message: "Valid 10-digit mobile number is required",
     });
+  }
+
+  // Validate GST Number if provided
+  if (gstNumber) {
+    const gstUpper = gstNumber.trim().toUpperCase();
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstRegex.test(gstUpper)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid GST Number format",
+      });
+    }
+  }
+
+  // Validate FSSAI License Number
+  const isFood = categories.some((c: string) => 
+    c.toLowerCase().includes('food') || 
+    c.toLowerCase().includes('restaurant') || 
+    c.toLowerCase().includes('grocery')
+  );
+
+  if (isFood) {
+    if (!fssaiLicNo) {
+      return res.status(400).json({
+        success: false,
+        message: "FSSAI License Number is required for food categories",
+      });
+    }
+    if (!/^[0-9]{14}$/.test(fssaiLicNo)) {
+      return res.status(400).json({
+        success: false,
+        message: "FSSAI License Number must be exactly 14 digits",
+      });
+    }
+  } else if (fssaiLicNo) {
+    if (!/^[0-9]{14}$/.test(fssaiLicNo)) {
+      return res.status(400).json({
+        success: false,
+        message: "FSSAI License Number must be exactly 14 digits",
+      });
+    }
   }
 
   // Parse coordinates
@@ -209,6 +252,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     storeImage,
     businessLicense,
     fssaiLicNo,
+    gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : undefined,
     workingHours,
     status: "Pending",
     commission: 0,
@@ -220,6 +264,22 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   // Generate token
   const token = generateToken(seller._id.toString(), "Seller");
+
+  // Notify admins about new seller onboarding
+  try {
+    await sendBroadcastNotification(
+      "Admin",
+      "New Seller Registration",
+      `Seller "${seller.storeName}" has registered and is pending approval.`,
+      {
+        type: "System",
+        link: "/admin/manage-seller/list",
+        priority: "High",
+      }
+    );
+  } catch (err) {
+    console.error("Error broadcasting new seller notification:", err);
+  }
 
   return res.status(201).json({
     success: true,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import vrushahiLogo from "@assets/LogoLatest.png";
+const vrushahiLogo = "/assets/seller-logo-removebg-preview.png";
 import { useAuth } from "../../../context/AuthContext";
 import SellerNotificationDropdown from "./SellerNotificationDropdown";
 
@@ -115,8 +115,8 @@ export default function SellerHeader({
             <img
               src={vrushahiLogo}
               alt="vrushahi"
-              className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
-              style={{ maxWidth: "200px" }}
+              className="h-14 sm:h-16 w-auto object-contain cursor-pointer"
+              style={{ maxWidth: "250px" }}
             />
           </button>
 

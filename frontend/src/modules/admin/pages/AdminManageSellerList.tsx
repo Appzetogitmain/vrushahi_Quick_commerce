@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllSellers, updateSellerStatus, deleteSeller, Seller as SellerType, updateSeller } from '../../../services/api/sellerService';
+import { getAllSellers, updateSellerStatus, deleteSeller, Seller as SellerType, updateSeller, blockSeller, unblockSeller } from '../../../services/api/sellerService';
 import SellerServiceMap from '../components/SellerServiceMap';
 
 interface Seller {
@@ -15,7 +15,7 @@ interface Seller {
     balance: number;
     commission: number;
     categories: string[];
-    status: 'Approved' | 'Pending' | 'Rejected';
+    status: 'Approved' | 'Pending' | 'Rejected' | 'Blocked';
     needApproval: boolean;
     // Additional fields from signup
     category?: string;
@@ -25,6 +25,7 @@ interface Seller {
     panCard?: string;
     taxName?: string;
     taxNumber?: string;
+    gstNumber?: string;
     searchLocation?: string;
     latitude?: string;
     longitude?: string;
@@ -73,6 +74,7 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         panCard: seller.panCard,
         taxName: seller.taxName,
         taxNumber: seller.taxNumber,
+        gstNumber: seller.gstNumber,
         searchLocation: seller.searchLocation,
         latitude: seller.latitude,
         longitude: seller.longitude,
@@ -124,6 +126,11 @@ export default function AdminManageSellerList() {
     const [isUpdatingCommission, setIsUpdatingCommission] = useState(false);
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+    const [blockSellerId, setBlockSellerId] = useState<string | null>(null);
+    const [blockReason, setBlockReason] = useState<string>('');
+    const [isBlocking, setIsBlocking] = useState(false);
+    const [isUnblocking, setIsUnblocking] = useState(false);
 
     // Fetch sellers from backend
     useEffect(() => {
@@ -194,6 +201,60 @@ export default function AdminManageSellerList() {
             (seller.mobile && seller.mobile.toLowerCase().includes(searchLower))
         );
     });
+
+    const handleBlockClick = (id: string) => {
+        setBlockSellerId(id);
+        setBlockReason('');
+        setIsBlockModalOpen(true);
+    };
+
+    const handleCloseBlockModal = () => {
+        setIsBlockModalOpen(false);
+        setBlockSellerId(null);
+        setBlockReason('');
+    };
+
+    const submitBlock = async () => {
+        if (!blockSellerId || !blockReason.trim()) return;
+
+        try {
+            setIsBlocking(true);
+            const response = await blockSeller(blockSellerId, blockReason);
+            if (response.success) {
+                // Update local state
+                setSellers(sellers.map(s => s._id === blockSellerId ? { ...s, status: 'Blocked' } : s));
+                setSuccessMessage('Seller has been blocked successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+                handleCloseBlockModal();
+            }
+        } catch (error: any) {
+            console.error('Error blocking seller:', error);
+            setError(error.response?.data?.message || 'Failed to block seller');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsBlocking(false);
+        }
+    };
+
+    const handleUnblock = async (id: string) => {
+        if (!window.confirm('Are you sure you want to unblock this seller?')) return;
+        try {
+            setIsUnblocking(true);
+            const response = await unblockSeller(id);
+            if (response.success) {
+                // Update local state
+                setSellers(sellers.map(s => s._id === id ? { ...s, status: 'Approved' } : s));
+                setSuccessMessage('Seller has been unblocked successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error: any) {
+            console.error('Error unblocking seller:', error);
+            setError(error.response?.data?.message || 'Failed to unblock seller');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUnblocking(false);
+        }
+    };
 
     // Sort sellers
     if (sortColumn) {
@@ -671,6 +732,30 @@ export default function AdminManageSellerList() {
                                             </td>
                                             <td className="p-4 align-middle">
                                                 <div className="flex items-center gap-2">
+                                                    {seller.status === 'Blocked' ? (
+                                                        <button
+                                                            onClick={() => handleUnblock(seller._id)}
+                                                            disabled={isUnblocking}
+                                                            className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                            title="Unblock Seller"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                            </svg>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleBlockClick(seller._id)}
+                                                            className="p-1.5 text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                                            title="Block Seller"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <circle cx="12" cy="12" r="10"></circle>
+                                                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                                                            </svg>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => handleEdit(seller._id)}
                                                         className="p-1.5 text-teal-600 hover:bg-teal-50 rounded transition-colors"
@@ -1046,10 +1131,16 @@ export default function AdminManageSellerList() {
                                 </div>
 
                                 {/* Tax Information */}
-                                {(editingSeller.panCard || editingSeller.taxName || editingSeller.taxNumber) && (
+                                {(editingSeller.panCard || editingSeller.taxName || editingSeller.taxNumber || editingSeller.gstNumber) && (
                                     <div className="bg-neutral-50 rounded-lg p-4">
                                         <h4 className="text-sm font-semibold text-neutral-700 mb-3">Tax Information</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {editingSeller.gstNumber && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500">GST Number</label>
+                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.gstNumber}</p>
+                                                </div>
+                                            )}
                                             {editingSeller.panCard && (
                                                 <div>
                                                     <label className="text-xs text-neutral-500">PAN Card</label>
@@ -1245,6 +1336,15 @@ export default function AdminManageSellerList() {
                                                     </div>
                                                 </div>
                                             )}
+                                            {editingSeller.gstNumber && (
+                                                <div>
+                                                    <label className="text-xs text-neutral-500 block mb-2">GST Number</label>
+                                                    <div className="p-3 bg-white border border-neutral-200 rounded-lg">
+                                                        <p className="text-sm font-bold text-neutral-800">{editingSeller.gstNumber}</p>
+                                                        <p className="text-[10px] text-neutral-400 mt-1 uppercase font-bold tracking-widest">GSTIN</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -1351,6 +1451,47 @@ export default function AdminManageSellerList() {
                                 className="px-6 py-2 bg-white/20 hover:bg-white/30 text-white border border-white/50 rounded-full text-sm font-semibold transition-all backdrop-blur-md"
                             >
                                 Close Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Block Modal */}
+            {isBlockModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleCloseBlockModal}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                                </svg>
+                                Block Seller
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Please provide a reason for blocking this seller. They will receive a notification and won't be able to access their dashboard.
+                            </p>
+                            <textarea
+                                value={blockReason}
+                                onChange={(e) => setBlockReason(e.target.value)}
+                                placeholder="Enter block reason..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[100px] focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
+                            <button
+                                onClick={handleCloseBlockModal}
+                                disabled={isBlocking}
+                                className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={submitBlock}
+                                disabled={isBlocking || !blockReason.trim()}
+                                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 font-medium transition-colors flex items-center gap-2"
+                            >
+                                {isBlocking ? 'Blocking...' : 'Block Seller'}
                             </button>
                         </div>
                     </div>

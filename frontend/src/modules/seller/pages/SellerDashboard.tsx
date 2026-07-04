@@ -323,6 +323,24 @@ export default function SellerDashboard() {
         </div>
       </div>
 
+      {/* Pending Approval Alert */}
+      {profile && profile.status === 'Pending' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="bg-amber-100 p-3 rounded-full flex-shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-amber-900 leading-tight">Store Under Review</h3>
+            <p className="text-amber-800 text-sm mt-1 font-medium">
+              Welcome aboard! Your store profile is currently under review by our admin team. Your products will become visible to customers once your store gets approved.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Rejection Alert */}
       {profile && profile.status === 'Rejected' && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">

@@ -9,7 +9,7 @@ interface User {
     email: string;
     phone?: string;
     registrationDate: string;
-    status: 'Active' | 'Inactive' | 'Suspended';
+    status: 'Active' | 'Inactive' | 'Deleted';
     refCode?: string;
     walletAmount?: number;
     totalOrders?: number;
@@ -140,7 +140,7 @@ export default function AdminUsers() {
     const displayedUsers = users;
     const startIndex = (currentPage - 1) * entriesPerPage;
 
-    const handleStatusChange = async (userId: string, newStatus: 'Active' | 'Suspended') => {
+    const handleStatusChange = async (userId: string, newStatus: 'Active' | 'Inactive') => {
         try {
             const response = await updateUserStatus(userId, newStatus);
 
@@ -346,7 +346,7 @@ export default function AdminUsers() {
                                             <td className="p-4 align-middle">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'Active'
                                                     ? 'bg-green-100 text-green-800'
-                                                    : user.status === 'Suspended'
+                                                    : user.status === 'Inactive'
                                                         ? 'bg-red-100 text-red-800'
                                                         : 'bg-yellow-100 text-yellow-800'
                                                     }`}>
@@ -360,7 +360,7 @@ export default function AdminUsers() {
                                             <td className="p-4 align-middle">
                                                 <div className="flex items-center gap-2">
                                                     <button
-                                                        onClick={() => handleStatusChange(user._id, user.status === 'Active' ? 'Suspended' : 'Active')}
+                                                        onClick={() => handleStatusChange(user._id, user.status === 'Active' ? 'Inactive' : 'Active')}
                                                         className={`p-1.5 text-white rounded transition-colors ${user.status === 'Active'
                                                             ? 'bg-red-600 hover:bg-red-700'
                                                             : 'bg-green-600 hover:bg-green-700'

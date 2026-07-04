@@ -38,6 +38,8 @@ export interface RegisterData {
   latitude?: string;
   longitude?: string;
   serviceRadiusKm?: string | number;
+  fssaiLicNo?: string;
+  gstNumber?: string;
 }
 
 export interface RegisterResponse {

@@ -16,8 +16,9 @@ export interface Seller {
   balance: number;
   commission: number;
   categories: string[];
-  status: "Approved" | "Pending" | "Rejected";
+  status: "Approved" | "Pending" | "Rejected" | "Blocked";
   rejectionReason?: string;
+  blockReason?: string;
   storeImage?: string;
   category?: string;
   address?: string;
@@ -39,6 +40,7 @@ export interface Seller {
   idProof?: string;
   addressProof?: string;
   fssaiLicNo?: string;
+  gstNumber?: string;
   businessLicense?: string;
   workingHours?: {
     open: string;
@@ -155,8 +157,24 @@ export const updateSeller = async (
 /**
  * Delete seller
  */
-export const deleteSeller = async (id: string): Promise<ApiResponse<void>> => {
-  const response = await api.delete<ApiResponse<void>>(`/sellers/${id}`);
+export const deleteSeller = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/sellers/${id}`);
+  return response.data;
+};
+
+/**
+ * Block seller
+ */
+export const blockSeller = async (id: string, reason: string): Promise<ApiResponse<any>> => {
+  const response = await api.put<ApiResponse<any>>(`/sellers/${id}/block`, { reason });
+  return response.data;
+};
+
+/**
+ * Unblock seller
+ */
+export const unblockSeller = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.put<ApiResponse<any>>(`/sellers/${id}/unblock`);
   return response.data;
 };
 

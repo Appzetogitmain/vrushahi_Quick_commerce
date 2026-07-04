@@ -17,7 +17,7 @@ interface Seller {
   latitude?: string;
   longitude?: string;
   serviceRadiusKm?: number;
-  status: "Approved" | "Pending" | "Rejected";
+  status: "Approved" | "Pending" | "Rejected" | "Blocked";
 }
 
 export default function AdminSellerLocation() {

@@ -7,7 +7,7 @@ import {
 import OTPInput from "../../../components/OTPInput";
 import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
-import LogoLatest from "@assets/LogoLatest.png";
+const sellerLogo = "/assets/seller-logo-removebg-preview.png";
 
 export default function SellerLogin() {
   const navigate = useNavigate();
@@ -101,9 +101,9 @@ export default function SellerLogin() {
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-green-500/10 blur-3xl rounded-full" />
             <img
-              src={LogoLatest}
+              src={sellerLogo}
               alt="vrushahi"
-              className="relative h-32 w-auto mx-auto object-contain"
+              className="relative h-44 w-auto mx-auto object-contain"
             />
           </div>
           <h1 className="text-3xl font-bold text-green-600 mb-2 tracking-tight">

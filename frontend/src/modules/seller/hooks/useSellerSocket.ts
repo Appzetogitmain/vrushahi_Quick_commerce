@@ -86,6 +86,24 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
             }
         });
 
+        // Listen for account deletion event
+        newSocket.on('seller-account-deleted', (data) => {
+            console.error('❌ Seller account deleted by admin:', data);
+            window.dispatchEvent(new CustomEvent('seller-deleted', { detail: data }));
+        });
+
+        // Listen for account blocked event
+        newSocket.on('seller-account-blocked', (data) => {
+            console.error('🚫 Seller account blocked by admin:', data);
+            window.dispatchEvent(new CustomEvent('seller-blocked', { detail: data }));
+        });
+
+        // Listen for account unblocked event
+        newSocket.on('seller-account-unblocked', (data) => {
+            console.log('✅ Seller account unblocked by admin:', data);
+            window.dispatchEvent(new CustomEvent('seller-unblocked', { detail: data }));
+        });
+
         newSocket.on('disconnect', () => {
             console.log('❌ Seller disconnected from socket server');
             setIsConnected(false);

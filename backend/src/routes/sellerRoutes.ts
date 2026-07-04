@@ -5,6 +5,8 @@ import {
   updateSellerStatus,
   updateSeller,
   deleteSeller,
+  blockSeller,
+  unblockSeller,
 } from "../modules/seller/controllers/sellerController";
 import { authenticate, requireUserType } from "../middleware/auth";
 
@@ -28,5 +30,11 @@ router.put("/:id", updateSeller);
 
 // Delete seller
 router.delete("/:id", deleteSeller);
+
+// Block seller
+router.put("/:id/block", blockSeller);
+
+// Unblock seller
+router.put("/:id/unblock", unblockSeller);
 
 export default router;

@@ -48,6 +48,19 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         }
       }
 
+      // Invalidate deleted seller accounts securely
+      if (decoded.userType === 'Seller') {
+        const Seller = (await import('../models/Seller')).default;
+        const seller = await Seller.findById(decoded.userId).select('_id status');
+        if (!seller || seller.status === 'Deleted') {
+          res.status(401).json({
+            success: false,
+            message: 'Your seller account has been deleted',
+          });
+          return;
+        }
+      }
+
       next();
     } catch (error: any) {
       res.status(401).json({
