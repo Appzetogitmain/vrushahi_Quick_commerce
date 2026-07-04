@@ -75,11 +75,22 @@ export const updateSellerStatus = asyncHandler(
       });
     }
 
+    const sellerToUpdate = await Seller.findById(id);
+    if (!sellerToUpdate) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+    }
+
     const updateFields: any = { status };
     if (status === "Rejected" && rejectionReason) {
       updateFields.rejectionReason = rejectionReason;
     } else if (status === "Approved") {
       updateFields.rejectionReason = ""; // Clear rejection reason on approval
+      if (sellerToUpdate.businessModel === "Subscription" && sellerToUpdate.subscriptionStatus !== "Active") {
+        updateFields.status = "Payment Pending";
+      }
     }
 
     const seller = await Seller.findByIdAndUpdate(

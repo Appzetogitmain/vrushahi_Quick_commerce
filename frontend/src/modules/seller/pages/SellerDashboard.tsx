@@ -375,7 +375,36 @@ export default function SellerDashboard() {
         />
       )}
 
-      {/* KPI Cards Grid */}
+      {/* Payment Pending Alert */}
+      {profile && profile.status === 'Payment Pending' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex gap-4">
+            <div className="bg-blue-100 p-3 rounded-full flex-shrink-0">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-blue-900 leading-tight">Payment Required</h3>
+              <p className="text-blue-700 text-sm mt-1 font-medium">
+                You selected the Subscription business model. Please complete your payment to activate your store and access the dashboard features.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/seller/subscription')}
+            className="w-full md:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm transition-all hover:shadow-md active:scale-95"
+          >
+            Pay Now
+          </button>
+        </div>
+      )}
+
+      {/* Hide rest of dashboard if Payment Pending */}
+      {(!profile || profile.status !== 'Payment Pending') && (
+        <>
+          {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" onClick={() => navigate('/seller/customers')} />
         <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" onClick={() => navigate('/seller/category')} />
@@ -623,6 +652,8 @@ export default function SellerDashboard() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

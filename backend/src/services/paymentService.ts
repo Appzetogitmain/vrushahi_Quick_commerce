@@ -103,7 +103,7 @@ export const createRazorpayOrder = async (
             success: true,
             data: {
                 razorpayOrderId: razorpayOrder.id,
-                razorpayKey: process.env.RAZORPAY_KEY_ID, // Send key to frontend
+                razorpayKey: process.env.RAZORPAY_KEY_ID?.trim(), // Send trimmed key to frontend
                 amount: razorpayOrder.amount,
                 currency: razorpayOrder.currency,
                 receipt: razorpayOrder.receipt,
@@ -252,7 +252,7 @@ export const verifyPaymentSignature = (
     razorpaySignature: string
 ): boolean => {
     try {
-        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
 
         if (!keySecret) {
             throw new Error('Razorpay key secret not configured');

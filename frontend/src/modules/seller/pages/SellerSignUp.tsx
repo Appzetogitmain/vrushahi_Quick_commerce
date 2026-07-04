@@ -19,7 +19,9 @@ import { useToast } from "../../../context/ToastContext";
 import { validateEmail } from "../../../utils/validation";
 const sellerLogo = "/assets/seller-logo-removebg-preview.png";
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6; // 6 is success step
+import { getActiveSubscriptionPlans } from "../../../services/api/subscription/sellerSubscriptionService";
+
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7; // 7 is success step
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -54,8 +56,13 @@ export default function SellerSignUp() {
       open: "09:00",
       close: "21:00",
       workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    }
+    },
+    businessModel: "",
+    selectedPlanId: "",
   });
+
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
 
   const [showPolicy, setShowPolicy] = useState(false);
   const [policyType, setPolicyType] = useState<{ type: 'customer' | 'delivery' | 'seller', title?: string }>({ type: 'seller' });
@@ -64,17 +71,26 @@ export default function SellerSignUp() {
   const [categories, setCategories] = useState<HeaderCategory[]>([]);
 
   useEffect(() => {
-    const fetchCats = async () => {
+    const fetchCatsAndPlans = async () => {
       try {
-        const res = await getHeaderCategoriesPublic();
-        if (Array.isArray(res)) {
-          setCategories(res.filter((cat) => cat.status === "Published"));
+        const [catsRes, plansRes] = await Promise.all([
+          getHeaderCategoriesPublic(),
+          getActiveSubscriptionPlans()
+        ]);
+        if (Array.isArray(catsRes)) {
+          setCategories(catsRes.filter((cat) => cat.status === "Published"));
+        } else if (catsRes && (catsRes as any).data && Array.isArray((catsRes as any).data)) {
+          setCategories((catsRes as any).data.filter((cat: any) => cat.status === "Published"));
+        }
+        
+        if (plansRes && plansRes.success && Array.isArray(plansRes.data)) {
+          setSubscriptionPlans(plansRes.data);
         }
       } catch (err) {
-        console.error("Error fetching categories:", err);
+        console.error("Error fetching data:", err);
       }
     };
-    fetchCats();
+    fetchCatsAndPlans();
   }, []);
 
   const handleInputChange = (
@@ -283,6 +299,11 @@ export default function SellerSignUp() {
           return showToast("Opening time must be earlier than closing time", "error");
         }
       }
+    } else if (currentStep === 6) {
+      if (!formData.businessModel) return showToast("Please select a business model", "error");
+      if (formData.businessModel === 'Subscription' && !formData.selectedPlanId) {
+        return showToast("Please select a subscription plan", "error");
+      }
 
       handleFinalSubmit();
       return;
@@ -310,7 +331,7 @@ export default function SellerSignUp() {
           });
         }
         
-        setCurrentStep(6);
+        setCurrentStep(7);
       }
     } catch (err: any) {
       showToast(err.response?.data?.message || "Registration failed. Please check all details.", "error");
@@ -321,7 +342,7 @@ export default function SellerSignUp() {
 
   const StepIndicator = () => (
     <div className="flex items-center justify-between mb-8 px-4">
-      {[1, 2, 3, 4, 5].map((step) => (
+      {[1, 2, 3, 4, 5, 6].map((step) => (
         <div key={step} className="flex items-center flex-1 last:flex-none">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
             currentStep === step ? 'bg-green-600 text-white ring-4 ring-green-100' : 
@@ -329,7 +350,7 @@ export default function SellerSignUp() {
           }`}>
             {currentStep > step ? '✓' : step}
           </div>
-          {step < 5 && (
+          {step < 6 && (
             <div className={`h-1 flex-1 mx-2 rounded-full transition-all duration-300 ${
               currentStep > step ? 'bg-green-600' : 'bg-neutral-100'
             }`} />
@@ -345,7 +366,7 @@ export default function SellerSignUp() {
     c.toLowerCase().includes('grocery')
   );
 
-  if (currentStep === 6) {
+  if (currentStep === 7) {
     return (
       <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] p-10 text-center animate-in fade-in zoom-in duration-500">
@@ -735,6 +756,151 @@ export default function SellerSignUp() {
               </div>
             )}
 
+            {/* Step 6: Business Model */}
+            {currentStep === 6 && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-bold text-neutral-800 mb-2">Select Business Model</h2>
+                <div className="space-y-4">
+                  <div
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, businessModel: "Commission", selectedPlanId: "" }));
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.businessModel === 'Commission' ? 'border-green-600 bg-green-50' : 'border-neutral-200 bg-white hover:border-green-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        formData.businessModel === 'Commission' ? 'border-green-600' : 'border-neutral-300'
+                      }`}>
+                        {formData.businessModel === 'Commission' && <div className="w-2.5 h-2.5 bg-green-600 rounded-full" />}
+                      </div>
+                      <span className="font-bold text-neutral-800">Commission Based</span>
+                    </div>
+                    <p className="mt-2 text-sm text-neutral-500 ml-8">Pay a fixed commission percentage on every successful order.</p>
+                  </div>
+                  
+                  <div
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, businessModel: "Subscription" }));
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formData.businessModel === 'Subscription' ? 'border-green-600 bg-green-50' : 'border-neutral-200 bg-white hover:border-green-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        formData.businessModel === 'Subscription' ? 'border-green-600' : 'border-neutral-300'
+                      }`}>
+                        {formData.businessModel === 'Subscription' && <div className="w-2.5 h-2.5 bg-green-600 rounded-full" />}
+                      </div>
+                      <span className="font-bold text-neutral-800">Subscription Based</span>
+                    </div>
+                    <p className="mt-2 text-sm text-neutral-500 ml-8">Pay a fixed periodic fee and keep 100% of your earnings.</p>
+                  </div>
+                </div>
+
+                {formData.businessModel === 'Subscription' && (
+                  <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <h3 className="text-sm font-bold text-neutral-800">Select a Plan</h3>
+                    {subscriptionPlans.length === 0 ? (
+                      <p className="text-sm text-neutral-500">No active plans available. Please select commission model.</p>
+                    ) : (
+                      <div className="relative">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => setCurrentPlanIndex(prev => prev > 0 ? prev - 1 : prev)}
+                            disabled={currentPlanIndex === 0}
+                            className="absolute left-0 z-10 w-10 h-10 flex items-center justify-center bg-white rounded-full shadow border border-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 text-neutral-600"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                          </button>
+                          
+                          <div className="w-full px-12 transition-all duration-300">
+                            {(() => {
+                              const plan = subscriptionPlans[currentPlanIndex];
+                              if (!plan) return null;
+                              const isSelected = formData.selectedPlanId === plan._id;
+                              return (
+                                <div
+                                  key={plan._id}
+                                  onClick={() => setFormData(prev => ({ ...prev, selectedPlanId: plan._id }))}
+                                  className={`p-6 rounded-2xl border-2 cursor-pointer transition-all relative overflow-hidden ${
+                                    isSelected 
+                                      ? 'border-green-600 bg-green-50/40 shadow-lg transform scale-[1.02]' 
+                                      : 'border-neutral-200 bg-white hover:border-green-300 hover:shadow-md'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <div className="absolute top-0 left-0 w-full h-1.5 bg-green-500"></div>
+                                  )}
+                                  
+                                  {plan.savings > 0 && (
+                                    <div className="absolute top-4 right-4 bg-red-500 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-sm">
+                                      Save ₹{plan.savings}
+                                    </div>
+                                  )}
+                                  
+                                  <h4 className={`font-black text-xl ${isSelected ? 'text-green-800' : 'text-neutral-800'}`}>{plan.name}</h4>
+                                  
+                                  <div className="mt-4 flex items-baseline gap-2">
+                                    <span className={`text-4xl font-black ${isSelected ? 'text-green-600' : 'text-neutral-800'}`}>
+                                      ₹{plan.discountedPrice}
+                                    </span>
+                                    <span className="text-sm text-neutral-500 font-medium">/ {plan.duration} days</span>
+                                  </div>
+                                  
+                                  {plan.actualPrice > plan.discountedPrice && (
+                                    <p className="text-sm text-neutral-400 line-through mt-1">₹{plan.actualPrice}</p>
+                                  )}
+                                  
+                                  {plan.description && (
+                                    <p className={`mt-4 text-sm leading-relaxed ${isSelected ? 'text-green-800/80 font-medium' : 'text-neutral-500'}`}>
+                                      {plan.description}
+                                    </p>
+                                  )}
+                                  
+                                  <div className="mt-6 flex items-center justify-center">
+                                    <div className={`px-4 py-2 rounded-full text-sm font-bold w-full text-center transition-colors ${
+                                      isSelected ? 'bg-green-600 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600'
+                                    }`}>
+                                      {isSelected ? '✓ Selected' : 'Tap to Select'}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          <button
+                            onClick={() => setCurrentPlanIndex(prev => prev < subscriptionPlans.length - 1 ? prev + 1 : prev)}
+                            disabled={currentPlanIndex === subscriptionPlans.length - 1}
+                            className="absolute right-0 z-10 w-10 h-10 flex items-center justify-center bg-white rounded-full shadow border border-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 text-neutral-600"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                          </button>
+                        </div>
+                        
+                        {subscriptionPlans.length > 1 && (
+                          <div className="flex justify-center gap-2 mt-5">
+                            {subscriptionPlans.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setCurrentPlanIndex(idx)}
+                                className={`h-2 rounded-full transition-all ${
+                                  idx === currentPlanIndex ? 'w-6 bg-green-600' : 'w-2 bg-neutral-300 hover:bg-neutral-400'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Navigation Buttons */}
             <div className="pt-6 flex gap-4">
               {currentStep > 1 && (
@@ -750,7 +916,7 @@ export default function SellerSignUp() {
                 disabled={loading}
                 className="flex-[2] py-4 bg-green-600 text-white rounded-2xl font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-100 disabled:bg-neutral-200"
               >
-                {loading ? 'Processing...' : currentStep === 5 ? 'Register Store' : 'Save & Continue'}
+                {loading ? 'Processing...' : currentStep === 6 ? 'Register Store' : 'Save & Continue'}
               </button>
             </div>
 

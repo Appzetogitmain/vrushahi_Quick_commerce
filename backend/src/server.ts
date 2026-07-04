@@ -16,6 +16,8 @@ import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { startEarningsReleaseWorker } from "./services/earningsReleaseService";
+import cron from "node-cron";
+import { checkAndExpireSubscriptions } from "./services/subscriptionService";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -134,6 +136,11 @@ async function startServer() {
 
   // Start background earnings release scheduler
   startEarningsReleaseWorker();
+
+  // Start background subscription expiry scheduler (runs every day at midnight)
+  cron.schedule("0 0 * * *", () => {
+    checkAndExpireSubscriptions(io);
+  });
 
   httpServer.listen(PORT, () => {
     console.log("\n\x1b[32m✓\x1b[0m \x1b[1mvrushahi Server Started\x1b[0m");

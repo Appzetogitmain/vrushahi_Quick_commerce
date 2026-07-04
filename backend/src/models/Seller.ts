@@ -67,12 +67,18 @@ export interface ISeller extends Document {
   commission: number;
   commissionRate?: number; // Alias or specific rate
 
+  // Subscription Business Model Fields
+  businessModel: 'Commission' | 'Subscription';
+  subscriptionStatus: 'None' | 'Pending' | 'Active' | 'Expired';
+  selectedPlanId?: mongoose.Types.ObjectId;
+  currentSubscriptionId?: mongoose.Types.ObjectId;
+
   // Status
-  status: 'Approved' | 'Pending' | 'Rejected' | 'Deleted' | 'Blocked';
+  status: 'Approved' | 'Pending' | 'Rejected' | 'Deleted' | 'Blocked' | 'Payment Pending';
   balance: number;
   lockedBalance: number;
   lifetimeEarnings: number;
-  categories: string[];
+  categories: (string | mongoose.Types.ObjectId)[];
   logo?: string;
   isShopOpen: boolean;
   rating: number;
@@ -299,10 +305,30 @@ const SellerSchema = new Schema<ISeller>(
       min: [0, 'Commission cannot be negative'],
     },
 
+    // Subscription Business Model Fields
+    businessModel: {
+      type: String,
+      enum: ['Commission', 'Subscription'],
+      default: 'Commission'
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ['None', 'Pending', 'Active', 'Expired'],
+      default: 'None'
+    },
+    selectedPlanId: {
+      type: Schema.Types.ObjectId,
+      ref: 'SubscriptionPlan'
+    },
+    currentSubscriptionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'SellerSubscription'
+    },
+
     // Status
     status: {
       type: String,
-      enum: ['Approved', 'Pending', 'Rejected', 'Deleted', 'Blocked'],
+      enum: ['Approved', 'Pending', 'Rejected', 'Deleted', 'Blocked', 'Payment Pending'],
       default: 'Pending',
     },
     rejectionReason: {

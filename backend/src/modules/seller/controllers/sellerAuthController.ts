@@ -143,7 +143,9 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     businessLicense,
     fssaiLicNo,
     gstNumber,
-    workingHours
+    workingHours,
+    businessModel,
+    selectedPlanId
   } = req.body;
 
   // Validation
@@ -255,7 +257,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : undefined,
     workingHours,
     status: "Pending",
-    commission: 0,
+    businessModel: businessModel === 'Subscription' ? 'Subscription' : 'Commission',
+    selectedPlanId: businessModel === 'Subscription' && selectedPlanId ? selectedPlanId : undefined,
+    subscriptionStatus: businessModel === 'Subscription' ? 'Pending' : 'None',
+    commission: businessModel === 'Subscription' ? 0 : 10,
     balance: 0,
     isShopOpen: false,
     requireProductApproval: false,

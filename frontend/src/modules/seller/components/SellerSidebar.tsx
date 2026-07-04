@@ -120,6 +120,7 @@ const menuItems: MenuItem[] = [
     label: "Wallet",
     path: "/seller/wallet",
   },
+  { label: "My Plan", path: "/seller/subscription" },
   {
     label: "Reports",
     path: "/seller/reports",

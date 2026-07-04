@@ -147,6 +147,7 @@ const SellerReturnRequest = lazy(
 const SellerAccountSettings = lazy(
   () => import("./modules/seller/pages/SellerAccountSettings"),
 );
+const SellerSubscription = lazy(() => import("./modules/seller/pages/SellerSubscription"));
 const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 const SellerFAQ = lazy(() => import("./modules/seller/pages/SellerFAQ"));
@@ -273,6 +274,12 @@ const AdminManageCustomer = lazy(
 const AdminProfile = lazy(() => import("./modules/admin/pages/AdminProfile"));
 const AdminBillingSettings = lazy(
   () => import("./modules/admin/pages/AdminBillingSettings"),
+);
+const AdminSubscriptionPlans = lazy(
+  () => import("./modules/admin/pages/AdminSubscriptionPlans"),
+);
+const AdminSubscriptionRevenue = lazy(
+  () => import("./modules/admin/pages/AdminSubscriptionRevenue"),
 );
 
 import { initializePushNotifications, setupForegroundNotificationHandler, registerFCMToken } from "./services/pushNotificationService";
@@ -566,6 +573,10 @@ function AppContent() {
                                       element={<SellerAccountSettings />}
                                     />
                                     <Route
+                                      path="subscription"
+                                      element={<SellerSubscription />}
+                                    />
+                                    <Route
                                       path="customers"
                                       element={<SellerCustomers />}
                                     />
@@ -709,6 +720,14 @@ function AppContent() {
                                     <Route
                                       path="billing-settings"
                                       element={<AdminBillingSettings />}
+                                    />
+                                    <Route
+                                      path="subscription-plans"
+                                      element={<AdminSubscriptionPlans />}
+                                    />
+                                    <Route
+                                      path="subscription-revenue"
+                                      element={<AdminSubscriptionRevenue />}
                                     />
                                     <Route
                                       path="users"

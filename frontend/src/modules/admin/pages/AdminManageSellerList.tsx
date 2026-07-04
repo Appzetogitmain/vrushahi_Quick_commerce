@@ -15,8 +15,10 @@ interface Seller {
     balance: number;
     commission: number;
     categories: string[];
-    status: 'Approved' | 'Pending' | 'Rejected' | 'Blocked';
+    status: 'Approved' | 'Pending' | 'Rejected' | 'Blocked' | 'Payment Pending';
     needApproval: boolean;
+    businessModel?: 'Commission' | 'Subscription';
+    subscriptionStatus?: 'Active' | 'Expired' | 'None';
     // Additional fields from signup
     category?: string;
     address?: string;
@@ -67,6 +69,8 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         categories: seller.categories || [],
         status: seller.status,
         needApproval: seller.status === 'Pending',
+        businessModel: (seller as any).businessModel,
+        subscriptionStatus: (seller as any).subscriptionStatus,
         category: seller.category,
         address: seller.address,
         city: seller.city,
@@ -653,6 +657,9 @@ export default function AdminManageSellerList() {
                                             </div>
                                         </th>
                                         <th className="p-4">
+                                            Model
+                                        </th>
+                                        <th className="p-4">
                                             Category
                                         </th>
                                         <th
@@ -700,6 +707,24 @@ export default function AdminManageSellerList() {
                                             </td>
                                             <td className="p-4 align-middle">{seller.balance.toFixed(2)}</td>
                                             <td className="p-4 align-middle">{seller.commission.toFixed(2)}%</td>
+                                            <td className="p-4 align-middle">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex w-max items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                        seller.businessModel === 'Subscription' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                        {seller.businessModel || 'Commission'}
+                                                    </span>
+                                                    {seller.businessModel === 'Subscription' && (
+                                                        <span className={`inline-flex w-max items-center px-2 py-0.5 rounded text-[10px] font-medium ${
+                                                            seller.subscriptionStatus === 'Active' ? 'bg-green-100 text-green-700' :
+                                                            seller.subscriptionStatus === 'Expired' ? 'bg-red-100 text-red-700' :
+                                                            'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                            {seller.subscriptionStatus || 'None'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="p-4 align-middle">
                                                 <button
                                                     onClick={() => handleViewCategories(seller)}
@@ -1046,6 +1071,20 @@ export default function AdminManageSellerList() {
                                                 </button>
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-neutral-200">
+                                        <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <dt className="text-sm font-medium text-neutral-500">Business Model</dt>
+                                                <dd className="mt-1 text-sm text-neutral-900">{editingSeller.businessModel || 'Commission'}</dd>
+                                            </div>
+                                            {editingSeller.businessModel === 'Subscription' && (
+                                                <div>
+                                                    <dt className="text-sm font-medium text-neutral-500">Subscription Status</dt>
+                                                    <dd className="mt-1 text-sm text-neutral-900">{editingSeller.subscriptionStatus || 'None'}</dd>
+                                                </div>
+                                            )}
+                                        </dl>
                                     </div>
                                 </div>
 

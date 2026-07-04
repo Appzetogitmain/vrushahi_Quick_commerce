@@ -66,7 +66,14 @@ export const getNotifications = asyncHandler(
     const query: any = {};
 
     if (recipientType) query.recipientType = recipientType;
-    if (recipientId) query.recipientId = recipientId;
+    
+    if (recipientId) {
+      query.recipientId = recipientId;
+    } else if (req.user && req.user.userType === "Admin" && (!recipientType || recipientType === "Admin")) {
+      // Only fetch notifications addressed to this specific admin to avoid seeing duplicates
+      query.recipientId = req.user.userId;
+    }
+
     if (isRead !== undefined) query.isRead = isRead === "true";
     if (type) query.type = type;
     if (priority) query.priority = priority;

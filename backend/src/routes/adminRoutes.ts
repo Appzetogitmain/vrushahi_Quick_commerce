@@ -48,6 +48,9 @@ import * as sellerController from "../modules/admin/controllers/adminSellerContr
 // Profile Controllers
 import * as profileController from "../modules/admin/controllers/adminProfileController";
 
+// Subscription Controllers
+import * as subscriptionController from "../modules/admin/controllers/adminSubscriptionController";
+
 // System User Controllers
 import * as systemUserController from "../modules/admin/controllers/adminSystemUserController";
 
@@ -386,5 +389,17 @@ router.get("/banners", bannerController.getAllBanners);
 router.post("/banners", bannerController.createBanner);
 router.put("/banners/:id", bannerController.updateBanner);
 router.delete("/banners/:id", bannerController.deleteBanner);
+
+// ==================== Subscription Routes ====================
+// Subscription Plans
+router.get("/subscription-plans", authenticate, requireUserType("Admin"), subscriptionController.getSubscriptionPlans);
+router.post("/subscription-plans", authenticate, requireUserType("Admin"), subscriptionController.createSubscriptionPlan);
+router.put("/subscription-plans/:id", authenticate, requireUserType("Admin"), subscriptionController.updateSubscriptionPlan);
+router.patch("/subscription-plans/:id/toggle", authenticate, requireUserType("Admin"), subscriptionController.toggleSubscriptionPlanStatus);
+router.delete("/subscription-plans/:id", authenticate, requireUserType("Admin"), subscriptionController.deleteSubscriptionPlan);
+
+// Seller Subscriptions
+router.get("/subscriptions", authenticate, requireUserType("Admin"), subscriptionController.getAllSellerSubscriptions);
+router.get("/subscriptions/stats", authenticate, requireUserType("Admin"), subscriptionController.getAdminSubscriptionStats);
 
 export default router;

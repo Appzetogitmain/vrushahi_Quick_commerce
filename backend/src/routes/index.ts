@@ -23,6 +23,7 @@ import deliveryWalletRoutes from "./deliveryWalletRoutes";
 import sellerWalletRoutes from "./sellerWalletRoutes";
 import sellerFAQRoutes from "./sellerFAQRoutes";
 import sellerCustomerRoutes from "./sellerCustomerRoutes";
+import sellerSubscriptionRoutes from "./sellerSubscriptionRoutes";
 import sellerNotificationRoutes from "./sellerNotificationRoutes";
 import taxRoutes from "./taxRoutes";
 import customerProductRoutes from "./customerProductRoutes";
@@ -131,6 +132,9 @@ router.use("/customer", customerRoutes);
 // Payment routes
 router.use("/payment", paymentRoutes);
 
+// Seller subscription routes (MUST BE ABOVE OTHER /seller ROUTES)
+router.use("/seller/subscription", sellerSubscriptionRoutes);
+
 // Seller dashboard routes
 router.use("/seller/dashboard", dashboardRoutes);
 console.log("Is sellerCustomerRoutes defined?", !!sellerCustomerRoutes);
@@ -139,6 +143,8 @@ router.use("/seller", sellerNotificationRoutes);
 
 // Seller management routes (protected, admin only)
 router.use("/sellers", sellerRoutes);
+
+// (Moved up)
 
 // Public banner routes (no authentication required)
 router.use("/banners", customerBannerRoutes);
