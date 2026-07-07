@@ -173,10 +173,9 @@ export const switchToCommissionModel = async (sellerId: string) => {
 export const checkAndExpireSubscriptions = async (io?: Server) => {
   console.log('[Cron] Checking for expired subscriptions...');
   const now = new Date();
-  const session = await mongoose.startSession();
-  
+
   try {
-    // Find active subscriptions that have expired
+    // ── Step 1: Find all active subscriptions that have already expired ──
     const expiredSubscriptions = await SellerSubscription.find({
       status: 'Active',
       expiryDate: { $lte: now }
@@ -184,44 +183,70 @@ export const checkAndExpireSubscriptions = async (io?: Server) => {
 
     if (expiredSubscriptions.length === 0) {
       console.log('[Cron] No expired subscriptions found.');
-      return;
-    }
+    } else {
+      console.log(`[Cron] Found ${expiredSubscriptions.length} expired subscriptions. Processing...`);
 
-    console.log(`[Cron] Found ${expiredSubscriptions.length} expired subscriptions. Processing...`);
+      for (const sub of expiredSubscriptions) {
+        // ✅ FIX: Create a FRESH session per subscription.
+        // Previously one session was reused across the loop — after the first
+        // commit/abort the session was exhausted and all subsequent sellers silently failed.
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-    for (const sub of expiredSubscriptions) {
-      session.startTransaction();
-      try {
-        // Mark subscription as expired
-        sub.status = 'Expired';
-        await sub.save({ session });
+        try {
+          // Mark subscription record as Expired
+          sub.status = 'Expired';
+          await sub.save({ session });
 
-        // Update seller
-        const seller = await Seller.findById(sub.seller).session(session);
-        if (seller) {
-          // As requested: Instant fallback to existing commission rate ("jo v existing commsion ka chal raha wahii apply hoga")
-          seller.businessModel = 'Commission';
-          seller.subscriptionStatus = 'Expired';
-          await seller.save({ session });
-          
-          if (io) {
-            // Notify seller real-time if online
-            io.to(`seller-${seller._id.toString()}`).emit('subscription_expired', {
-              message: 'Your subscription has expired. You are now switched to the Commission model.'
-            });
+          // Update seller: fall back to Commission model
+          const seller = await Seller.findById(sub.seller).session(session);
+          if (seller) {
+            seller.businessModel = 'Commission';
+            seller.subscriptionStatus = 'Expired';
+            await seller.save({ session });
+
+            // Real-time push notification to seller if online
+            if (io) {
+              io.to(`seller-${seller._id.toString()}`).emit('subscription_expired', {
+                message: 'Your subscription has expired. You have been switched to the Commission model.'
+              });
+            }
           }
+
+          await session.commitTransaction();
+          console.log(`[Cron] ✅ Expired subscription ${sub._id} for seller ${sub.seller}`);
+        } catch (err) {
+          if (session.inTransaction()) {
+            await session.abortTransaction();
+          }
+          console.error(`[Cron] ❌ Failed to expire subscription ${sub._id}:`, err);
+        } finally {
+          session.endSession();
         }
-        await session.commitTransaction();
-        console.log(`[Cron] Expired subscription ${sub._id} for seller ${sub.seller}`);
-      } catch (err) {
-        await session.abortTransaction();
-        console.error(`[Cron] Failed to expire subscription ${sub._id}:`, err);
       }
     }
+
+    // ── Step 2: Send advance warning — 7 days before expiry ──
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const warning7 = await SellerSubscription.find({
+      status: 'Active',
+      expiryDate: { $gt: now, $lte: in7Days }
+    }).populate<{ seller: { _id: mongoose.Types.ObjectId; sellerName: string } }>('seller', 'sellerName');
+
+    for (const sub of warning7) {
+      if (io && sub.seller) {
+        const daysLeft = Math.ceil((sub.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        io.to(`seller-${sub.seller._id.toString()}`).emit('subscription_expiry_warning', {
+          message: `Your subscription expires in ${daysLeft} day(s). Renew now to keep enjoying 0% commission.`,
+          expiryDate: sub.expiryDate,
+          daysLeft
+        });
+        console.log(`[Cron] ⚠️ Sent ${daysLeft}-day expiry warning to seller ${sub.seller._id}`);
+      }
+    }
+
   } catch (error) {
     console.error('[Cron] Error running subscription expiry check:', error);
-  } finally {
-    session.endSession();
   }
 };
 
