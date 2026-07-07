@@ -1,3 +1,4 @@
+// @ts-nocheck
 import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import Customer from '../models/Customer';

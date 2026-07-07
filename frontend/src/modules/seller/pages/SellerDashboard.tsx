@@ -407,8 +407,8 @@ export default function SellerDashboard() {
           {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" onClick={() => navigate('/seller/customers')} />
-        <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" onClick={() => navigate('/seller/category')} />
-        <DashboardCard icon={subcategoryIcon} title="Total Subcategory" value={stats.totalSubcategory} accentColor="#ec4899" onClick={() => navigate('/seller/subcategory')} />
+        <DashboardCard icon={categoryIcon} title="Used Category" value={stats.totalCategory} accentColor="#eab308" onClick={() => navigate('/seller/category')} />
+        <DashboardCard icon={subcategoryIcon} title="Used Subcategory" value={stats.totalSubcategory} accentColor="#ec4899" onClick={() => navigate('/seller/subcategory')} />
         <DashboardCard icon={productIcon} title="Total Product" value={stats.totalProduct} accentColor="#f97316" onClick={() => navigate('/seller/product/list')} />
         <DashboardCard icon={ordersIcon} title="Total Orders" value={stats.totalOrders} accentColor="#3b82f6" onClick={() => navigate('/seller/orders')} />
         <DashboardCard icon={completedOrdersIcon} title="Completed Orders" value={stats.completedOrders} accentColor="#16a34a" onClick={() => navigate('/seller/orders', { state: { status: 'Delivered' } })} />

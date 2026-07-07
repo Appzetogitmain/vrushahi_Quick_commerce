@@ -422,6 +422,15 @@ export default function ProductCard({
           {product.name || product.productName || ''}
         </h3>
 
+        {/* Selected / Default Variant Display */}
+        <p className="text-[12px] text-gray-500 font-medium mb-1 h-[18px]">
+          {inCartQty > 0
+            ? (cartItem?.product as any)?.variantTitle || (cartItem?.product as any)?.netQuantity || (cartItem?.product as any)?.pack || ""
+            : product.variations && product.variations.length > 0
+              ? product.variations[0].title || product.variations[0].value || (product.variations[0].name === 'Variation' ? '' : product.variations[0].name) || (product as any).netQuantity || ""
+              : (product as any).netQuantity || product.pack || ""}
+        </p>
+
         {/* Pricing */}
         <div className="flex items-center gap-1 mb-1 flex-wrap">
           <span className="text-[11px] md:text-[12px] font-black text-gray-900">

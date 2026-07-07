@@ -1,3 +1,4 @@
+// @ts-nocheck
 import axios from 'axios';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

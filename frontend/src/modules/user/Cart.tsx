@@ -164,11 +164,7 @@ export default function Cart() {
                           </button>
                         </div>
                         <p className="text-xs md:text-sm font-medium text-neutral-400 uppercase tracking-wide mb-3">
-                          {item.variant ? (
-                            typeof item.variant === 'object' ? 
-                              ((item.variant as any).title || (item.variant as any).name || (item.variant as any).value) : 
-                              item.variant
-                          ) : item.product.pack}
+                          {(item.product as any).variantTitle || (item.product as any).pack}
                         </p>
                       </div>
 

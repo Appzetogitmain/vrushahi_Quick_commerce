@@ -125,6 +125,6 @@ OrderItemSchema.index({ order: 1 });
 OrderItemSchema.index({ product: 1 });
 OrderItemSchema.index({ seller: 1 });
 
-const OrderItem = mongoose.models.OrderItem || mongoose.model<IOrderItem>("OrderItem", OrderItemSchema);
+const OrderItem = (mongoose.models.OrderItem as mongoose.Model<IOrderItem>) || mongoose.model<IOrderItem>("OrderItem", OrderItemSchema);
 
 export default OrderItem;

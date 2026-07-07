@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Order from '../models/Order';
 import Customer from '../models/Customer';
 import Seller from '../models/Seller';

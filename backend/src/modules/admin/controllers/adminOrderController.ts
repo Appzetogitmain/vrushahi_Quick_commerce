@@ -107,7 +107,7 @@ export const getOrderById = asyncHandler(
         populate: [
           {
             path: "product",
-            select: "productName mainImage",
+            select: "productName mainImage variations pack weight size",
           },
           {
             path: "seller",

@@ -115,8 +115,8 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // 6. Set product status - All products are published automatically without approval
-    newProductData.publish = true;
+    // 6. Set product status
+    newProductData.publish = productData.publish !== undefined ? productData.publish : true;
     newProductData.status = "Active";
     newProductData.requiresApproval = false;
 

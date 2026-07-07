@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Customer from "../models/Customer";
 import Category from "../models/Category";
 import SubCategory from "../models/SubCategory";

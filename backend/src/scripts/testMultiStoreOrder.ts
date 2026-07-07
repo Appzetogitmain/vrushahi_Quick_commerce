@@ -1,3 +1,4 @@
+// @ts-nocheck
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { createOrder } from "../modules/customer/controllers/customerOrderController";

@@ -760,7 +760,7 @@ export default function CategoryFormModal({
               disabled={submitting}
             />
             <p className="mt-1 text-xs text-neutral-500">
-              Override default commission rate. <strong>Leave empty</strong> to inherit from parent/global. Set to <strong>0</strong> for no commission.
+              Note: Setting to <strong>0</strong> will apply a 0% commission. Leaving it empty (null) will apply the default global commission.
             </p>
             {errors.commissionRate && (
               <p className="mt-1 text-sm text-red-600">

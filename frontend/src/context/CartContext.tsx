@@ -83,15 +83,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
         let resolvedVariant: any = null;
         let resolvedVariantTitle = '';
         if (item.variation && item.product.variations?.length > 0) {
+          const varStr = String(item.variation).toLowerCase();
           resolvedVariant = item.product.variations.find((v: any) =>
-            v._id?.toString() === item.variation ||
-            v.title === item.variation ||
-            v.value === item.variation ||
-            v.name === item.variation
+            v._id?.toString().toLowerCase() === varStr ||
+            v.title?.toLowerCase() === varStr ||
+            v.value?.toLowerCase() === varStr ||
+            v.name?.toLowerCase() === varStr
           );
           if (resolvedVariant) {
-            resolvedVariantTitle = resolvedVariant.title || resolvedVariant.value || resolvedVariant.name || '';
+            const vName = resolvedVariant.name === 'Variation' ? '' : resolvedVariant.name;
+            resolvedVariantTitle = resolvedVariant.title || resolvedVariant.value || vName || '';
           }
+        }
+
+        const isHexId = /^[0-9a-fA-F]{24}$/.test(String(item.variation));
+        let finalVariantTitle = resolvedVariantTitle;
+        if (!finalVariantTitle) {
+          finalVariantTitle = isHexId ? (item.product.netQuantity || item.product.pack || '') : item.variation;
         }
 
         return {
@@ -104,11 +112,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             discPrice: resolvedVariant?.discPrice || item.product.discPrice,
             variations: item.product.variations,
             imageUrl: resolvedVariant?.image || item.product.mainImage || item.product.imageUrl || item.product.variations?.find((v: any) => !!v.image)?.image,
-            pack: resolvedVariantTitle || item.product.pack || '1 unit',
+            pack: finalVariantTitle || item.product.pack || '1 unit',
             categoryId: item.product.category || '',
             description: item.product.description,
             variantId: item.variation, // Preserving variation ID/value
-            variantTitle: resolvedVariantTitle || item.variation, // Resolved title for display
+            variantTitle: finalVariantTitle, // Resolved title for display
             selectedVariant: resolvedVariant, // Full variant object
             tax: item.product.tax, // Map tax object from API
             maxOrderLimit: item.product.maxOrderLimit // Preserve maxOrderLimit

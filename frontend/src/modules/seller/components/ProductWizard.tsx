@@ -27,7 +27,7 @@ interface ProductWizardProps {
   formData: any;
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent, forcePublishValue?: string) => void;
   categories: any[];
   subcategories: any[];
   subSubCategories: any[];
@@ -290,25 +290,6 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                 </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-neutral-700 mb-2">Publish Status</label>
-                <div className="flex bg-neutral-100 p-1 rounded-xl w-full md:w-1/2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData((p: any) => ({ ...p, publish: "Yes" }))}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.publish === "Yes" ? "bg-white text-teal-700 shadow-sm" : "text-neutral-500"}`}
-                  >
-                    Publish
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData((p: any) => ({ ...p, publish: "No" }))}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${formData.publish === "No" ? "bg-white text-rose-700 shadow-sm" : "text-neutral-500"}`}
-                  >
-                    Draft
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         );
@@ -925,22 +906,30 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
         </section>
 
         <div className="sticky bottom-0 bg-white border-t border-neutral-200 p-4 shadow-2xl flex justify-center z-40 -mx-3 sm:-mx-4 md:-mx-6 -mb-3 sm:-mb-4 md:-mb-6 mt-8">
-            <div className="max-w-4xl w-full flex space-x-4">
+            <div className="max-w-4xl w-full flex flex-col sm:flex-row gap-3 sm:gap-4 sm:space-x-0">
                <button
                  type="button"
                  onClick={() => setMode("wizard")}
-                 className="flex-1 py-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-2xl font-bold transition-all"
+                 className="w-full sm:flex-1 py-2 sm:py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl font-bold transition-all text-sm"
                >
                  Switch to Wizard
                </button>
                <button
                  type="submit"
                  disabled={uploading}
-                 onClick={onSubmit}
-                 className="flex-[2] py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold transition-all shadow-xl shadow-teal-100 flex items-center justify-center space-x-2"
+                 onClick={(e) => onSubmit(e, "No")}
+                 className="w-full sm:flex-1 py-2 sm:py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 rounded-xl font-bold transition-all text-sm flex items-center justify-center"
                >
-                 {uploading ? <RefreshCw className="animate-spin" /> : <Zap size={20} fill="currentColor" />}
-                 <span>{isEdit ? "Update Product" : "Publish Product Now"}</span>
+                 Save as Draft
+               </button>
+               <button
+                 type="submit"
+                 disabled={uploading}
+                 onClick={(e) => onSubmit(e, "Yes")}
+                 className="w-full sm:flex-1 py-2 sm:py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-md shadow-teal-100 flex items-center justify-center space-x-2 text-sm"
+               >
+                 {uploading ? <RefreshCw className="animate-spin" /> : <Zap size={18} fill="currentColor" />}
+                 <span>{isEdit ? "Update & Publish" : "Publish Now"}</span>
                </button>
             </div>
         </div>
@@ -1004,38 +993,45 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
             {renderStepContent(currentStep)}
           </div>
 
-          <div className="p-8 bg-neutral-50 flex justify-between border-t border-neutral-100">
+          <div className="p-4 sm:p-8 bg-neutral-50 flex justify-between items-center border-t border-neutral-100 gap-2 sm:gap-0">
              <button
                type="button"
                onClick={prevStep}
                disabled={currentStep === 1}
-               className={`flex items-center space-x-2 py-3 px-6 rounded-xl font-bold transition-all ${currentStep === 1 ? 'text-neutral-300 pointer-events-none' : 'text-neutral-600 hover:bg-neutral-200'}`}
+               className={`flex items-center space-x-1 sm:space-x-2 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold transition-all ${currentStep === 1 ? 'text-neutral-300 pointer-events-none' : 'text-neutral-600 hover:bg-neutral-200'}`}
              >
                <ChevronLeft size={20} />
-               <span>Back</span>
+               <span className="hidden min-[380px]:inline">Back</span>
              </button>
              
-             <div className="flex space-x-3 sm:space-x-4">
+             <div className="flex space-x-2 sm:space-x-4 flex-shrink-0">
                {currentStep < totalSteps && (
                  <button
                    type="button"
                    onClick={nextStep}
-                   className="flex items-center space-x-2 py-3 px-6 sm:px-8 bg-neutral-800 hover:bg-neutral-900 text-white rounded-xl font-bold transition-all shadow-lg"
+                   title="Next Step"
+                   className="flex items-center justify-center py-2 sm:py-3 px-4 sm:px-6 bg-neutral-800 hover:bg-neutral-900 text-white rounded-xl font-bold transition-all shadow-lg"
                  >
-                   <span className="hidden sm:inline">Save & Continue</span>
-                   <span className="sm:hidden">Next</span>
                    <ChevronRight size={20} />
                  </button>
                )}
                <button
                  type="submit"
                  disabled={uploading}
-                 onClick={onSubmit}
-                 className="flex items-center space-x-2 py-3 px-6 sm:px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-teal-100 group"
+                 onClick={(e) => onSubmit(e, "No")}
+                 className="flex items-center justify-center py-2 sm:py-3 px-3 sm:px-6 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 rounded-xl font-bold transition-all shadow-lg text-sm whitespace-nowrap"
                >
-                 {uploading ? <RefreshCw className="animate-spin" /> : <Zap size={20} className="group-hover:scale-110 transition-transform" fill="currentColor" />}
-                 <span className="hidden sm:inline">{isEdit ? "Update Listing" : "Publish Product"}</span>
-                 <span className="sm:hidden">{isEdit ? "Update" : "Publish"}</span>
+                 Draft
+               </button>
+               <button
+                 type="submit"
+                 disabled={uploading}
+                 onClick={(e) => onSubmit(e, "Yes")}
+                 className="flex items-center justify-center space-x-1 sm:space-x-2 py-2 sm:py-3 px-4 sm:px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-teal-100 group text-sm whitespace-nowrap"
+               >
+                 {uploading ? <RefreshCw className="animate-spin w-4 h-4 sm:w-5 sm:h-5" /> : <Zap className="group-hover:scale-110 transition-transform w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" />}
+                 <span className="hidden sm:inline">{isEdit ? "Update & Publish" : "Publish"}</span>
+                 <span className="sm:hidden">{isEdit ? "Publish" : "Publish"}</span>
                </button>
              </div>
           </div>

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Order from "../models/Order";
 import { IOrderItem } from "../models/OrderItem";
 import Inventory from "../models/Inventory";

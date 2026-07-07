@@ -25,7 +25,7 @@ export default function AdminSubCategory() {
   const [subcategoryImagePreview, setSubcategoryImagePreview] =
     useState<string>("");
   const [subcategoryImageUrl, setSubcategoryImageUrl] = useState<string>("");
-  const [commissionRate, setCommissionRate] = useState<number>(0);
+  const [commissionRate, setCommissionRate] = useState<number | "">("");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -165,7 +165,7 @@ export default function AdminSubCategory() {
         name: subcategoryName.trim(),
         parentId: selectedCategory,
         image: imageUrl,
-        commissionRate: commissionRate,
+        commissionRate: commissionRate === "" ? null : commissionRate,
         status: "Active" as const,
       };
 
@@ -194,7 +194,7 @@ export default function AdminSubCategory() {
       setSubcategoryImageFile(null);
       setSubcategoryImagePreview("");
       setSubcategoryImageUrl("");
-      setCommissionRate(0);
+      setCommissionRate("");
     } catch (error) {
       if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as {
@@ -223,7 +223,7 @@ export default function AdminSubCategory() {
       setSelectedCategory(parentId || "");
       setSubcategoryName(subCategory.name);
       setSubcategoryImageUrl(subCategory.image || "");
-      setCommissionRate(subCategory.commissionRate || 0);
+      setCommissionRate(subCategory.commissionRate !== undefined && subCategory.commissionRate !== null ? subCategory.commissionRate : "");
     }
   };
 
@@ -361,8 +361,8 @@ export default function AdminSubCategory() {
               <input
                 type="number"
                 value={commissionRate}
-                onChange={(e) => setCommissionRate(Number(e.target.value))}
-                placeholder="0"
+                onChange={(e) => setCommissionRate(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="Inherit from Parent/Global"
                 min="0"
                 max="100"
                 step="0.01"
@@ -370,8 +370,7 @@ export default function AdminSubCategory() {
                 disabled={uploading}
               />
               <p className="mt-1 text-xs text-neutral-500">
-                Default commission rate for products in this subcategory (0 =
-                use seller default)
+                Note: Setting to <strong>0</strong> will apply a 0% commission. Leaving it empty (null) will apply the default global commission.
               </p>
             </div>
 
@@ -453,7 +452,7 @@ export default function AdminSubCategory() {
                   setSubcategoryImageFile(null);
                   setSubcategoryImagePreview("");
                   setSubcategoryImageUrl("");
-                  setCommissionRate(0);
+                  setCommissionRate("");
                 }}
                 className="w-full py-2.5 rounded text-sm font-medium bg-neutral-200 hover:bg-neutral-300 text-neutral-700 transition-colors mt-2">
                 Cancel Edit

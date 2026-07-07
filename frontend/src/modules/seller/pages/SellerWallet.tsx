@@ -87,10 +87,15 @@ export default function SellerWallet() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="px-4 py-3">
-          <h1 className="text-xl font-bold text-gray-900">Wallet</h1>
+      {/* Page Header */}
+      <div className="flex justify-between items-center mb-6 px-4 pt-4">
+        <h1 className="text-2xl font-semibold text-neutral-800">
+          Wallet
+        </h1>
+        <div className="text-sm text-blue-500">
+          <span className="cursor-pointer hover:underline">Home</span>{" "}
+          <span className="text-neutral-400">/</span>{" "}
+          <span className="text-neutral-600">Wallet</span>
         </div>
       </div>
 

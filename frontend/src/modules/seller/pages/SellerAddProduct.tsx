@@ -364,7 +364,7 @@ export default function SellerAddProduct() {
     setVariations(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, forcePublishValue?: string) => {
     e.preventDefault();
     if (!formData.productName.trim()) {
       showToast("Product name is required", "error");
@@ -432,10 +432,12 @@ export default function SellerAddProduct() {
         })
       );
 
+      const isPublish = forcePublishValue ? forcePublishValue === "Yes" : formData.publish === "Yes";
+
       const productData = {
         productName: formData.productName,
         tags: formData.tags.split(",").map(t => t.trim()).filter(Boolean),
-        publish: formData.publish === "Yes",
+        publish: isPublish,
         popular: formData.popular === "Yes",
         dealOfDay: formData.dealOfDay === "Yes",
         price: updatedVariations[0].price,

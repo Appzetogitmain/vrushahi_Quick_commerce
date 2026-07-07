@@ -68,16 +68,31 @@ export const getOrderItemCommissionRate = async (
             }
         }
 
-        // 4. Check Seller specific rate
+        // 4. Check Seller — first check businessModel (Subscription = 0% commission)
         const finalSellerId = sellerId || product.seller.toString();
         const seller = await Seller.findById(finalSellerId);
-        if (seller && seller.commission !== undefined && seller.commission !== null) {
-            return {
-                rate: seller.commission,
-                sourceType: "SELLER",
-                sourceId: seller._id.toString(),
-                sourceLabel: `Seller Override: ${seller.storeName || seller.sellerName}`
-            };
+        if (seller) {
+            // ✅ Subscription model: ZERO commission on every order as long as subscription is active
+            if (seller.businessModel === 'Subscription' && seller.subscriptionStatus === 'Active') {
+                return {
+                    rate: 0,
+                    sourceType: "SUBSCRIPTION",
+                    sourceId: seller._id.toString(),
+                    sourceLabel: `Subscription Plan — 0% Commission (Active)`
+                };
+            }
+
+            // Commission model — use seller-specific override ONLY if it is explicitly set AND > 0
+            // A value of 0 on a Commission-based seller is treated as "not set" and falls through
+            // to the Global Default. Only Subscription sellers should ever have 0% commission.
+            if (seller.businessModel === 'Commission' && seller.commission !== undefined && seller.commission !== null && seller.commission > 0) {
+                return {
+                    rate: seller.commission,
+                    sourceType: "SELLER",
+                    sourceId: seller._id.toString(),
+                    sourceLabel: `Seller Override: ${seller.storeName || seller.sellerName}`
+                };
+            }
         }
 
         // 5. Global Default
@@ -194,7 +209,7 @@ export const calculateDeliveryBoyEarning = async (
  */
 export const calculateOrderCommissions = async (orderId: string) => {
     try {
-        const order = await Order.findById(orderId).populate("items");
+        const order = await (Order as any).findById(orderId).populate("items");
         if (!order) {
             throw new Error("Order not found");
         }
@@ -221,7 +236,7 @@ export const calculateOrderCommissions = async (orderId: string) => {
         >();
 
         for (const itemId of order.items) {
-            const orderItem = await OrderItem.findById(itemId);
+            const orderItem = await (OrderItem as any).findById(itemId);
             if (!orderItem) continue;
 
             const sellerId = orderItem.seller.toString();
@@ -286,7 +301,7 @@ export const calculateOrderCommissions = async (orderId: string) => {
  */
 export const createPendingCommissions = async (orderId: string) => {
     try {
-        const order = await Order.findById(orderId).populate("items");
+        const order = await (Order as any).findById(orderId).populate("items");
         if (!order) throw new Error("Order not found");
 
         // Check if commissions already exist
@@ -299,25 +314,29 @@ export const createPendingCommissions = async (orderId: string) => {
         const items = order.items;
 
         for (const itemId of items) {
-            const item = await OrderItem.findById(itemId);
+            const item = await (OrderItem as any).findById(itemId);
             if (!item) continue;
 
             const seller = await Seller.findById(item.seller);
             if (!seller) continue;
 
+            // ✅ Subscription check: if seller has active subscription, 0% commission
+            const isSubscriptionSeller = seller.businessModel === 'Subscription' && seller.subscriptionStatus === 'Active';
+
             const commissionInfo = await getOrderItemCommissionRate(
                 item.product.toString(),
                 item.seller.toString()
             );
-            const commissionRate = commissionInfo.rate;
+            const commissionRate = commissionInfo.rate; // Will be 0 for subscription sellers
             const commissionAmount = (item.total * commissionRate) / 100;
-            const netEarning = item.total - commissionAmount;
+            const netEarning = item.total - commissionAmount; // Full amount for subscription sellers
 
             console.log(
-                `[Commission] Item: ${item.product}, Rate: ${commissionRate}%, Amount: ${commissionAmount}, Net: ${netEarning}`,
+                `[Commission] Item: ${item.product}, Seller Model: ${seller.businessModel}, Rate: ${commissionRate}%, Amount: ${commissionAmount}, Net: ${netEarning}`,
             );
 
-            // Create commission record as PAID immediately for online orders, PENDING for COD
+            // For subscription sellers — only create a record if commission rate > 0
+            // If 0%, we still record it for audit but with 0 commission
             const isCOD = order.paymentMethod === "COD";
 
             const commission = await Commission.create({
@@ -339,11 +358,15 @@ export const createPendingCommissions = async (orderId: string) => {
 
             // Credit Wallet Immediately only for non-COD
             if (!isCOD && seller) {
+                const walletLabel = isSubscriptionSeller
+                    ? `Sale proceeds from Order #${order.orderNumber} (Subscription — 0% Commission)`
+                    : `Sale proceeds from Order #${order.orderNumber}`;
+
                 await creditWallet(
                     seller._id.toString(),
                     "SELLER",
                     netEarning,
-                    `Sale proceeds from Order #${order.orderNumber}`,
+                    walletLabel,
                     item.order.toString(),
                     commission._id.toString(),
                     undefined,
@@ -372,7 +395,7 @@ export const distributeCommissions = async (orderId: string) => {
     session.startTransaction();
 
     try {
-        const order = await Order.findById(orderId).session(session);
+        const order = await (Order as any).findById(orderId).session(session);
         if (!order) {
             throw new Error("Order not found");
         }
@@ -837,7 +860,7 @@ export const calculateOrderBreakdown = async (
     session?: mongoose.ClientSession
 ): Promise<ICODOrderBreakdown> => {
     try {
-        const order = await Order.findById(orderId).populate("items").session(session || null);
+        const order = await (Order as any).findById(orderId).populate("items").session(session || null);
         if (!order) {
             throw new Error("Order not found");
         }
@@ -863,17 +886,22 @@ export const calculateOrderBreakdown = async (
 
         // 1. Calculate Product Commissions (Admin vs Seller)
         for (const itemId of order.items) {
-            const item = await OrderItem.findById(itemId).session(session || null);
+            const item = await (OrderItem as any).findById(itemId).session(session || null);
             if (!item) continue;
 
-            const product = await Product.findById(item.product).session(session || null);
+            const product = await (Product as any).findById(item.product).session(session || null);
             if (!product) continue;
+
+            // ✅ Subscription check: seller on active subscription pays 0% commission
+            const sellerDoc = await (Seller as any).findById(item.seller).session(session || null);
+            const isSubscriptionSeller = sellerDoc?.businessModel === 'Subscription' && sellerDoc?.subscriptionStatus === 'Active';
 
             const commissionInfo = await getOrderItemCommissionRate(
                 item.product.toString(),
                 item.seller.toString()
             );
-            const commissionRate = item.commissionRate || commissionInfo.rate;
+            // For subscription sellers, always use 0 regardless of item.commissionRate
+            const commissionRate = isSubscriptionSeller ? 0 : (item.commissionRate || commissionInfo.rate);
 
             // Calculate commission and seller earning for this item
             const itemCommission = (item.total * commissionRate) / 100;
@@ -936,7 +964,7 @@ export const calculateOrderBreakdown = async (
  */
 export const processCODOrderDelivery = async (orderId: string): Promise<void> => {
     try {
-        const order = await Order.findById(orderId);
+        const order = await (Order as any).findById(orderId);
         if (!order) {
             throw new Error("Order not found");
         }
@@ -1049,12 +1077,21 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
         // 5. Create SELLER Commission Records
         const sellerEarningsArray = Array.from(breakdown.sellerEarnings.entries());
         for (const [sellerId] of sellerEarningsArray) {
-            const orderItems = await OrderItem.find({ order: orderId, seller: sellerId });
+            // ✅ Subscription check: fetch seller to see if they are on subscription model
+            const sellerDoc = await Seller.findById(sellerId);
+            const isSubscriptionSeller = sellerDoc?.businessModel === 'Subscription' && sellerDoc?.subscriptionStatus === 'Active';
+
+            const orderItems = await (OrderItem as any).find({ order: orderId, seller: sellerId });
             for (const item of orderItems) {
                 const commissionInfo = await getOrderItemCommissionRate(item.product.toString(), item.seller.toString());
-                const commRate = item.commissionRate || commissionInfo.rate;
+                // For subscription sellers, commissionInfo.rate will be 0 (enforced in getOrderItemCommissionRate)
+                const commRate = isSubscriptionSeller ? 0 : (item.commissionRate || commissionInfo.rate);
                 const itemCommission = (item.total * commRate) / 100;
-                const netEarning = item.total - itemCommission;
+                const netEarning = item.total - itemCommission; // Full amount for subscription sellers
+
+                console.log(
+                    `[COD Commission] Seller ${sellerId} Model: ${sellerDoc?.businessModel}, Rate: ${commRate}%, Commission: ₹${itemCommission}, Net: ₹${netEarning}`
+                );
 
                 const commission = await Commission.create({
                     order: orderId,
@@ -1070,16 +1107,20 @@ export const processCODOrderDelivery = async (orderId: string): Promise<void> =>
                     paymentType: "COD",
                     commissionSourceType: commissionInfo.sourceType,
                     commissionSourceId: commissionInfo.sourceId ? new mongoose.Types.ObjectId(commissionInfo.sourceId) : undefined,
-                    commissionSourceLabel: commissionInfo.sourceLabel,
+                    commissionSourceLabel: isSubscriptionSeller ? `Subscription Plan — 0% Commission (Active)` : commissionInfo.sourceLabel,
                 });
 
                 // For Online QR, credit seller wallet immediately
                 if (isOnlineQR) {
+                    const walletLabel = isSubscriptionSeller
+                        ? `Sale proceeds from COD Order ${order.orderNumber} (Subscription — 0% Commission, Paid via QR)`
+                        : `Sale proceeds from COD Order ${order.orderNumber} (Paid via QR)`;
+
                     await creditWallet(
                         sellerId.toString(),
                         "SELLER",
                         netEarning,
-                        `Sale proceeds from COD Order ${order.orderNumber} (Paid via QR)`,
+                        walletLabel,
                         orderId,
                         commission._id.toString(),
                         undefined,
@@ -1115,7 +1156,7 @@ export const activateReturnWindow = async (
 ): Promise<void> => {
     try {
         console.log(`[activateReturnWindow] Activating return window locks for Order ${orderId} delivered at ${deliveredAt}`);
-        const order = await Order.findById(orderId).session(session || null);
+        const order = await (Order as any).findById(orderId).session(session || null);
         if (!order) {
             console.error(`[activateReturnWindow] Order ${orderId} not found`);
             return;
@@ -1128,9 +1169,9 @@ export const activateReturnWindow = async (
             let maxReturnDays = 7; // standard default fallback
 
             if (comm.orderItem) {
-                const item = await OrderItem.findById(comm.orderItem).session(session || null);
+                const item = await (OrderItem as any).findById(comm.orderItem).session(session || null);
                 if (item && item.product) {
-                    const product = await Product.findById(item.product).session(session || null);
+                    const product = await (Product as any).findById(item.product).session(session || null);
                     if (product && typeof product.maxReturnDays === 'number') {
                         maxReturnDays = product.maxReturnDays;
                         console.log(`[activateReturnWindow] Item ${item._id} uses custom product maxReturnDays of ${maxReturnDays}`);

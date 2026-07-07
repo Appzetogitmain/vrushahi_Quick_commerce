@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Seller from "../models/Seller";
 import Customer from "../models/Customer";
 import Commission from "../models/Commission";

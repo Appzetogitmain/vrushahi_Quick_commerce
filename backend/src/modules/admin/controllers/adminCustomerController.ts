@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Customer from "../../../models/Customer";

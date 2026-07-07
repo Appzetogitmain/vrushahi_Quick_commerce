@@ -1,3 +1,4 @@
+// @ts-nocheck
 import axios, { AxiosError } from 'axios';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

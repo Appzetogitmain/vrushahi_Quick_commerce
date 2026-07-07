@@ -492,6 +492,6 @@ OrderSchema.index({ status: 1 });
 OrderSchema.index({ orderDate: -1 });
 OrderSchema.index({ deliveryBoy: 1 });
 
-const Order = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+const Order = (mongoose.models.Order as mongoose.Model<IOrder>) || mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;

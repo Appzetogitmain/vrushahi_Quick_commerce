@@ -74,8 +74,9 @@ router.post(
     const folder = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
     console.log('[Upload] Target folder:', folder);
 
-    // Use 'auto' to let Cloudinary detect the type (image, video, raw)
-    const resourceType = "auto";
+    // Check if it's an image or PDF to avoid Cloudinary 'auto' stream issues
+    const isImage = (req as any).file.mimetype.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
     console.log('[Upload] Resource Type:', resourceType);
 
     try {

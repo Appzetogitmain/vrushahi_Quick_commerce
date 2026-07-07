@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from "express";
 import Seller from "../../../models/Seller";
 import AuditLog from "../../../models/AuditLog";

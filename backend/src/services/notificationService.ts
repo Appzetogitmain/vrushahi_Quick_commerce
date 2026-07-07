@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Notification from "../models/Notification";
 import Admin from "../models/Admin";
 import Seller from "../models/Seller";

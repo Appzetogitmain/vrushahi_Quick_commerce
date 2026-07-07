@@ -132,7 +132,7 @@ async function fetchSectionData(
         .sort({ createdAt: -1 }) // Show newest items first
         .limit(limit || 8)
         .select(
-          "productName mainImage variations price mrp discount rating reviewsCount pack seller",
+          "productName mainImage variations netQuantity price mrp discount rating reviewsCount pack seller",
         )
         .lean();
 
@@ -250,7 +250,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         // Fetch 4 active products from the category for preview images
         // We fetch these irrespective of location radius to show category preview
         const categoryProducts = await Product.find(productQuery)
-          .select("productName mainImage variations galleryImages")
+          .select("productName mainImage variations netQuantity galleryImages")
           .sort({ createdAt: -1 })
           .limit(4)
           .lean();
@@ -304,7 +304,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .populate({
         path: "product",
         select:
-          "productName mainImage variations price mrp discount status publish category subcategory seller",
+          "productName mainImage variations netQuantity price mrp discount status publish category subcategory seller",
         match: {
           status: "Active",
           publish: true,
@@ -629,7 +629,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         .populate("categoryCards.categoryId", "name slug image")
         .populate(
           "featuredProducts",
-          "productName mainImage mainImageUrl variations galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
+          "productName mainImage mainImageUrl variations netQuantity galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
         )
         .sort({ order: 1 })
         .lean();

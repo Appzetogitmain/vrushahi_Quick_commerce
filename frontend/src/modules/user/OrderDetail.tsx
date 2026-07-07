@@ -231,6 +231,24 @@ const SectionItem = ({
 
 const getDisplayVariation = (variation: any, product?: any) => {
   if (!variation) return null;
+  
+  // Try to resolve from product variations first if it's an ID
+  if (product?.variations?.length > 0) {
+    const varStr = typeof variation === 'object' ? (variation._id?.toString() || '').toLowerCase() : String(variation).toLowerCase();
+    const matched = product.variations.find((v: any) => 
+      v._id?.toString().toLowerCase() === varStr ||
+      v.title?.toLowerCase() === varStr ||
+      v.value?.toLowerCase() === varStr ||
+      v.pack?.toLowerCase() === varStr ||
+      v.name?.toLowerCase() === varStr
+    );
+    if (matched) {
+      const vName = matched.name === 'Variation' ? '' : matched.name;
+      const title = matched.title || matched.value || matched.pack || vName;
+      if (title) return title;
+    }
+  }
+
   if (typeof variation === 'object') {
     return variation.title || variation.name || variation.value || product?.pack || "1 Unit";
   }

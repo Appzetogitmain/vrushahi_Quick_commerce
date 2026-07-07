@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../../context/ToastContext";
 import {
   getProducts,
   deleteProduct,
+  updateProductStatus,
   Product,
   ProductVariation,
 } from "../../../services/api/productService";
@@ -16,6 +18,7 @@ import { useAuth } from "../../../context/AuthContext";
 
 export default function SellerProductList() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -155,6 +158,22 @@ export default function SellerProductList() {
     } finally {
       setIsDeleting(false);
       setProductToDelete(null);
+    }
+  };
+
+  const handlePublish = async (productId: string) => {
+    try {
+      const response = await updateProductStatus(productId, { publish: true });
+      if (response.success) {
+        showToast("Product published successfully", "success");
+        fetchProducts();
+      } else {
+        showToast(response.message || "Failed to publish product", "error");
+        console.error("Failed to publish product");
+      }
+    } catch (error: any) {
+      showToast(error.response?.data?.message || "Error publishing product", "error");
+      console.error("Error publishing product:", error);
     }
   };
 
@@ -768,7 +787,12 @@ export default function SellerProductList() {
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       <div className="flex flex-col gap-1">
-                        <span>{variation.productName}</span>
+                        <div className="flex items-center gap-2">
+                          <span>{variation.productName}</span>
+                          {!variation.publish && (
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-md">Draft</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
@@ -809,6 +833,26 @@ export default function SellerProductList() {
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       <div className="flex items-center justify-center gap-2">
+                        {!variation.publish && (
+                          <button
+                            onClick={() => handlePublish(variation.productId)}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                            title="Publish Product">
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="17 8 12 3 7 8"></polyline>
+                              <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(variation.productId)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"

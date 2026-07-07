@@ -400,7 +400,7 @@ export const getProductById = async (req: Request, res: Response) => {
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)
       .select(
-        "productName price mrp variations mainImage pack discount _id rating reviewsCount"
+        "productName price mrp variations netQuantity mainImage pack discount _id rating reviewsCount"
       );
 
     const productObj = typeof product.toObject === "function" ? product.toObject() : product;

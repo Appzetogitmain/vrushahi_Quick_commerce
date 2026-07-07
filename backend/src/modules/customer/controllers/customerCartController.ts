@@ -52,7 +52,7 @@ const calculateItemPrice = (product: any, variationSelector: any) => {
 const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] = []) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
-        select: 'price discPrice variations seller status publish productName tax',
+        select: 'price discPrice variations seller status publish productName tax netQuantity',
         populate: { path: 'tax', select: 'name percentage' }
     });
 
@@ -173,7 +173,7 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit netQuantity',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -413,7 +413,7 @@ export const addToCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit netQuantity',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -506,7 +506,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit netQuantity',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });
@@ -572,7 +572,7 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit',
+                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations tax maxOrderLimit netQuantity',
                 populate: { path: 'tax', select: 'name percentage' }
             }
         });

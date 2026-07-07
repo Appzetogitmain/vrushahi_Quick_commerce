@@ -225,6 +225,30 @@ export default function AdminOrderDetail() {
                         <td className="py-3 px-2">
                           <div>
                             <div className="font-medium">{item.productName || product?.productName || 'N/A'}</div>
+                            {item.variation && (
+                              <div className="text-xs text-neutral-500 font-semibold uppercase tracking-wider">
+                                {(() => {
+                                  if (product && product.variations && Array.isArray(product.variations)) {
+                                    const varStr = String(item.variation).toLowerCase();
+                                    const matched = product.variations.find((v: any) =>
+                                      (v._id && String(v._id).toLowerCase() === varStr) ||
+                                      (v.title && String(v.title).toLowerCase() === varStr) ||
+                                      (v.value && String(v.value).toLowerCase() === varStr) ||
+                                      (v.name && String(v.name).toLowerCase() === varStr) ||
+                                      (v.pack && String(v.pack).toLowerCase() === varStr)
+                                    );
+                                    if (matched) {
+                                      const vName = matched.name === 'Variation' ? '' : matched.name;
+                                      return matched.title || matched.value || matched.pack || vName;
+                                    }
+                                  }
+                                  if (typeof item.variation === 'string' && /^[0-9a-fA-F]{24}$/.test(item.variation)) {
+                                    return product?.pack || '1 Unit';
+                                  }
+                                  return item.variation;
+                                })()}
+                              </div>
+                            )}
                             {seller && (
                               <div className="text-sm text-neutral-500">
                                 Seller: {seller.storeName || seller.sellerName}
