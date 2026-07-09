@@ -101,3 +101,25 @@ export const switchModelToCommission = asyncHandler(async (req: Request, res: Re
   const result = await switchToCommissionModel(sellerId as string);
   res.json(result);
 });
+
+// @desc    Acknowledge subscription expiry and dismiss notification
+// @route   POST /api/seller/subscription/acknowledge-expiry
+// @access  Private/Seller
+export const acknowledgeExpiry = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = req.user?.userId;
+  const seller = await Seller.findById(sellerId);
+  
+  if (!seller) {
+    res.status(404);
+    throw new Error('Seller not found');
+  }
+
+  // Clear current subscription ID and set status to 'None' so popup goes away
+  seller.currentSubscriptionId = undefined;
+  seller.subscriptionStatus = 'None';
+  seller.businessModel = 'Commission'; // Ensure they are commission-based
+  
+  await seller.save();
+  
+  res.json({ success: true, message: 'Expiry acknowledged' });
+});

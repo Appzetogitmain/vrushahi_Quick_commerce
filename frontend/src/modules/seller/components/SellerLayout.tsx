@@ -1,10 +1,13 @@
 import { ReactNode, useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SellerHeader from './SellerHeader';
 import SellerSidebar from './SellerSidebar';
 import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 import SellerNotificationAlert from './SellerNotificationAlert';
 import { useAuth } from '../../../context/AuthContext';
 import { getSellerProfile } from '../../../services/api/auth/sellerAuthService';
+import { acknowledgeSubscriptionExpiry } from '../../../services/api/subscription/sellerSubscriptionService';
+import { useToast } from '../../../context/ToastContext';
 
 interface SellerLayoutProps {
   children: ReactNode;
@@ -19,7 +22,11 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   const [blockReasonMsg, setBlockReasonMsg] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
   const [supportPhone, setSupportPhone] = useState("");
+  const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+  const [expiryAcknowledging, setExpiryAcknowledging] = useState(false);
   const { logout } = useAuth();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const handleSellerDeleted = (event: Event) => {
@@ -59,6 +66,9 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
         if (response?.data?.status === 'Blocked') {
           setIsBlocked(true);
           setBlockReasonMsg(response.data.blockReason || "");
+        }
+        if (response?.data?.subscriptionStatus === 'Expired') {
+          setShowExpiryPopup(true);
         }
       } catch (error) {
         console.error("Failed to check seller profile status:", error);
@@ -145,6 +155,24 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
     logout();
   };
 
+  const handleAcknowledgeExpiry = async () => {
+    setExpiryAcknowledging(true);
+    try {
+      const res = await acknowledgeSubscriptionExpiry();
+      if (res.success) {
+        setShowExpiryPopup(false);
+        showToast("Switched to commission model successfully.", "success");
+      } else {
+        showToast("Failed to acknowledge expiry.", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error processing request.", "error");
+    } finally {
+      setExpiryAcknowledging(false);
+    }
+  };
+
   return (
     <div className="flex h-[100dvh] bg-neutral-50 overflow-hidden">
       {/* Account Deleted Modal */}
@@ -167,6 +195,45 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
               >
                 OK
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Subscription Expiry Popup */}
+      {showExpiryPopup && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 mb-6">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Subscription Expired</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Your subscription has expired. Want to continue with a subscription plan to enjoy 0% commission, or go ahead with the commission-based model?
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowExpiryPopup(false);
+                    navigate('/seller/subscription');
+                  }}
+                  className="w-full inline-flex justify-center rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-500 transition-colors"
+                >
+                  Select Plan
+                </button>
+                <button
+                  onClick={handleAcknowledgeExpiry}
+                  disabled={expiryAcknowledging}
+                  className="w-full inline-flex justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  {expiryAcknowledging ? 'Processing...' : 'Go ahead with Commission Based'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

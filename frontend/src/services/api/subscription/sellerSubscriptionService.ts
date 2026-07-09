@@ -30,3 +30,8 @@ export const switchModelToCommission = async () => {
   const response = await api.post('/seller/subscription/switch-to-commission');
   return response.data;
 };
+
+export const acknowledgeSubscriptionExpiry = async () => {
+  const response = await api.post('/seller/subscription/acknowledge-expiry');
+  return response.data;
+};

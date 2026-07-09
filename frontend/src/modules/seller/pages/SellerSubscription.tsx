@@ -194,7 +194,7 @@ export default function SellerSubscription() {
         </div>
       )}
 
-      {!mySubscription?.currentSubscription && (
+      {(!mySubscription?.currentSubscription || mySubscription.businessModel === 'Commission' || mySubscription?.subscriptionStatus === 'Expired') && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
           <h2 className="text-lg font-bold text-neutral-800 mb-6">Available Plans</h2>
           {plans.length === 0 ? (

@@ -15,5 +15,6 @@ router.get("/my", subscriptionController.getMySubscription);
 router.post("/create-payment", subscriptionController.createPaymentOrder);
 router.post("/verify-payment", subscriptionController.verifyPayment);
 router.post("/switch-to-commission", subscriptionController.switchModelToCommission);
+router.post("/acknowledge-expiry", subscriptionController.acknowledgeExpiry);
 
 export default router;
