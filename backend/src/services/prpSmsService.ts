@@ -42,7 +42,7 @@ class PRPSMSService {
         smsReciever: [
           {
             mobileNo: mobileNo,
-            templateParams: [String(otp)]
+            templateParams: String(otp)
           }
         ]
       };
