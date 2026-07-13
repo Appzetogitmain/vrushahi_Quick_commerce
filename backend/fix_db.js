@@ -1,5 +1,14 @@
 const mongoose = require('mongoose');
-mongoose.connect('mongodb+srv://vinijinodiya:Vini%40123@cluster0.qsz1vc3.mongodb.net/SpeeUp?appName=Cluster0').then(async () => {
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI is not set. Please add it to your backend/.env file.');
+  process.exit(1);
+}
+
+mongoose.connect(MONGODB_URI).then(async () => {
     const db = mongoose.connection.db;
     await db.collection('deliveries').updateMany({ isOnline: true }, { $set: { available: 'Available' } });
     console.log('Updated DB');

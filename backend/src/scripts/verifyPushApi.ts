@@ -14,8 +14,14 @@ async function runVerification() {
     try {
         // 1. Connect to DB to get a user
         console.log('Connecting to database...');
+        const mongoUri = process.env.MONGODB_URI;
+        if (!mongoUri) {
+            console.error('❌ MONGODB_URI is not set. Please add it to your backend/.env file.');
+            process.exit(1);
+        }
         // @ts-ignore
-        await mongoose.connect(process.env.MONGO_URI || "mongodb+srv://doadmin:q308694215D7ZjYm@db-mongodb-blr1-85094-1b15e347.mongo.ondigitalocean.com/kosil-backend?tls=true&authSource=admin&replicaSet=db-mongodb-blr1-85094");
+        await mongoose.connect(mongoUri);
+
 
         // Find a test user (create one if needed, or just pick first)
         let user = await Customer.findOne();

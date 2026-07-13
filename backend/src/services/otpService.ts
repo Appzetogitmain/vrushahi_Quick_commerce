@@ -1,18 +1,5 @@
-import axios from 'axios';
 import Otp from '../models/Otp';
-
-// SMS India HUB Configuration
-const SMS_INDIA_HUB_API_KEY = process.env.SMS_INDIA_HUB_API_KEY;
-const SMS_INDIA_HUB_SENDER_ID = process.env.SMS_INDIA_HUB_SENDER_ID;
-const SMS_INDIA_HUB_DLT_TEMPLATE_ID = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
-const SMS_INDIA_HUB_API_URL = 'http://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
-const API_TIMEOUT = 30000; // 30 seconds
-
-if (!SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('SMS India HUB credentials are not fully set in environment variables');
-  }
-}
+import PRPSMSService from './prpSmsService';
 
 /**
  * Interface for OTP Response
@@ -21,21 +8,6 @@ interface OtpResponse {
   success: boolean;
   sessionId?: string;
   message: string;
-}
-
-/**
- * SMS India HUB API Response Interface
- */
-interface SmsIndiaHubResponse {
-  ErrorCode?: string;
-  ErrorMessage?: string;
-  JobId?: string;
-  MessageId?: string;
-  MessageData?: Array<{
-    Number: string;
-    MessageId: string;
-    Message: string;
-  }>;
 }
 
 type UserType = 'Customer' | 'Delivery' | 'Seller' | 'Admin';
@@ -50,106 +22,6 @@ export function generateOTP(length: number = 4): string {
     otp += digits[Math.floor(Math.random() * 10)];
   }
   return otp;
-}
-
-/**
- * Normalize mobile number to include country code (91)
- */
-function normalizeMobileNumber(mobile: string): string {
-  let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
-
-  // If it's a 10-digit number, prepend 91 (regardless of what it starts with)
-  if (cleanMobile.length === 10) {
-    cleanMobile = '91' + cleanMobile;
-  } 
-  // If it's 11 digits and starts with 0, replace 0 with 91
-  else if (cleanMobile.length === 11 && cleanMobile.startsWith('0')) {
-    cleanMobile = '91' + cleanMobile.substring(1);
-  }
-  // If it's already 12 digits and starts with 91, keep it.
-  // Otherwise, if it doesn't start with 91, prepend it.
-  else if (!cleanMobile.startsWith('91')) {
-    cleanMobile = '91' + cleanMobile;
-  }
-
-  if (cleanMobile.length < 12 || cleanMobile.length > 13) {
-    throw new Error(`Invalid mobile number: ${cleanMobile}. Must be 12-13 digits with country code.`);
-  }
-
-  return cleanMobile;
-}
-
-/**
- * Build DLT-compliant message
- */
-function buildOtpMessage(otp: string): string {
-  const appName = 'Vrushahi Market';
-  return `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
-}
-
-/**
- * Parse and handle SMS India HUB API response
- */
-function handleSmsResponse(responseData: SmsIndiaHubResponse): void {
-  const errorCode = responseData.ErrorCode || '';
-  const errorMsg = responseData.ErrorMessage || '';
-
-  // Success indicators
-  if (errorCode === '000' || errorMsg === 'Done' || responseData.JobId || responseData.MessageData) {
-    return; // Success
-  }
-
-  // Error handling
-  if (errorCode || errorMsg) {
-    switch (errorCode) {
-      case '001':
-        throw new Error('SMS India HUB: Account details cannot be blank.');
-      case '006':
-        throw new Error('SMS India HUB: Invalid DLT template. Message does not match registered template.');
-      case '007':
-        throw new Error('SMS India HUB: Invalid API key or credentials.');
-      case '021':
-        throw new Error('SMS India HUB: Insufficient credits in your account.');
-      default:
-        throw new Error(`SMS India HUB API Error (Code: ${errorCode}): ${errorMsg}`);
-    }
-  }
-}
-
-/**
- * Send SMS via SMS India HUB API
- */
-async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
-  if (!SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
-    throw new Error('SMS India HUB credentials are missing. Please check environment variables.');
-  }
-
-  const cleanMobile = normalizeMobileNumber(mobile);
-
-  const params: Record<string, string> = {
-    APIKey: SMS_INDIA_HUB_API_KEY.trim(),
-    msisdn: cleanMobile,
-    sid: SMS_INDIA_HUB_SENDER_ID.trim(),
-    msg: message,
-    fl: '0',
-    gwid: '2',
-  };
-
-  if (SMS_INDIA_HUB_DLT_TEMPLATE_ID?.trim()) {
-    params.DLT_TE_ID = SMS_INDIA_HUB_DLT_TEMPLATE_ID.trim();
-  }
-
-  const response = await axios.get<SmsIndiaHubResponse>(SMS_INDIA_HUB_API_URL, {
-    params,
-    paramsSerializer: (params) => {
-      return Object.keys(params)
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-        .join('&');
-    },
-    timeout: API_TIMEOUT,
-  });
-
-  handleSmsResponse(response.data);
 }
 
 /**
@@ -223,7 +95,7 @@ function isSpecialBypass(mobile: string): boolean {
  * Check if mock mode should be used
  */
 function isMockMode(): boolean {
-  return process.env.USE_MOCK_OTP === 'true' || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID;
+  return process.env.USE_MOCK_OTP === 'true';
 }
 
 /**
@@ -245,7 +117,7 @@ export async function sendSmsOtp(
     const otp = generateOTP(4);
 
     // Special number bypass or development mode
-    if (isSpecialBypass(mobile) || process.env.NODE_ENV !== 'production') {
+    if (isSpecialBypass(mobile)) {
       const specialOtp = '1234';
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
@@ -265,10 +137,13 @@ export async function sendSmsOtp(
       };
     }
 
-    // Real mode - Send via SMS India HUB
+    // Real mode - Send via PRPSMS
     await saveOtpToDb(mobile, otp, userType);
-    const message = buildOtpMessage(otp);
-    await sendSmsViaApi(mobile, message);
+    const result = await PRPSMSService.sendOTP(mobile, otp);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send OTP via PRPSMS');
+    }
 
     return {
       success: true,
@@ -354,7 +229,7 @@ export async function sendOTP(
     const otp = generateOTP(4);
 
     // Special number bypass or development mode
-    if (isSpecialBypass(mobile) || process.env.NODE_ENV !== 'production') {
+    if (isSpecialBypass(mobile)) {
       const specialOtp = '1234';
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
@@ -372,10 +247,13 @@ export async function sendOTP(
       };
     }
 
-    // Real mode - Send via SMS India HUB
+    // Real mode - Send via PRPSMS
     await saveOtpToDb(mobile, otp, userType);
-    const message = buildOtpMessage(otp);
-    await sendSmsViaApi(mobile, message);
+    const result = await PRPSMSService.sendOTP(mobile, otp);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send OTP via PRPSMS');
+    }
 
     return {
       success: true,

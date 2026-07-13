@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 async function test() {
   console.log('--- Testing sendSmsOtp ---');
   console.log('Env Path:', envPath);
-  console.log('SMS_INDIA_HUB_API_KEY:', process.env.SMS_INDIA_HUB_API_KEY ? '*****' + process.env.SMS_INDIA_HUB_API_KEY.slice(-4) : 'NOT SET');
+  console.log('PRPSMS_API_KEY:', process.env.PRPSMS_API_KEY ? '*****' + process.env.PRPSMS_API_KEY.slice(-4) : 'NOT SET');
 
   // Connect to DB if needed (otpService saves to DB)
   // We need a dummy mongo connection or mock the DB call if we don't want to rely on real DB

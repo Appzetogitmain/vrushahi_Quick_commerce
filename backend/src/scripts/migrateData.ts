@@ -1,8 +1,20 @@
 import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import path from 'path';
 
-const SOURCE_URI = 'mongodb+srv://kosilecommerce_db_user:973Chc5YHtBa3F1i@kosil.fcettwg.mongodb.net/SpeeUp';
-const DEST_URI = 'mongodb+srv://vinijinodiya:Vini%40123@cluster0.qsz1vc3.mongodb.net/';
-const DEST_DB_NAME = 'SpeeUp'; // You can change this if needed
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+const SOURCE_URI = process.env.MIGRATE_SOURCE_URI;
+const DEST_URI = process.env.MIGRATE_DEST_URI;
+
+if (!SOURCE_URI || !DEST_URI) {
+  console.error('❌ Missing required environment variables.');
+  console.error('   Please set MIGRATE_SOURCE_URI and MIGRATE_DEST_URI in your backend/.env file.');
+  process.exit(1);
+}
+
+const DEST_DB_NAME = process.env.MIGRATE_DEST_DB_NAME || 'SpeeUp'; // You can change this if needed
+
 
 async function migrate() {
     console.log('🚀 Starting MongoDB Migration...');
