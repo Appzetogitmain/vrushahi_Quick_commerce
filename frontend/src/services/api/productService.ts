@@ -249,3 +249,14 @@ export const updateProductStatus = async (
   );
   return response.data;
 };
+
+export interface ProductSummary {
+  total: number;
+  published: number;
+  draft: number;
+}
+
+export const getProductSummary = async (): Promise<ApiResponse<ProductSummary>> => {
+  const response = await api.get('/products/summary');
+  return response.data;
+};

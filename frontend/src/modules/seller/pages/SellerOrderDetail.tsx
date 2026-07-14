@@ -179,7 +179,7 @@ export default function SellerOrderDetail() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("vrumarket.com", margin + 5, yPos + 10);
+    doc.text("Vrushahi Market", margin + 5, yPos + 10);
 
     yPos += 20;
 
@@ -187,12 +187,12 @@ export default function SellerOrderDetail() {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("vrumarket.com", margin, yPos);
+    doc.text("Vrushahi Market - your own and reliable store", margin, yPos);
     yPos += 7;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("From: vrumarket.com", margin, yPos);
+    doc.text("From: Vrushahi Market", margin, yPos);
     yPos += 6;
     doc.text("Phone: 8956656429", margin, yPos);
     yPos += 6;
@@ -224,9 +224,6 @@ export default function SellerOrderDetail() {
       yPos - 8,
       { align: "right" }
     );
-    doc.text(`Time Slot: ${orderDetail.timeSlot}`, rightX, yPos - 2, {
-      align: "right",
-    });
 
     // Status badge
     const statusWidth = doc.getTextWidth(orderStatus) + 8;
@@ -433,8 +430,29 @@ export default function SellerOrderDetail() {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-8">
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #invoice-print-area, #invoice-print-area * {
+            visibility: visible;
+          }
+          #invoice-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .print-hide {
+            display: none !important;
+          }
+        }
+      `}</style>
+      
       {/* Order Action Section */}
-      <div className="bg-white mb-6 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+      <div className="bg-white mb-6 rounded-lg shadow-sm border border-neutral-200 overflow-hidden print-hide">
         <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
           <h2 className="text-base sm:text-lg font-semibold">
             Order Action Section
@@ -524,7 +542,7 @@ export default function SellerOrderDetail() {
 
       {/* Pickup OTP Banner */}
       {orderDetail.pickupOtp && !orderDetail.pickupOtpVerified && (
-        <div className="bg-teal-50 border-l-4 border-teal-600 p-4 mb-6 rounded-r-lg shadow-sm">
+        <div className="bg-teal-50 border-l-4 border-teal-600 p-4 mb-6 rounded-r-lg shadow-sm print-hide">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg className="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -547,8 +565,8 @@ export default function SellerOrderDetail() {
       )}
 
       {/* View Order Details Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+      <div id="invoice-print-area" className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3 print-hide">
           <h2 className="text-base sm:text-lg font-semibold">
             View Order Details
           </h2>
@@ -559,23 +577,13 @@ export default function SellerOrderDetail() {
             {/* Left: Company Info */}
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">A</span>
-                </div>
-                <div>
-                  <div className="text-xs text-green-600 font-semibold">
-                    vrushahi
-                  </div>
-                  <div className="text-[10px] text-green-600">
-                    in 24 Minutes
-                  </div>
-                </div>
+                <img src="/favicon.png" alt="Vrushahi Logo" className="h-10 object-contain" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-2">
-                vrumarket.com
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-teal-500 bg-clip-text text-transparent print:text-purple-600 print:bg-none mb-2">
+                Vrushahi Market - your own and reliable store
               </h1>
               <div className="text-sm text-neutral-600 mb-1">
-                <span className="font-medium">From:</span> vrumarket.com
+                <span className="font-medium">From:</span> Vrushahi Market
               </div>
               <div className="text-sm text-neutral-600 space-y-1">
                 <div>
@@ -603,13 +611,9 @@ export default function SellerOrderDetail() {
               <div className="text-sm text-neutral-600 mb-1">
                 <span className="font-medium">Order ID:</span> {orderDetail.id}
               </div>
-              <div className="text-sm text-neutral-600 mb-1">
+              <div className="text-sm text-neutral-600 mb-3">
                 <span className="font-medium">Delivery Date:</span>{" "}
                 {formatDate(orderDetail.deliveryDate)}
-              </div>
-              <div className="text-sm text-neutral-600 mb-3">
-                <span className="font-medium">Time Slot:</span>{" "}
-                {orderDetail.timeSlot}
               </div>
               <div className="flex items-center gap-2 lg:justify-end">
                 <span className="text-sm font-medium text-neutral-700">
@@ -626,8 +630,8 @@ export default function SellerOrderDetail() {
           </div>
 
           {/* Product Table */}
-          <div className="overflow-x-auto mb-6">
-            <table className="w-full min-w-[800px]">
+          <div className="overflow-x-auto print:overflow-visible mb-6">
+            <table className="w-full min-w-[800px] print:min-w-0">
               <thead className="bg-neutral-50 border-b border-neutral-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
