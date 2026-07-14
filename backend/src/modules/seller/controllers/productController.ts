@@ -3,6 +3,12 @@ import mongoose from "mongoose";
 import Product from "../../../models/Product";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import { populateProductsSubcategory } from "../../../utils/productHelper";
+import xlsx from "xlsx";
+import HeaderCategory from "../../../models/HeaderCategory";
+import Category from "../../../models/Category";
+import SubCategory from "../../../models/SubCategory";
+import Brand from "../../../models/Brand";
+import Tax from "../../../models/Tax";
 
 /**
  * Create a new product
@@ -631,4 +637,230 @@ export const bulkUpdateStock = asyncHandler(
   }
 );
 
+/**
+ * Bulk upload products via Excel
+ */
+export const bulkUploadProducts = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+  const file = (req as any).file;
 
+  if (!file) {
+    return res.status(400).json({ success: false, message: "No file uploaded" });
+  }
+
+  // Parse Excel
+  const workbook = xlsx.read(file.buffer, { type: "buffer" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows: any[] = xlsx.utils.sheet_to_json(sheet);
+
+  if (!rows || rows.length === 0) {
+    return res.status(400).json({ success: false, message: "Excel file is empty" });
+  }
+
+  // Pre-fetch mappings
+  const [headerCategories, categories, subCategories, brands, taxes] = await Promise.all([
+    HeaderCategory.find().lean(),
+    Category.find().lean(),
+    SubCategory.find().lean(),
+    Brand.find().lean(),
+    Tax.find().lean()
+  ]);
+
+  const headerCatMap = new Map(headerCategories.map(h => [h.name.toLowerCase(), h._id]));
+  const catMap = new Map(categories.map(c => [c.name.toLowerCase(), c._id]));
+  const subCatMap = new Map(subCategories.map(s => [s.name.toLowerCase(), s._id]));
+  const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), b._id]));
+  const taxMap = new Map(taxes.map(t => [t.name.toLowerCase(), t._id]));
+
+  const validProducts: any[] = [];
+  const errors: { row: number; error: string }[] = [];
+
+  // Group by Product Name if "Variant Title" exists
+  const isVariantTemplate = rows.some((row) => row["Variant Title"] !== undefined);
+
+  if (isVariantTemplate) {
+    const productGroups = new Map<string, any[]>();
+    rows.forEach((row, index) => {
+      const name = row["Product Name"];
+      if (!name) {
+         errors.push({ row: index + 2, error: "Product Name is required" });
+         return;
+      }
+      if (!productGroups.has(name)) productGroups.set(name, []);
+      productGroups.get(name)!.push({ ...row, _originalRowIndex: index + 2 });
+    });
+
+    for (const [productName, variationsRows] of productGroups.entries()) {
+      const firstRow = variationsRows[0];
+      const rowNum = firstRow._originalRowIndex;
+
+      try {
+        const headerCatId = headerCatMap.get(firstRow["Header Category"]?.toString().trim().toLowerCase());
+        const catId = catMap.get(firstRow["Category"]?.toString().trim().toLowerCase());
+        
+        if (!headerCatId) throw new Error(`Header Category '${firstRow["Header Category"]}' not found`);
+        if (!catId) throw new Error(`Category '${firstRow["Category"]}' not found`);
+
+        const subCatId = firstRow["SubCategory"] ? subCatMap.get(firstRow["SubCategory"].toString().trim().toLowerCase()) : undefined;
+        const brandId = firstRow["Brand"] ? brandMap.get(firstRow["Brand"].toString().trim().toLowerCase()) : undefined;
+        const taxId = firstRow["Tax Class"] ? taxMap.get(firstRow["Tax Class"].toString().trim().toLowerCase()) : undefined;
+
+        const variations = [];
+        for (const vRow of variationsRows) {
+          const vRowNum = vRow._originalRowIndex;
+          if (!vRow["Variant Title"]) throw new Error(`Variant Title is required (Row ${vRowNum})`);
+          if (vRow["Variant MRP"] === undefined) throw new Error(`Variant MRP is required (Row ${vRowNum})`);
+          if (vRow["Variant Selling Price"] === undefined) throw new Error(`Variant Selling Price is required (Row ${vRowNum})`);
+          if (vRow["Variant Stock"] === undefined) throw new Error(`Variant Stock is required (Row ${vRowNum})`);
+
+          variations.push({
+            name: "Variation",
+            value: vRow["Variant Title"].toString(),
+            price: Number(vRow["Variant MRP"]),
+            discPrice: Number(vRow["Variant Selling Price"]),
+            stock: Number(vRow["Variant Stock"]),
+            sku: vRow["Variant SKU"]?.toString(),
+            image: vRow["Variant Image URL"]?.toString(),
+            status: Number(vRow["Variant Stock"]) > 0 ? "Available" : "Sold out"
+          });
+        }
+
+        const product = {
+          productName,
+          seller: sellerId,
+          headerCategoryId: headerCatId,
+          category: catId,
+          subcategory: subCatId,
+          brand: brandId,
+          tax: taxId,
+          publish: false, // Default false for bulk upload
+          status: "Active",
+          requiresApproval: false,
+          minOrderQuantity: Number(firstRow["Min Order Quantity"]) || 1,
+          maxOrderLimit: Number(firstRow["Max Order Limit"]) || 0,
+          netQuantity: firstRow["Net Quantity"]?.toString(),
+          barcode: firstRow["Barcode"]?.toString(),
+          drugLicNo: firstRow["Drug Lic No"]?.toString(),
+          manufacturer: firstRow["Manufacturer"]?.toString(),
+          madeIn: firstRow["Made In"]?.toString(),
+          fssaiLicNo: firstRow["FSSAI Lic No"]?.toString(),
+          smallDescription: firstRow["Small Description"]?.toString(),
+          description: firstRow["Description"]?.toString(),
+          isReturnable: firstRow["Is Returnable"]?.toString().toLowerCase() === "yes",
+          maxReturnDays: Number(firstRow["Max Return Days"]) || undefined,
+          warranty: firstRow["Warranty"]?.toString(),
+          mainImage: firstRow["Image URL"]?.toString() || variations[0]?.image || "",
+          galleryImages: firstRow["Gallery Image URLs"] ? firstRow["Gallery Image URLs"].toString().split(',').map((url: string) => url.trim()) : [],
+          variations,
+          price: variations[0].price,
+          discPrice: variations[0].discPrice,
+          stock: variations.reduce((acc, curr) => acc + curr.stock, 0),
+          compareAtPrice: variations[0].price
+        };
+
+        const doc = new Product(product);
+        await doc.validate();
+        validProducts.push(product);
+
+      } catch (err: any) {
+        errors.push({ row: rowNum, error: err.message || "Validation failed" });
+      }
+    }
+  } else {
+    // Simple Products Template
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2;
+
+      try {
+        if (!row["Product Name"]) throw new Error("Product Name is required");
+        if (row["MRP"] === undefined) throw new Error("MRP is required");
+        if (row["Selling Price"] === undefined) throw new Error("Selling Price is required");
+        if (row["Stock"] === undefined) throw new Error("Stock is required");
+
+        const headerCatId = headerCatMap.get(row["Header Category"]?.toString().trim().toLowerCase());
+        const catId = catMap.get(row["Category"]?.toString().trim().toLowerCase());
+        
+        if (!headerCatId) throw new Error(`Header Category '${row["Header Category"]}' not found`);
+        if (!catId) throw new Error(`Category '${row["Category"]}' not found`);
+
+        const subCatId = row["SubCategory"] ? subCatMap.get(row["SubCategory"].toString().trim().toLowerCase()) : undefined;
+        const brandId = row["Brand"] ? brandMap.get(row["Brand"].toString().trim().toLowerCase()) : undefined;
+        const taxId = row["Tax Class"] ? taxMap.get(row["Tax Class"].toString().trim().toLowerCase()) : undefined;
+
+        const price = Number(row["MRP"]);
+        const discPrice = Number(row["Selling Price"]);
+        const stock = Number(row["Stock"]);
+        const mainImage = row["Image URL"]?.toString() || "";
+
+        const variations = [{
+            name: "Variation",
+            value: "Default",
+            price,
+            discPrice,
+            stock,
+            sku: row["SKU"]?.toString(),
+            image: mainImage,
+            status: stock > 0 ? "Available" : "Sold out"
+        }];
+
+        const product = {
+          productName: row["Product Name"].toString(),
+          seller: sellerId,
+          headerCategoryId: headerCatId,
+          category: catId,
+          subcategory: subCatId,
+          brand: brandId,
+          tax: taxId,
+          publish: false, 
+          status: "Active",
+          requiresApproval: false,
+          minOrderQuantity: Number(row["Min Order Quantity"]) || 1,
+          maxOrderLimit: Number(row["Max Order Limit"]) || 0,
+          netQuantity: row["Net Quantity"]?.toString(),
+          sku: row["SKU"]?.toString(),
+          barcode: row["Barcode"]?.toString(),
+          drugLicNo: row["Drug Lic No"]?.toString(),
+          manufacturer: row["Manufacturer"]?.toString(),
+          madeIn: row["Made In"]?.toString(),
+          fssaiLicNo: row["FSSAI Lic No"]?.toString(),
+          smallDescription: row["Small Description"]?.toString(),
+          description: row["Description"]?.toString(),
+          isReturnable: row["Is Returnable"]?.toString().toLowerCase() === "yes",
+          maxReturnDays: Number(row["Max Return Days"]) || undefined,
+          warranty: row["Warranty"]?.toString(),
+          mainImage,
+          galleryImages: row["Gallery Image URLs"] ? row["Gallery Image URLs"].toString().split(',').map((url: string) => url.trim()) : [],
+          variations,
+          price,
+          discPrice,
+          stock,
+          compareAtPrice: price
+        };
+
+        const doc = new Product(product);
+        await doc.validate();
+        validProducts.push(product);
+
+      } catch (err: any) {
+        errors.push({ row: rowNum, error: err.message || "Validation failed" });
+      }
+    }
+  }
+
+  // Insert valid products
+  if (validProducts.length > 0) {
+    await Product.insertMany(validProducts);
+  }
+
+  return res.status(200).json({
+    success: true,
+    summary: {
+      totalRows: rows.length,
+      uploaded: validProducts.length,
+      failed: errors.length
+    },
+    errors
+  });
+});

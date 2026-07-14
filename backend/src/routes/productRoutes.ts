@@ -8,11 +8,14 @@ import {
   updateStock,
   updateProductStatus,
   bulkUpdateStock,
+  bulkUploadProducts,
 } from "../modules/seller/controllers/productController";
 import { getBrands } from "../modules/admin/controllers/adminProductController";
 import { authenticate, requireUserType } from "../middleware/auth";
+import multer from "multer";
 
 const router = Router();
+const uploadExcel = multer({ storage: multer.memoryStorage() });
 
 // All routes require authentication and seller user type
 router.use(authenticate);
@@ -20,6 +23,9 @@ router.use(requireUserType("Seller"));
 
 // Get all brands - sellers need this for product creation
 router.get("/brands", getBrands);
+
+// Bulk upload products (Must be before /:id to avoid treating bulk-upload as an ID)
+router.post("/bulk-upload", uploadExcel.single("file"), bulkUploadProducts);
 
 // Create product
 router.post("/", createProduct);

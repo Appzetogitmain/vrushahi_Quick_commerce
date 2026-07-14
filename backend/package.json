@@ -60,7 +60,8 @@
     "node-cron": "^4.5.0",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

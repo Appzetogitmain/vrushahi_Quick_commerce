@@ -28,6 +28,8 @@ import {
 } from "../../../services/api/headerCategoryService";
 import { useToast } from "../../../context/ToastContext";
 import ProductWizard from "../components/ProductWizard";
+import { BulkUploadProductModal } from "../components/BulkUploadProductModal";
+import { Upload } from "lucide-react";
 
 export default function SellerAddProduct() {
   const navigate = useNavigate();
@@ -98,6 +100,7 @@ export default function SellerAddProduct() {
   const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [galleryImagePreviews, setGalleryImagePreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
@@ -495,6 +498,18 @@ export default function SellerAddProduct() {
 
   return (
     <div className="min-h-screen bg-neutral-50/50 pb-12">
+      {!id && (
+        <div className="max-w-4xl mx-auto pt-6 px-4 sm:px-6 lg:px-8 flex justify-end">
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Bulk Upload
+          </button>
+        </div>
+      )}
+
       <ProductWizard
         formData={formData}
         setFormData={setFormData}
@@ -520,6 +535,16 @@ export default function SellerAddProduct() {
         removeVariation={removeVariation}
         handleRemoveMainImage={handleRemoveMainImage}
         isEdit={!!id}
+      />
+
+      <BulkUploadProductModal
+        isOpen={isBulkUploadModalOpen}
+        onClose={() => setIsBulkUploadModalOpen(false)}
+        onSuccess={() => {
+          setIsBulkUploadModalOpen(false);
+          showToast("Products uploaded successfully!", "success");
+          navigate("/seller/product/list");
+        }}
       />
     </div>
   );
