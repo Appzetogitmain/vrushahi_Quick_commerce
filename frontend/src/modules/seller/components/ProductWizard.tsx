@@ -13,7 +13,8 @@ import {
   Layers, 
   TrendingUp,
   RefreshCw,
-  Plus
+  Plus,
+  Info
 } from "lucide-react";
 import CategoryFields from "./CategoryFields";
 import {
@@ -22,6 +23,7 @@ import {
   createImagePreview,
 } from "../../../utils/imageUpload";
 import { useToast } from "../../../context/ToastContext";
+import { useNavigate } from "react-router-dom";
 
 interface ProductWizardProps {
   formData: any;
@@ -98,6 +100,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
   ];
 
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const nextStep = () => {
     if (currentStep === 1) {
@@ -450,6 +453,10 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                 <ImageIcon className="mr-2 text-teal-600" size={20} />
                 Product Media
               </h3>
+              <div className="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-xs font-semibold mt-1 mb-3 inline-flex items-center w-max border border-purple-200">
+                <Info size={14} className="mr-1.5 flex-shrink-0" />
+                Recommended: 800x800px (1:1 ratio) with white background. Max 1MB.
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Main Image */}
                 <div className="md:col-span-1">
@@ -994,15 +1001,26 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
           </div>
 
           <div className="p-4 sm:p-8 bg-neutral-50 flex justify-between items-center border-t border-neutral-100 gap-2 sm:gap-0">
-             <button
-               type="button"
-               onClick={prevStep}
-               disabled={currentStep === 1}
-               className={`flex items-center space-x-1 sm:space-x-2 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold transition-all ${currentStep === 1 ? 'text-neutral-300 pointer-events-none' : 'text-neutral-600 hover:bg-neutral-200'}`}
-             >
-               <ChevronLeft size={20} />
-               <span className="hidden min-[380px]:inline">Back</span>
-             </button>
+             <div className="flex space-x-2">
+               <button
+                 type="button"
+                 onClick={() => navigate('/seller/product/list')}
+                 className="flex items-center space-x-1 sm:space-x-2 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold transition-all text-rose-500 hover:bg-rose-50"
+                 title="Discard changes and go back"
+               >
+                 <X size={20} />
+                 <span className="hidden min-[380px]:inline">Cancel</span>
+               </button>
+               <button
+                 type="button"
+                 onClick={prevStep}
+                 disabled={currentStep === 1}
+                 className={`flex items-center space-x-1 sm:space-x-2 py-2 sm:py-3 px-3 sm:px-6 rounded-xl font-bold transition-all ${currentStep === 1 ? 'text-neutral-300 pointer-events-none' : 'text-neutral-600 hover:bg-neutral-200'}`}
+               >
+                 <ChevronLeft size={20} />
+                 <span className="hidden min-[380px]:inline">Back</span>
+               </button>
+             </div>
              
              <div className="flex space-x-2 sm:space-x-4 flex-shrink-0">
                {currentStep < totalSteps && (

@@ -7,6 +7,8 @@ import {
   updateProductStatus,
   Product,
   ProductVariation,
+  getProductSummary,
+  ProductSummary,
 } from "../../../services/api/productService";
 import {
   getCategories,
@@ -31,8 +33,9 @@ export default function SellerProductList() {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(
     new Set()
   );
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortColumn, setSortColumn] = useState<string | null>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [summary, setSummary] = useState<ProductSummary | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [paginationInfo, setPaginationInfo] = useState<{
     page: number;
@@ -113,6 +116,11 @@ export default function SellerProductList() {
         }
       } else {
         setError(response.message || "Failed to fetch products");
+      }
+
+      const summaryRes = await getProductSummary();
+      if (summaryRes.success) {
+        setSummary(summaryRes.data);
       }
     } catch (err: any) {
       setError(
@@ -345,6 +353,33 @@ export default function SellerProductList() {
           <span className="text-neutral-600">Dashboard</span>
         </div>
       </div>
+
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+          <div 
+            onClick={() => { setStatusFilter("All Products"); setCurrentPage(1); }}
+            className={`bg-white rounded-xl shadow-sm border p-5 cursor-pointer transition-all hover:shadow-md ${statusFilter === "All Products" ? 'border-teal-500 ring-1 ring-teal-500 bg-teal-50/30' : 'border-neutral-200'}`}
+          >
+            <div className="text-neutral-500 text-sm font-semibold uppercase tracking-wider mb-2">Total Products</div>
+            <div className="text-3xl font-bold text-neutral-800">{summary.total}</div>
+          </div>
+          <div 
+            onClick={() => { setStatusFilter("Published"); setCurrentPage(1); }}
+            className={`bg-white rounded-xl shadow-sm border p-5 cursor-pointer transition-all hover:shadow-md ${statusFilter === "Published" ? 'border-teal-500 ring-1 ring-teal-500 bg-teal-50/30' : 'border-neutral-200'}`}
+          >
+            <div className="text-neutral-500 text-sm font-semibold uppercase tracking-wider mb-2">Published Products</div>
+            <div className="text-3xl font-bold text-teal-600">{summary.published}</div>
+          </div>
+          <div 
+            onClick={() => { setStatusFilter("Unpublished"); setCurrentPage(1); }}
+            className={`bg-white rounded-xl shadow-sm border p-5 cursor-pointer transition-all hover:shadow-md ${statusFilter === "Unpublished" ? 'border-teal-500 ring-1 ring-teal-500 bg-teal-50/30' : 'border-neutral-200'}`}
+          >
+            <div className="text-neutral-500 text-sm font-semibold uppercase tracking-wider mb-2">Drafts (Unpublished)</div>
+            <div className="text-3xl font-bold text-amber-500">{summary.draft}</div>
+          </div>
+        </div>
+      )}
 
       {/* Content Card */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex-1 flex flex-col min-w-0 w-full">

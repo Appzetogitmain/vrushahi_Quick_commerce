@@ -9,6 +9,7 @@ import {
   updateProductStatus,
   bulkUpdateStock,
   bulkUploadProducts,
+  getProductSummary,
 } from "../modules/seller/controllers/productController";
 import { getBrands } from "../modules/admin/controllers/adminProductController";
 import { authenticate, requireUserType } from "../middleware/auth";
@@ -26,6 +27,9 @@ router.get("/brands", getBrands);
 
 // Bulk upload products (Must be before /:id to avoid treating bulk-upload as an ID)
 router.post("/bulk-upload", uploadExcel.single("file"), bulkUploadProducts);
+
+// Get product summary (Total, Published, Draft)
+router.get("/summary", getProductSummary);
 
 // Create product
 router.post("/", createProduct);

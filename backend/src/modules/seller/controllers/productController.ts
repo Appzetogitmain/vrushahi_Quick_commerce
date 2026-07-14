@@ -864,3 +864,25 @@ export const bulkUploadProducts = asyncHandler(async (req: Request, res: Respons
     errors
   });
 });
+
+/**
+ * Get product summary (Total, Published, Draft)
+ */
+export const getProductSummary = asyncHandler(async (req: Request, res: Response) => {
+  const sellerId = (req as any).user.userId;
+
+  const [total, published, draft] = await Promise.all([
+    Product.countDocuments({ seller: sellerId }),
+    Product.countDocuments({ seller: sellerId, publish: true }),
+    Product.countDocuments({ seller: sellerId, publish: false }),
+  ]);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      total,
+      published,
+      draft,
+    },
+  });
+});
