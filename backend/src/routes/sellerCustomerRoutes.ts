@@ -4,11 +4,7 @@ import { authenticate, requireUserType } from "../middleware/auth";
 
 const router = Router();
 
-// All routes require authentication and seller user type
-router.use(authenticate);
-router.use(requireUserType("Seller"));
-
 // Get seller's customers
-router.get("/customers", getSellerCustomers);
+router.get("/customers", authenticate, requireUserType("Seller"), getSellerCustomers);
 
 export default router;

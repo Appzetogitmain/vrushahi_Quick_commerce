@@ -254,7 +254,8 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
  */
 export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
-    const sellerId = (req as any).user.userId;
+    const userId = (req as any).user.userId;
+    const userType = (req as any).user.userType;
     const { id } = req.params;
 
     // Prevent reserved route names from being treated as product IDs
@@ -266,7 +267,12 @@ export const getProductById = asyncHandler(
       });
     }
 
-    const product = await Product.findOne({ _id: id, seller: sellerId })
+    const query: any = { _id: id };
+    if (userType !== 'Admin') {
+      query.seller = userId;
+    }
+
+    const product = await Product.findOne(query)
       .populate("category", "name")
       .populate("headerCategoryId", "name slug")
       .populate("brand", "name")
@@ -295,11 +301,12 @@ export const getProductById = asyncHandler(
  */
 export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
-    const sellerId = (req as any).user.userId;
+    const userId = (req as any).user.userId;
+    const userType = (req as any).user.userType;
     const { id } = req.params;
     const updateData = req.body;
 
-    console.log("DEBUG updateProduct: sellerId from token:", sellerId);
+    console.log("DEBUG updateProduct: userId from token:", userId);
     console.log("DEBUG updateProduct: productId:", id);
 
     // Remove sellerId from update data if present (cannot change owner)
@@ -400,7 +407,11 @@ export const updateProduct = asyncHandler(
     if (updateData.attributes !== undefined) updateData.attributes = updateData.attributes;
 
     // Use findOne and then save to trigger pre-save hooks
-    const product = await Product.findOne({ _id: id, seller: sellerId });
+    const query: any = { _id: id };
+    if (userType !== 'Admin') {
+      query.seller = userId;
+    }
+    const product = await Product.findOne(query);
 
     if (!product) {
       // Check if product exists at all

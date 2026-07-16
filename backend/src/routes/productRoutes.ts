@@ -18,9 +18,9 @@ import multer from "multer";
 const router = Router();
 const uploadExcel = multer({ storage: multer.memoryStorage() });
 
-// All routes require authentication and seller user type
+// All routes require authentication and seller/admin user type
 router.use(authenticate);
-router.use(requireUserType("Seller"));
+router.use(requireUserType("Seller", "Admin"));
 
 // Get all brands - sellers need this for product creation
 router.get("/brands", getBrands);
