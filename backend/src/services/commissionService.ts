@@ -98,14 +98,14 @@ export const getOrderItemCommissionRate = async (
         // 5. Global Default
         const settings = await AppSettings.findOne();
         return {
-            rate: settings?.defaultCommission ?? 10,
+            rate: settings?.defaultCommission ?? 20,
             sourceType: "GLOBAL",
             sourceId: settings?._id?.toString() || null,
             sourceLabel: "Global Default"
         };
     } catch (error) {
         console.error("Error calculating commission rate:", error);
-        return { rate: 10, sourceType: "GLOBAL", sourceId: null, sourceLabel: "Error Fallback" };
+        return { rate: 20, sourceType: "GLOBAL", sourceId: null, sourceLabel: "Error Fallback" };
     }
 };
 
@@ -129,10 +129,10 @@ export const getSellerCommissionRate = async (
         const settings = await AppSettings.findOne();
         return settings && settings.defaultCommission !== undefined
             ? settings.defaultCommission
-            : 10;
+            : 20;
     } catch (error) {
         console.error("Error getting seller commission rate:", error);
-        return 10; // Default fallback
+        return 20; // Default fallback
     }
 };
 
