@@ -95,10 +95,10 @@ export default function DeliveryHeader({ userName, hideProfile, hideToggle }: De
       {/* Header Content */}
       <div className="px-4 py-3">
         {/* App Title */}
-        <h1 className={`text-xl font-bold text-center mb-3 transition-colors ${
-          isOnline ? 'text-green-600' : 'text-neutral-500'
+        <h1 className={`text-xl font-extrabold text-center mb-3 transition-colors tracking-tight ${
+          isOnline ? 'text-[#118B50]' : 'text-neutral-500'
         }`}>
-          Delivery App
+          Vrumarket Delivery
         </h1>
         
         {/* User Info Bar */}

@@ -293,17 +293,6 @@ export default function DeliveryDashboard() {
         </div>
       )}
 
-      {/* Location Error Warning Banner */}
-      {locationError && (
-        <div className="px-4 py-3 flex items-center gap-2 bg-red-600 text-white border-b border-red-700">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0">
-            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span className="text-xs font-bold uppercase tracking-tight leading-tight">
-            {locationError}
-          </span>
-        </div>
-      )}
 
       <div className="px-4 py-4 space-y-4">
         {/* Daily Collection & Cash Balance Bar */}
@@ -352,6 +341,40 @@ export default function DeliveryDashboard() {
             )}
           </div>
         </div>
+
+        {/* Location Error Warning Card */}
+        {locationError && (
+          <div className="p-4 rounded-2xl border border-orange-100 bg-[#FFF9F2] shadow-sm">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#FFEFE5] text-orange-500 rounded-xl">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-[16px] font-bold text-gray-900 tracking-tight">Location Access Required</h3>
+              </div>
+              <div className="opacity-20 translate-x-2 -translate-y-1">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" className="text-orange-900">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                </svg>
+              </div>
+            </div>
+            
+            <p className="text-[13px] text-gray-700 font-medium mb-3 leading-snug pr-2">
+              To assign you nearby orders and accurately update customers on delivery progress, the app requires access to your location while you are online.
+            </p>
+            
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-orange-50">
+              <h4 className="text-[13px] font-bold text-gray-900 mb-2">How to enable in your device settings:</h4>
+              <ul className="space-y-1.5 text-[12px] text-gray-600 font-medium list-disc pl-4 marker:text-gray-400">
+                <li>Open your device <span className="font-bold text-gray-800">Settings</span></li>
+                <li>Navigate to <span className="font-bold text-gray-800">Privacy & Security</span> &gt; <span className="font-bold text-gray-800">Location Services</span></li>
+                <li>Select this app and set access to <span className="font-bold text-gray-800">"While Using the App"</span></li>
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* Dashboard Cards Grid */}
         <div className="grid grid-cols-2 gap-4">
