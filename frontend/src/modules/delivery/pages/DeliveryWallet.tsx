@@ -413,6 +413,7 @@ export default function DeliveryWallet() {
                     </div>
                 </motion.div>
 
+                {/* 
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -440,9 +441,10 @@ export default function DeliveryWallet() {
                                     : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                                 }`}>
                             Pay to Vrushahi
-                        </button>
+                        </button> 
                     </div>
                 </motion.div>
+                */}
             </div>
 
             {/* Earning Structure Information */}
