@@ -4,7 +4,7 @@ import {
   sendOTP as sendOTPService,
   verifyOTP as verifyOTPService,
 } from "../../../services/otpService";
-import { generateToken } from "../../../services/jwtService";
+import { generateToken, generateRefreshToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -158,3 +158,63 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 });
+
+/**
+ * Login admin with Email and Password
+ */
+export const loginWithEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required",
+    });
+  }
+
+  // Normalize email
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Find admin and explicitly select password for comparison
+  const admin = await Admin.findOne({ email: normalizedEmail }).select("+password");
+  
+  if (!admin) {
+    // Return generic error message to prevent email enumeration
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password.",
+    });
+  }
+
+  // Validate password
+  const isMatch = await admin.comparePassword(password);
+  
+  if (!isMatch) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password.",
+    });
+  }
+
+  // Generate tokens
+  const token = generateToken(admin._id.toString(), "Admin", admin.role);
+  const refreshToken = generateRefreshToken(admin._id.toString(), "Admin", admin.role);
+
+  return res.status(200).json({
+    success: true,
+    message: "Login successful",
+    data: {
+      token,
+      refreshToken,
+      user: {
+        id: admin._id,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        mobile: admin.mobile,
+        email: admin.email,
+        role: admin.role,
+      },
+    },
+  });
+});
+

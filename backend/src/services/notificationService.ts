@@ -4,6 +4,20 @@ import Admin from "../models/Admin";
 import Seller from "../models/Seller";
 import Customer from "../models/Customer";
 import Delivery from "../models/Delivery";
+import { globalIO } from "../socket/socketService";
+
+/**
+ * Format notification for socket payload
+ */
+const formatNotificationForSocket = (notification: any) => ({
+  _id: notification._id,
+  title: notification.title,
+  message: notification.message,
+  type: notification.type,
+  link: notification.link,
+  isRead: notification.isRead,
+  createdAt: notification.createdAt
+});
 
 /**
  * Send notification to specific user
@@ -41,8 +55,11 @@ export const sendNotification = async (
     isRead: false,
   });
 
-  // Here you would integrate with push notification service (FCM, APNS, etc.)
-  // For now, we'll just create the notification record
+  // Emit socket event if recipient is Admin
+  if (recipientType === "Admin" && globalIO) {
+    const payload = formatNotificationForSocket(notification);
+    globalIO.to(`admin-notifications-${recipientId}`).emit("new-admin-notification", payload);
+  }
 
   return notification;
 };
@@ -108,6 +125,14 @@ export const sendBroadcastNotification = async (
       })
     )
   );
+
+  // Emit broadcast socket event if recipient is Admin
+  if (recipientType === "Admin" && notifications.length > 0 && globalIO) {
+    // We only need to send one notification payload since they are essentially identical
+    // except for recipientId, which isn't used in the UI list anyway.
+    const payload = formatNotificationForSocket(notifications[0]);
+    globalIO.to("admin-notifications-all").emit("new-admin-notification", payload);
+  }
 
   return notifications;
 };

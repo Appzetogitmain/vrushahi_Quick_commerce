@@ -21,6 +21,23 @@ export interface VerifyOTPResponse {
   };
 }
 
+export interface LoginWithEmailResponse {
+  success: boolean;
+  message: string;
+  data: {
+    token: string;
+    refreshToken: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      mobile: string;
+      email: string;
+      role: string;
+    };
+  };
+}
+
 export interface RegisterData {
   firstName: string;
   lastName: string;
@@ -63,6 +80,21 @@ export const verifyOTP = async (mobile: string, otp: string): Promise<VerifyOTPR
   if (response.data.success && response.data.data.token) {
     setAuthToken(response.data.data.token);
     localStorage.setItem('userData', JSON.stringify(response.data.data.user));
+  }
+
+  return response.data;
+};
+
+/**
+ * Login admin with Email and Password
+ */
+export const loginWithEmail = async (email: string, password: string): Promise<LoginWithEmailResponse> => {
+  const response = await api.post<LoginWithEmailResponse>('/auth/admin/login', { email, password });
+
+  if (response.data.success && response.data.data.token) {
+    setAuthToken(response.data.data.token);
+    localStorage.setItem('userData', JSON.stringify(response.data.data.user));
+    localStorage.setItem('refreshToken', response.data.data.refreshToken);
   }
 
   return response.data;

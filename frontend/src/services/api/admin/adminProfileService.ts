@@ -16,6 +16,8 @@ export interface UpdateProfileData {
     lastName?: string;
     email?: string;
     mobile?: string;
+    currentPassword?: string;
+    newPassword?: string;
 }
 
 export interface ProfileResponse {

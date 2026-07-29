@@ -7,6 +7,9 @@ import { handleReturnPickupAcceptance, handleReturnPickupRejection } from '../se
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 
+// Global Socket.io instance
+export let globalIO: SocketIOServer | null = null;
+
 // In-memory cache for order destinations (lat, lng) to avoid DB reads on every update
 // Key: orderId, Value: { latitude, longitude }
 const orderDestinationsCache = new Map<string, { latitude: number; longitude: number }>();
@@ -234,6 +237,18 @@ export const initializeSocket = (httpServer: HttpServer) => {
             });
         });
 
+        // Admin joins notification room
+        socket.on('join-admin-notifications', (adminId?: string) => {
+            socket.join('admin-notifications-all');
+            if (adminId) {
+                const normalizedAdminId = String(adminId).trim();
+                socket.join(`admin-notifications-${normalizedAdminId}`);
+                console.log(`🔔 Admin ${normalizedAdminId} joined notifications room`);
+            } else {
+                console.log(`🔔 Admin (Unknown) joined general notifications room`);
+            }
+        });
+
         // Debugging: Ping/Pong for connection testing
         socket.on('ping-test', () => {
             console.log(`🏓 Ping from ${socket.id}`);
@@ -411,6 +426,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         });
     });
 
+    globalIO = io;
     console.log('🔌 Socket.io initialized');
     return io;
 };

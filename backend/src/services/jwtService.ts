@@ -10,6 +10,9 @@ export interface TokenPayload {
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
 /**
  * Generate JWT token for authenticated user
  */
@@ -22,6 +25,21 @@ export function generateToken(userId: string, userType: UserType, role?: string)
 
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
+  } as jwt.SignOptions);
+}
+
+/**
+ * Generate JWT refresh token for authenticated user
+ */
+export function generateRefreshToken(userId: string, userType: UserType, role?: string): string {
+  const payload: TokenPayload = {
+    userId,
+    userType,
+    ...(role && { role }),
+  };
+
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+    expiresIn: JWT_REFRESH_EXPIRES_IN,
   } as jwt.SignOptions);
 }
 
