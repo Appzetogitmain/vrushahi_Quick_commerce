@@ -1,45 +1,52 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  sendOTP,
-  verifyOTP,
+  loginWithEmail,
 } from "../../../services/api/auth/adminAuthService";
-import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
-import LogoLatest from "@assets/LogoLatest.png";
+import LogoLatest from "@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.57-removebg-preview.png";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [mobileNumber, setMobileNumber] = useState("");
-  const [showOTP, setShowOTP] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleMobileLogin = async () => {
-    if (mobileNumber.length !== 10) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      await sendOTP(mobileNumber);
-      setShowOTP(true);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Failed to send OTP. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleOTPComplete = async (otp: string) => {
+  const validatePassword = (password: string) => {
+    // Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError("Password does not meet complexity requirements.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const response = await verifyOTP(mobileNumber, otp);
+      const response = await loginWithEmail(email, password);
       if (response.success && response.data) {
         // Update AuthContext with token and user data
         login(response.data.token, {
@@ -47,26 +54,15 @@ export default function AdminLogin() {
           userType: "Admin",
         });
 
-        // FCM token registration is handled globally by App.tsx when auth state changes
-        // No need to call registerFCMToken here - it would cause duplicate notifications
-
         navigate("/admin");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid OTP. Please try again.");
+      setError(
+        err.response?.data?.message || "Invalid email or password."
+      );
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlevrushahiLogin = () => {
-    // Handle vrushahi login logic here
-    navigate("/admin");
-  };
-
-  const handleSellerLogin = () => {
-    // Navigate to seller login page
-    navigate("/seller/login");
   };
 
   return (
@@ -89,114 +85,76 @@ export default function AdminLogin() {
           <p className="text-neutral-500 text-sm font-medium">
             Secure Access for Administrators
           </p>
-
         </div>
 
         {/* Login Form */}
         <div className="px-8 pb-10 space-y-6">
-          {!showOTP ? (
-            /* Mobile Login Form */
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3 ml-1">
-                  Mobile Number
-                </label>
-                <div className="flex items-center bg-neutral-50/50 border border-green-600/20 rounded-[1.25rem] overflow-hidden focus-within:bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all duration-300">
-                  <div className="px-4 py-4 text-sm font-bold text-neutral-400 border-r border-green-600/20 bg-neutral-50/50">
-                    +91
-                  </div>
-
-                  <input
-                    type="tel"
-                    value={mobileNumber}
-                    onChange={(e) =>
-                      setMobileNumber(
-                        e.target.value.replace(/\D/g, "").slice(0, 10)
-                      )
-                    }
-                    placeholder="700 000 0000"
-                    className="flex-1 px-5 py-4 text-base font-medium text-neutral-900 placeholder:text-neutral-300 focus:outline-none"
-                    maxLength={10}
-                    disabled={loading}
-                  />
-                </div>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3 ml-1">
+                Email Address
+              </label>
+              <div className="flex items-center bg-neutral-50/50 border border-green-600/20 rounded-[1.25rem] overflow-hidden focus-within:bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all duration-300">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@vrushahi.com"
+                  className="flex-1 px-5 py-4 text-base font-medium text-neutral-900 placeholder:text-neutral-300 focus:outline-none bg-transparent"
+                  disabled={loading}
+                />
               </div>
+            </div>
 
-              {error && (
-                <div className="text-sm font-medium text-red-500 bg-red-50 p-4 rounded-[1.25rem] border border-red-100 animate-shake">
-                  {error}
-                </div>
-              )}
+            <div>
+              <label className="block text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3 ml-1">
+                Password
+              </label>
+              <div className="flex items-center bg-neutral-50/50 border border-green-600/20 rounded-[1.25rem] overflow-hidden focus-within:bg-white focus-within:border-green-500 focus-within:ring-4 focus-within:ring-green-500/10 transition-all duration-300">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="flex-1 px-5 py-4 text-base font-medium text-neutral-900 placeholder:text-neutral-300 focus:outline-none bg-transparent [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="px-5 text-neutral-400 hover:text-green-600 transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
 
-              <button
-                onClick={handleMobileLogin}
-                disabled={mobileNumber.length !== 10 || loading}
-                className={`w-fit min-w-[12rem] mx-auto block py-3 px-6 rounded-[1rem] font-semibold text-lg transition-all duration-300 relative overflow-hidden group ${mobileNumber.length === 10 && !loading
+            {error && (
+              <div className="text-sm font-medium text-red-500 bg-red-50 p-4 rounded-[1.25rem] border border-red-100 animate-shake">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={!email || !password || loading}
+              className={`w-fit min-w-[12rem] mx-auto block py-3 px-6 rounded-[1rem] font-semibold text-lg transition-all duration-300 relative overflow-hidden group ${
+                email && password && !loading
                   ? "bg-green-600 text-white hover:bg-green-700 shadow-[0_10px_20px_rgba(22,163,74,0.3)] translate-y-0 active:translate-y-0.5"
                   : "bg-green-50/50 text-green-300 border border-green-100 cursor-not-allowed"
-                  }`}>
-
-
-                <span className="relative z-10">
-                  {loading ? "Sending securely..." : "Continue"}
-                </span>
-                {mobileNumber.length === 10 && !loading && (
-                  <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                )}
-              </button>
-            </div>
-          ) : (
-            /* OTP Verification Form */
-            <div className="space-y-6 animate-in slide-in-from-right duration-500">
-              <div className="text-center">
-                <p className="text-sm text-neutral-500 mb-2">
-                  Enter the 4-digit OTP sent to
-                </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <p className="text-sm font-bold text-green-700">
-                    +91 {mobileNumber}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex justify-center py-2">
-                <OTPInput onComplete={handleOTPComplete} disabled={loading} />
-              </div>
-
-              {error && (
-                <div className="text-sm font-medium text-red-500 bg-red-50 p-4 rounded-[1.25rem] border border-red-100 text-center animate-shake">
-                  {error}
-                </div>
+              }`}
+            >
+              <span className="relative z-10">
+                {loading ? "Authenticating..." : "Login"}
+              </span>
+              {email && password && !loading && (
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               )}
-
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={() => {
-                    setShowOTP(false);
-                    setError("");
-                  }}
-                  disabled={loading}
-                  className="flex-1 max-w-[8rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-50 text-green-600 hover:bg-green-100 transition-all border border-green-100">
-                  Change
-                </button>
-                <button
-                  onClick={handleMobileLogin}
-                  disabled={loading}
-                  className="flex-1 max-w-[10rem] py-3 rounded-[1rem] font-semibold text-sm bg-green-600 text-white hover:bg-green-700 transition-all shadow-[0_10px_20px_rgba(22,163,74,0.2)]">
-                  {loading ? "Verifying..." : "Resend"}
-                </button>
-
-              </div>
-
-
-            </div>
-          )}
+            </button>
+          </form>
         </div>
       </div>
-
-
-
     </div>
   );
 }
+

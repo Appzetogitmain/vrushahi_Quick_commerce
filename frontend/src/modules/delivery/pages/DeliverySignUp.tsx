@@ -14,7 +14,7 @@ import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
 import { validateEmail } from "../../../utils/validation";
-const deliveryLogo = "/assets/delivery-logo-removebg-preview.png";
+const deliveryLogo = "/assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview (1).png";
 
 export default function DeliverySignUp() {
   const navigate = useNavigate();

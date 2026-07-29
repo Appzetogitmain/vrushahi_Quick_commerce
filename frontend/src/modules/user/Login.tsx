@@ -6,7 +6,7 @@ import OTPInput from '../../components/OTPInput';
 import PolicyModal from '../../components/PolicyModal';
 import Lottie from 'lottie-react';
 import groceryAnimation from '../../../assets/animation/Grocery-animation.json';
-import logoImg from '@assets/LogoLatest.png';
+import logoImg from '@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.57-removebg-preview.png';
 
 export default function Login() {
   const navigate = useNavigate();

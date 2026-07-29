@@ -7,7 +7,7 @@ import {
 import OTPInput from "../../../components/OTPInput";
 import PolicyModal from "../../../components/PolicyModal";
 import { useAuth } from "../../../context/AuthContext";
-const sellerLogo = "/assets/seller-logo-removebg-preview.png";
+const sellerLogo = "/assets/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview.png";
 
 export default function SellerLogin() {
   const navigate = useNavigate();

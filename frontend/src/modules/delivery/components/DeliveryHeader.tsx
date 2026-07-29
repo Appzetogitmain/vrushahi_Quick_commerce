@@ -3,7 +3,7 @@ import { useDeliveryUser } from '../context/DeliveryUserContext';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { getNotifications, markNotificationRead } from '../../../services/api/delivery/deliveryService';
-import vrushahiLogo from '@assets/logo.png';
+import vrushahiLogo from '@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview (1).png';
 
 interface DeliveryHeaderProps {
   userName?: string;

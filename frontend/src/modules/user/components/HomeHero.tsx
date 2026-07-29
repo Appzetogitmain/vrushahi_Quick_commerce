@@ -10,7 +10,7 @@ import { Category } from "../../../types/domain";
 import { getHeaderCategoriesPublic } from "../../../services/api/headerCategoryService";
 import { getIconByName } from "../../../utils/iconLibrary";
 import CartIconButton from "../../../components/CartIconButton";
-import logoImg from "@assets/LogoLatest.png";
+import logoImg from "@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.57-removebg-preview.png";
 gsap.registerPlugin(ScrollTrigger);
 
 // Helper function to convert RGB string to RGBA

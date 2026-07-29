@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { getNotifications, type Notification, markMultipleAsRead } from "../../../services/api/admin/adminNotificationService";
-import vrushahiLogo from "@assets/LogoLatest.png";
+import { useSocketManager } from "../../../hooks/useSocketManager";
+import vrushahiLogo from "@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.57-removebg-preview.png";
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -15,12 +16,19 @@ export default function AdminHeader({
 }: AdminHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, token, user } = useAuth();
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notifiedIdsRef = useRef<Set<string>>(new Set());
+
+  // Initialize socket connection
+  const socket = useSocketManager({ 
+    token: token || "", 
+    userId: user?.id || "", 
+    userType: "Admin" 
+  });
 
   const isActive = (path: string) => location.pathname.includes(path);
 
@@ -72,14 +80,51 @@ export default function AdminHeader({
     document.addEventListener("mousedown", handleClickOutside);
     fetchRecentNotifications();
     
-    // Poll every 3 seconds for instant updates
-    const interval = setInterval(fetchRecentNotifications, 3000);
-    
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      clearInterval(interval);
     };
   }, []);
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleConnect = () => {
+      // Guaranteed to run on initial connect AND every subsequent reconnect
+      socket.emit("join-admin-notifications", user?.id);
+    };
+
+    const handleNewNotification = (notif: Notification) => {
+      setNotifications((prev) => {
+        // Prevent duplicates in the UI if the same notification arrives twice
+        if (prev.some((n) => n._id === notif._id)) return prev;
+        return [notif, ...prev].slice(0, 10);
+      });
+
+      // Trigger native browser push notification
+      if ("Notification" in window && window.Notification.permission === "granted") {
+        new window.Notification("Vrushahi Admin: " + notif.title, {
+          body: notif.message,
+          icon: vrushahiLogo,
+        });
+      }
+    };
+
+    // In case socket is already connected when component mounts
+    if (socket.connected) handleConnect();
+
+    // Ensure no duplicate listeners are attached
+    socket.off("connect", handleConnect);
+    socket.off("new-admin-notification", handleNewNotification);
+
+    socket.on("connect", handleConnect);
+    socket.on("new-admin-notification", handleNewNotification);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("new-admin-notification", handleNewNotification);
+    };
+  }, [socket, user?.id]);
 
   const handleLogout = () => {
     logout();

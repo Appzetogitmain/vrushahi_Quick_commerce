@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-const vrushahiLogo = "/assets/seller-logo-removebg-preview.png";
+const vrushahiLogo = "/assets/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview.png";
 import { useAuth } from "../../../context/AuthContext";
 import SellerNotificationDropdown from "./SellerNotificationDropdown";
 
