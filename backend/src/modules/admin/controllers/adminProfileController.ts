@@ -37,10 +37,10 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
  */
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const { firstName, lastName, email, mobile } = req.body;
+    const { firstName, lastName, email, mobile, currentPassword, newPassword } = req.body;
 
     // Find the admin
-    const admin = await Admin.findById(userId);
+    const admin = await Admin.findById(userId).select("+password");
 
     if (!admin) {
         return res.status(404).json({
@@ -69,6 +69,27 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
                 message: "Mobile number already in use by another admin",
             });
         }
+    }
+
+    // Check if password is being changed
+    if (newPassword) {
+        if (!currentPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Current password is required to set a new password",
+            });
+        }
+
+        // Verify current password
+        const isMatch = await admin.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Incorrect current password",
+            });
+        }
+
+        admin.password = newPassword;
     }
 
     // Update fields

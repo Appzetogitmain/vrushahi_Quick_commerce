@@ -61,7 +61,15 @@ const AdminSchema = new Schema<IAdmin>(
     password: {
       type: String,
       required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
+      minlength: [8, 'Password must be at least 8 characters'],
+      validate: {
+        validator: function (v: string) {
+          // Check if password is being hashed already (bcrypt hash starts with $2)
+          if (v.startsWith('$2')) return true;
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(v);
+        },
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+      },
       select: false, // Don't return password by default
     },
     fcmTokens: {

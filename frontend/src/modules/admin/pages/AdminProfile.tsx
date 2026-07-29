@@ -16,6 +16,8 @@ export default function AdminProfile() {
         lastName: '',
         email: '',
         mobile: '',
+        currentPassword: '',
+        newPassword: '',
     });
 
     // Fetch profile on mount
@@ -37,6 +39,8 @@ export default function AdminProfile() {
                         lastName: response.data.lastName,
                         email: response.data.email,
                         mobile: response.data.mobile,
+                        currentPassword: '',
+                        newPassword: '',
                     });
                 }
             } catch (err) {
@@ -93,7 +97,30 @@ export default function AdminProfile() {
                 return;
             }
 
-            const response = await updateProfile(formData);
+            if (formData.newPassword) {
+                if (!formData.currentPassword) {
+                    setError('Current password is required to set a new password.');
+                    return;
+                }
+                if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(formData.newPassword)) {
+                    setError('New password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character.');
+                    return;
+                }
+            }
+
+            // Prepare data for API, omitting empty passwords
+            const submitData: any = {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                mobile: formData.mobile,
+            };
+            if (formData.newPassword) {
+                submitData.currentPassword = formData.currentPassword;
+                submitData.newPassword = formData.newPassword;
+            }
+
+            const response = await updateProfile(submitData);
             if (response.success && response.data) {
                 setProfile(response.data);
                 setSuccess('Profile updated successfully!');
@@ -132,6 +159,8 @@ export default function AdminProfile() {
                 lastName: profile.lastName,
                 email: profile.email,
                 mobile: profile.mobile,
+                currentPassword: '',
+                newPassword: '',
             });
         }
         setIsEditing(false);
@@ -304,6 +333,41 @@ export default function AdminProfile() {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Password Change Section */}
+                            {isEditing && (
+                                <div className="mt-8 pt-6 border-t border-neutral-200">
+                                    <h3 className="text-lg font-medium text-neutral-900 mb-4">Change Password</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                                Current Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                name="currentPassword"
+                                                value={formData.currentPassword}
+                                                onChange={handleInputChange}
+                                                placeholder="Leave blank to keep current"
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                                New Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                name="newPassword"
+                                                value={formData.newPassword}
+                                                onChange={handleInputChange}
+                                                placeholder="New strong password"
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Action Buttons (Edit Mode) */}
                             {isEditing && (
