@@ -17,7 +17,7 @@ import FileUpload from "../../../components/FileUpload";
 import PolicyModal from "../../../components/PolicyModal";
 import { useToast } from "../../../context/ToastContext";
 import { validateEmail } from "../../../utils/validation";
-const sellerLogo = "/assets/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview.png";
+const sellerLogo = "/assets/WhatsApp_Image_2026-07-29_at_16.30.58-removebg-preview.png";
 
 import { getActiveSubscriptionPlans } from "../../../services/api/subscription/sellerSubscriptionService";
 
