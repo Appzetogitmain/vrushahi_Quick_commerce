@@ -197,3 +197,5 @@ export default function QrPaymentModal({ isOpen, onClose, qrString, amount, orde
         </>
     );
 }
+
+// Trigger redeploy

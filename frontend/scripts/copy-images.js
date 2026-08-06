@@ -356,3 +356,5 @@ copyLoginVideo();
 copyvrushahiLogo();
 copyDeliveryIcon();
 console.log("Image copy completed!");
+
+// Trigger redeploy

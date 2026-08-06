@@ -52,3 +52,4 @@ export function serveAssetsPlugin(): Plugin {
   };
 }
 
+// Trigger redeploy
