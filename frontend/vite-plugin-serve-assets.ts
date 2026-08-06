@@ -13,7 +13,7 @@ export function serveAssetsPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
         // Only handle /assets/* requests
-        const url = req.url;
+        const url = req.url ? decodeURIComponent(req.url) : undefined;
         if (url?.startsWith('/assets/')) {
           const assetPath = url.replace('/assets/', '');
           const assetsDir = resolve(__dirname, 'assets');

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
+import vrushahiLogo from '@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.56-removebg-preview (1).png';
 
 interface QrPaymentModalProps {
     isOpen: boolean;
@@ -142,7 +143,7 @@ export default function QrPaymentModal({ isOpen, onClose, qrString, amount, orde
                                                     level="H"
                                                     includeMargin={false}
                                                     imageSettings={{
-                                                        src: "/favicon.ico", // Or app logo
+                                                        src: vrushahiLogo,
                                                         x: undefined,
                                                         y: undefined,
                                                         height: 40,

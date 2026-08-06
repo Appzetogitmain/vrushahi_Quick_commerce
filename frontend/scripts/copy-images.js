@@ -307,6 +307,23 @@ function copyvrushahiLogo() {
       console.log("Copied vrushahi logo: LogoLatest.png");
     }
   }
+
+  const vrumarketLogoDir = path.join(assetsDir, "vrumarket-logo");
+  if (fs.existsSync(vrumarketLogoDir)) {
+    const destDir = path.join(publicAssetsDir, "vrumarket-logo");
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    const files = fs.readdirSync(vrumarketLogoDir);
+    files.forEach((file) => {
+      const srcPath = path.join(vrumarketLogoDir, file);
+      const destPath = path.join(destDir, file);
+      if (fs.statSync(srcPath).isFile()) {
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`Copied vrumarket-logo: ${file}`);
+      }
+    });
+  }
 }
 
 // Copy delivery boy icon

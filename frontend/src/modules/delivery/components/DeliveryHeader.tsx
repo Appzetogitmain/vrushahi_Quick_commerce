@@ -94,12 +94,19 @@ export default function DeliveryHeader({ userName, hideProfile, hideToggle }: De
       
       {/* Header Content */}
       <div className="px-4 py-3">
-        {/* App Title */}
-        <h1 className={`text-xl font-extrabold text-center mb-3 transition-colors tracking-tight ${
-          isOnline ? 'text-[#118B50]' : 'text-neutral-500'
-        }`}>
-          Vrumarket Delivery
-        </h1>
+        {/* App Title with Logo */}
+        <div className="flex items-center justify-center gap-2 mb-3 cursor-pointer" onClick={() => navigate('/delivery')}>
+          <img
+            src={vrushahiLogo}
+            alt="Vrumarket Logo"
+            className="h-9 w-auto object-contain"
+          />
+          <h1 className={`text-xl font-extrabold transition-colors tracking-tight ${
+            isOnline ? 'text-[#118B50]' : 'text-neutral-500'
+          }`}>
+            Vrumarket Delivery
+          </h1>
+        </div>
         
         {/* User Info Bar */}
         <div className={`flex items-center ${
