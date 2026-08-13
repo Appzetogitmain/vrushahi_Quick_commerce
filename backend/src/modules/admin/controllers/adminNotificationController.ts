@@ -1,6 +1,50 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Notification from "../../../models/Notification";
+import { sendPushNotification } from "../../../services/firebaseAdmin";
+import Customer from "../../../models/Customer";
+import Delivery from "../../../models/Delivery";
+import Seller from "../../../models/Seller";
+import Admin from "../../../models/Admin";
+
+/**
+ * Collect FCM tokens for a given recipientType
+ */
+async function collectTokens(recipientType: string, recipientId?: string): Promise<string[]> {
+  const tokens: string[] = [];
+
+  const addUserTokens = (user: any) => {
+    if (user?.fcmTokens?.length) tokens.push(...user.fcmTokens);
+    if (user?.fcmTokenMobile?.length) tokens.push(...user.fcmTokenMobile);
+  };
+
+  if (recipientId) {
+    // Specific user
+    let user: any;
+    if (recipientType === "Customer") user = await Customer.findById(recipientId).select("fcmTokens fcmTokenMobile");
+    else if (recipientType === "Delivery") user = await Delivery.findById(recipientId).select("fcmTokens fcmTokenMobile");
+    else if (recipientType === "Seller") user = await Seller.findById(recipientId).select("fcmTokens fcmTokenMobile");
+    else if (recipientType === "Admin") user = await Admin.findById(recipientId).select("fcmTokens fcmTokenMobile");
+    if (user) addUserTokens(user);
+  } else {
+    // Broadcast — fetch all of the relevant role(s)
+    const types = recipientType === "All"
+      ? ["Customer", "Delivery", "Seller", "Admin"]
+      : [recipientType];
+
+    for (const type of types) {
+      let users: any[] = [];
+      if (type === "Customer") users = await Customer.find({}).select("fcmTokens fcmTokenMobile").lean();
+      else if (type === "Delivery") users = await Delivery.find({}).select("fcmTokens fcmTokenMobile").lean();
+      else if (type === "Seller") users = await Seller.find({}).select("fcmTokens fcmTokenMobile").lean();
+      else if (type === "Admin") users = await Admin.find({}).select("fcmTokens fcmTokenMobile").lean();
+      users.forEach(addUserTokens);
+    }
+  }
+
+  // Deduplicate
+  return [...new Set(tokens)];
+}
 
 /**
  * Create a new notification
@@ -40,13 +84,39 @@ export const createNotification = asyncHandler(
       isRead: false,
     });
 
+    // Send push notification asynchronously (non-blocking)
+    collectTokens(recipientType, recipientId).then(async (tokens) => {
+      if (tokens.length === 0) {
+        console.log(`[FCM Broadcast] No tokens found for recipientType=${recipientType}. Skipping push.`);
+        return;
+      }
+      console.log(`[FCM Broadcast] Sending push to ${tokens.length} token(s) for recipientType=${recipientType}`);
+      try {
+        const result = await sendPushNotification(tokens, {
+          title,
+          body: message,
+          data: {
+            type: type || "Info",
+            notificationId: notification._id.toString(),
+            link: link || "",
+          },
+        });
+        console.log(`[FCM Broadcast] Done — success: ${result.successCount}, failed: ${result.failureCount}`);
+        // Mark as sent
+        await Notification.findByIdAndUpdate(notification._id, { sentAt: new Date() });
+      } catch (pushErr) {
+        console.error("[FCM Broadcast] Error sending push:", pushErr);
+      }
+    }).catch((err) => console.error("[FCM Broadcast] collectTokens error:", err));
+
     return res.status(201).json({
       success: true,
-      message: "Notification created successfully",
+      message: "Notification created and push dispatched",
       data: notification,
     });
   }
 );
+
 
 /**
  * Get all notifications
