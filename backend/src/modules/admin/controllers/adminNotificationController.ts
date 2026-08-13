@@ -12,6 +12,7 @@ import Admin from "../../../models/Admin";
  */
 async function collectTokens(recipientType: string, recipientId?: string): Promise<string[]> {
   const tokens: string[] = [];
+  const proj = { fcmTokens: 1, fcmTokenMobile: 1 };
 
   const addUserTokens = (user: any) => {
     if (user?.fcmTokens?.length) tokens.push(...user.fcmTokens);
@@ -19,12 +20,12 @@ async function collectTokens(recipientType: string, recipientId?: string): Promi
   };
 
   if (recipientId) {
-    // Specific user
+    // Specific user — use lean() for plain object, explicit any avoids union-type error
     let user: any;
-    if (recipientType === "Customer") user = await Customer.findById(recipientId).select("fcmTokens fcmTokenMobile");
-    else if (recipientType === "Delivery") user = await Delivery.findById(recipientId).select("fcmTokens fcmTokenMobile");
-    else if (recipientType === "Seller") user = await Seller.findById(recipientId).select("fcmTokens fcmTokenMobile");
-    else if (recipientType === "Admin") user = await Admin.findById(recipientId).select("fcmTokens fcmTokenMobile");
+    if (recipientType === "Customer") user = await (Customer as any).findById(recipientId, proj).lean();
+    else if (recipientType === "Delivery") user = await (Delivery as any).findById(recipientId, proj).lean();
+    else if (recipientType === "Seller") user = await (Seller as any).findById(recipientId, proj).lean();
+    else if (recipientType === "Admin") user = await (Admin as any).findById(recipientId, proj).lean();
     if (user) addUserTokens(user);
   } else {
     // Broadcast — fetch all of the relevant role(s)
@@ -34,10 +35,10 @@ async function collectTokens(recipientType: string, recipientId?: string): Promi
 
     for (const type of types) {
       let users: any[] = [];
-      if (type === "Customer") users = await Customer.find({}).select("fcmTokens fcmTokenMobile").lean();
-      else if (type === "Delivery") users = await Delivery.find({}).select("fcmTokens fcmTokenMobile").lean();
-      else if (type === "Seller") users = await Seller.find({}).select("fcmTokens fcmTokenMobile").lean();
-      else if (type === "Admin") users = await Admin.find({}).select("fcmTokens fcmTokenMobile").lean();
+      if (type === "Customer") users = await (Customer as any).find({}, proj).lean();
+      else if (type === "Delivery") users = await (Delivery as any).find({}, proj).lean();
+      else if (type === "Seller") users = await (Seller as any).find({}, proj).lean();
+      else if (type === "Admin") users = await (Admin as any).find({}, proj).lean();
       users.forEach(addUserTokens);
     }
   }
