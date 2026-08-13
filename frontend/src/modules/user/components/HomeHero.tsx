@@ -10,6 +10,7 @@ import { Category } from "../../../types/domain";
 import { getHeaderCategoriesPublic } from "../../../services/api/headerCategoryService";
 import { getIconByName } from "../../../utils/iconLibrary";
 import CartIconButton from "../../../components/CartIconButton";
+import CustomerNotificationBell from "./CustomerNotificationBell";
 import logoImg from "@assets/vrumarket-logo/WhatsApp_Image_2026-07-29_at_16.30.57-removebg-preview.png";
 gsap.registerPlugin(ScrollTrigger);
 
@@ -399,8 +400,12 @@ export default function HomeHero({
               </div>
             </div>
 
-            {/* Right: Cart Icon */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Right: Notification Bell + Cart Icon */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <CustomerNotificationBell
+                className={isHome ? 'bg-black/5 hover:bg-black/10' : 'bg-white/20 hover:bg-white/30'}
+                iconColor={isHome ? "#000000" : "currentColor"}
+              />
               <CartIconButton 
                 className={isHome ? 'bg-black/5 hover:bg-black/10' : 'bg-white/20 hover:bg-white/30'}
                 iconColor={isHome ? "#000000" : "currentColor"}

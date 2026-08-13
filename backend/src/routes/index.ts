@@ -39,6 +39,7 @@ import adminRoutes from "./adminRoutes";
 import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import customerBannerRoutes from "./customerBannerRoutes";
+import customerNotificationRoutes from "./customerNotificationRoutes";
 import paymentRoutes from "./paymentRoutes";
 import {
   createOrder,
@@ -104,6 +105,7 @@ router.use("/customer/cart", customerCartRoutes);
 router.use("/customer/stores", customerStoreRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
+router.use("/customer/notifications", customerNotificationRoutes);
 
 // Customer orders route - direct registration to avoid module loading issue
 console.log("🔥 REGISTERING CUSTOMER ORDER ROUTES");

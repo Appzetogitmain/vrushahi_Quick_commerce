@@ -67,6 +67,15 @@ export default function Login() {
           status: response.data.user.status,
           userType: 'Customer',
         });
+
+        // Register FCM token for push notifications
+        try {
+          const { registerFCMToken } = await import("../../services/pushNotificationService");
+          await registerFCMToken();
+        } catch (fcmError) {
+          console.warn("FCM token registration failed (non-critical):", fcmError);
+        }
+
         navigate('/');
       }
     } catch (err: any) {
