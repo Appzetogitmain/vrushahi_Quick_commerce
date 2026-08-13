@@ -10,7 +10,7 @@ export const getNotifications = asyncHandler(async (req: Request, res: Response)
     const sellerId = req.user?.userId;
 
     const notifications = await Notification.find({
-        recipientType: "Seller",
+        recipientType: { $in: ["Seller", "All"] },
         $or: [
             { recipientId: sellerId },
             { recipientId: null } // Broadcasts to all sellers
@@ -33,7 +33,7 @@ export const markNotificationRead = asyncHandler(async (req: Request, res: Respo
     const sellerId = req.user?.userId;
 
     const notification = await Notification.findOneAndUpdate(
-        { _id: id, recipientType: "Seller", recipientId: sellerId },
+        { _id: id, recipientType: { $in: ["Seller", "All"] }, recipientId: { $in: [sellerId, null] } },
         { isRead: true, readAt: new Date() },
         { new: true }
     );
@@ -60,8 +60,8 @@ export const markMultipleAsRead = asyncHandler(async (req: Request, res: Respons
     const { notificationIds } = req.body;
 
     let filter: any = {
-        recipientType: "Seller",
-        recipientId: sellerId,
+        recipientType: { $in: ["Seller", "All"] },
+        recipientId: { $in: [sellerId, null] },
         isRead: false
     };
 
