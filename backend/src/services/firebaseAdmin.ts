@@ -78,6 +78,13 @@ try {
             console.error('❌ Service account JSON is missing required fields (project_id, private_key, client_email)');
         } else if (admin.apps.length === 0) {
             try {
+                // IMPORTANT: Sanitize private key to fix "Unparsed DER bytes remain" errors
+                // This ensures literal \n are replaced with actual newlines, and trailing spaces/garbage are removed.
+                serviceAccount.private_key = serviceAccount.private_key
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\r/g, '\r')
+                    .trim();
+
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
                 });
