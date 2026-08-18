@@ -27,17 +27,20 @@ if (messaging) {
     messaging.onBackgroundMessage((payload) => {
         console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-        // Customize notification here
-        const notificationTitle = payload.notification?.title || 'New Message';
+        const notificationTitle = payload.notification?.title || payload.data?.title || 'vrushahi Notification';
+        const notificationBody = payload.notification?.body || payload.data?.body || payload.data?.message || '';
+
         const notificationOptions = {
-            body: payload.notification?.body || '',
+            body: notificationBody,
             icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: payload.data?.notificationId || payload.data?.type || 'vrushahi-notification',
             data: payload.data,
             requireInteraction: true,
             vibrate: [200, 100, 200, 100, 200, 100, 200]
         };
 
-        self.registration.showNotification(notificationTitle, notificationOptions);
+        return self.registration.showNotification(notificationTitle, notificationOptions);
     });
 }
 

@@ -81,12 +81,18 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
                 title: payload.title,
                 body: payload.body,
             },
-            data: payload.data || {},
+            data: {
+                title: payload.title,
+                body: payload.body,
+                ...(payload.data || {}),
+            },
             tokens: tokens,
             // Mobile Specifics
             android: {
                 priority: 'high',
                 notification: {
+                    title: payload.title,
+                    body: payload.body,
                     sound: 'default',
                     channelId: 'vrushahi_notifications', // Ensure this matches your Flutter side channel if defined
                     clickAction: 'FLUTTER_NOTIFICATION_CLICK',
@@ -95,10 +101,30 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
             apns: {
                 payload: {
                     aps: {
+                        alert: {
+                            title: payload.title,
+                            body: payload.body,
+                        },
                         sound: 'default',
                         badge: 1,
                         contentAvailable: true,
                     },
+                },
+            },
+            webpush: {
+                headers: {
+                    Urgency: 'high',
+                    TTL: '86400',
+                },
+                notification: {
+                    title: payload.title,
+                    body: payload.body,
+                    icon: '/favicon.ico',
+                    badge: '/favicon.ico',
+                    requireInteraction: true,
+                },
+                fcmOptions: {
+                    link: payload.data?.link || '/',
                 },
             },
         };

@@ -287,19 +287,20 @@ import { initializePushNotifications, setupForegroundNotificationHandler, regist
 function AppContent() {
   const { isAuthenticated } = useAuth();
 
-  // Initialize push notifications (service worker registration only)
+  // Initialize push notifications (service worker registration & foreground handler)
   useEffect(() => {
     initializePushNotifications();
     setupForegroundNotificationHandler();
   }, []);
 
-  // NOTE: FCM token registration is handled in individual login flows
-  // (DeliveryLogin, SellerLogin, AdminLogin, CustomerLogin)
-  // This prevents duplicate notifications from being sent on:
-  // - Page refresh
-  // - Tab switching
-  // - Component re-renders
-  // - Auth state rehydration
+  // Register / sync FCM token with backend when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerFCMToken().catch((err) => {
+        console.warn("FCM token auto-registration failed:", err);
+      });
+    }
+  }, [isAuthenticated]);
 
   return (
     <ErrorBoundary>

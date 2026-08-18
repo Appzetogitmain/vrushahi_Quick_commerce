@@ -110,13 +110,6 @@ export async function registerFCMToken(forceUpdate = false) {
     }
 
     try {
-        // Check if already registered
-        const savedToken = localStorage.getItem('fcm_token_web');
-        if (savedToken && !forceUpdate) {
-            console.log('FCM token already registered locally');
-            return savedToken;
-        }
-
         // Request permission first
         const hasPermission = await requestNotificationPermission();
         if (!hasPermission) {
@@ -150,17 +143,11 @@ export async function registerFCMToken(forceUpdate = false) {
             }
         } catch (apiError: any) {
             console.error('Failed to register token with backend API:', apiError);
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                alert(`❌ Backend registration FAILED: ${apiError.response?.data?.message || apiError.message || 'Network error'}. Check if your API URL is correct.`);
-            }
         }
 
         return token;
     } catch (error: any) {
         console.error('❌ Error in registerFCMToken flow:', error);
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            alert(`❌ FCM Flow Error: ${error.message || 'Unknown exception'}`);
-        }
         return null;
     }
 }
@@ -194,32 +181,39 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
     onMessage(messaging, (payload) => {
         console.log('📬 Foreground message received:', payload);
 
+        // Broadcast custom event so UI components (like CustomerNotificationBell) refresh unread notifications
+        try {
+            window.dispatchEvent(new CustomEvent('vrushahi_notification_received', { detail: payload }));
+        } catch (evtErr) {
+            console.warn('Error dispatching notification event:', evtErr);
+        }
+
         // Call custom handler if provided
         if (handler) {
             handler(payload);
         }
 
         // Show a system notification even in foreground
-        // This ensures the notification appears in the "notification center" 
-        // while the user is actively using the app.
-        if (Notification.permission === 'granted' && payload.notification) {
-            const { title, body } = payload.notification;
-            const notificationTitle = title || 'vrushahi Notification';
+        // This ensures the notification appears in the notification bar / desktop notification center
+        if (Notification.permission === 'granted') {
+            const title = payload.notification?.title || payload.data?.title || 'vrushahi Notification';
+            const body = payload.notification?.body || payload.data?.body || payload.data?.message || '';
+
             const notificationOptions = {
                 body: body,
                 icon: '/favicon.ico',
                 badge: '/favicon.ico',
-                tag: payload.data?.type || 'vrushahi-general',
+                tag: payload.data?.notificationId || payload.data?.type || 'vrushahi-general',
                 data: payload.data
             };
 
             // Use the Notification API to show it immediately
             try {
-                new Notification(notificationTitle, notificationOptions);
+                new Notification(title, notificationOptions);
             } catch (err) {
                 console.warn('Failed to show foreground notification via new Notification(), trying ServiceWorker:', err);
                 navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(notificationTitle, notificationOptions);
+                    registration.showNotification(title, notificationOptions);
                 });
             }
         }

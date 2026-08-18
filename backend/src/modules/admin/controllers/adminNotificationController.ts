@@ -12,9 +12,10 @@ import Admin from "../../../models/Admin";
  */
 async function collectTokens(recipientType: string, recipientId?: string): Promise<string[]> {
   const tokens: string[] = [];
-  const proj = { fcmTokens: 1, fcmTokenMobile: 1 };
+  const proj = { fcmTokens: 1, fcmTokenMobile: 1, notificationPreferences: 1 };
 
   const addUserTokens = (user: any) => {
+    if (user?.notificationPreferences?.push === false) return;
     if (user?.fcmTokens?.length) tokens.push(...user.fcmTokens);
     if (user?.fcmTokenMobile?.length) tokens.push(...user.fcmTokenMobile);
   };
