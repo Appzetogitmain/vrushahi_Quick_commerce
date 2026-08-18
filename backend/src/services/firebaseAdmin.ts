@@ -78,12 +78,28 @@ try {
             console.error('❌ Service account JSON is missing required fields (project_id, private_key, client_email)');
         } else if (admin.apps.length === 0) {
             try {
-                // IMPORTANT: Sanitize private key to fix "Unparsed DER bytes remain" errors
-                // This ensures literal \n are replaced with actual newlines, and trailing spaces/garbage are removed.
-                serviceAccount.private_key = serviceAccount.private_key
-                    .replace(/\\n/g, '\n')
-                    .replace(/\\r/g, '\r')
-                    .trim();
+                // IMPORTANT: Rigorously reconstruct the private key to fix ASN.1 / DER parsing errors.
+                // This fixes issues if the key was copy-pasted incorrectly, wrapped, or has literal \n
+                let key = serviceAccount.private_key;
+                
+                // First, replace any literal \n with spaces temporarily, and replace \r
+                key = key.replace(/\\n/g, ' ').replace(/\\r/g, '');
+                
+                // Extract just the base64 content between the BEGIN and END markers
+                const beginMarker = '-----BEGIN PRIVATE KEY-----';
+                const endMarker = '-----END PRIVATE KEY-----';
+                
+                if (key.includes(beginMarker) && key.includes(endMarker)) {
+                    let base64Content = key.split(beginMarker)[1].split(endMarker)[0];
+                    // Remove ALL whitespace (spaces, newlines, tabs) from the base64 body
+                    base64Content = base64Content.replace(/\s+/g, '');
+                    
+                    // Reconstruct the key with standard 64-character lines
+                    const matched = base64Content.match(/.{1,64}/g);
+                    if (matched) {
+                        serviceAccount.private_key = `${beginMarker}\n${matched.join('\n')}\n${endMarker}\n`;
+                    }
+                }
 
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
