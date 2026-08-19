@@ -6,6 +6,8 @@ import Customer from "../models/Customer";
 import Delivery from "../models/Delivery";
 import { globalIO } from "../socket/socketService";
 
+import { sendNotificationToUser } from "../utils/pushNotificationHelper";
+
 /**
  * Format notification for socket payload
  */
@@ -55,11 +57,37 @@ export const sendNotification = async (
     isRead: false,
   });
 
-  // Emit socket event if recipient is Admin
-  if (recipientType === "Admin" && globalIO) {
-    const payload = formatNotificationForSocket(notification);
-    globalIO.to(`admin-notifications-${recipientId}`).emit("new-admin-notification", payload);
+  const payload = formatNotificationForSocket(notification);
+
+  // Emit socket event based on recipient type
+  if (globalIO) {
+    if (recipientType === "Admin") {
+      globalIO.to(`admin-notifications-${recipientId}`).emit("new-admin-notification", payload);
+    } else if (recipientType === "Customer") {
+      globalIO.to(`customer-notifications-${recipientId}`).emit("new-customer-notification", payload);
+    } else if (recipientType === "Seller") {
+      globalIO.to(`seller-notifications-${recipientId}`).emit("new-seller-notification", payload);
+    } else if (recipientType === "Delivery") {
+      globalIO.to(`delivery-notifications-${recipientId}`).emit("new-delivery-notification", payload);
+    }
   }
+
+  // Dispatch push notification asynchronously
+  sendNotificationToUser(
+    recipientId,
+    {
+      title,
+      body: message,
+      data: {
+        type: options?.type || "Info",
+        notificationId: notification._id.toString(),
+        link: options?.link || "",
+      },
+    },
+    recipientType
+  ).catch((err) => {
+    console.error(`[NotificationService] Error sending push to ${recipientType} ${recipientId}:`, err);
+  });
 
   return notification;
 };
@@ -126,12 +154,14 @@ export const sendBroadcastNotification = async (
     )
   );
 
-  // Emit broadcast socket event if recipient is Admin
-  if (recipientType === "Admin" && notifications.length > 0 && globalIO) {
-    // We only need to send one notification payload since they are essentially identical
-    // except for recipientId, which isn't used in the UI list anyway.
+  // Emit broadcast socket event
+  if (notifications.length > 0 && globalIO) {
     const payload = formatNotificationForSocket(notifications[0]);
-    globalIO.to("admin-notifications-all").emit("new-admin-notification", payload);
+    if (recipientType === "Admin") {
+      globalIO.to("admin-notifications-all").emit("new-admin-notification", payload);
+    } else if (recipientType === "Customer") {
+      globalIO.emit("new-customer-notification", payload);
+    }
   }
 
   return notifications;
@@ -146,10 +176,21 @@ export const sendOrderStatusNotification = async (
   status: string
 ) => {
   const statusMessages: Record<string, { title: string; message: string }> = {
+    Received: {
+      title: "Order Placed Successfully",
+      message: "Your order has been placed and received by the store.",
+    },
+    Accepted: {
+      title: "Order Accepted",
+      message: "The store has accepted your order and is preparing the items.",
+    },
     Processed: {
       title: "Order Processed",
-      message:
-        "Your order has been processed and is being prepared for shipment.",
+      message: "Your order has been processed and is ready for pickup.",
+    },
+    "Picked up": {
+      title: "Order Picked Up",
+      message: "Delivery partner has picked up your order and is heading your way!",
     },
     Shipped: {
       title: "Order Shipped",
@@ -157,22 +198,26 @@ export const sendOrderStatusNotification = async (
     },
     "Out for Delivery": {
       title: "Out for Delivery",
-      message: "Your order is out for delivery and will reach you soon.",
+      message: "Your order is out for delivery and will reach you shortly.",
     },
     Delivered: {
-      title: "Order Delivered",
-      message:
-        "Your order has been delivered successfully. Thank you for shopping with us!",
+      title: "Order Delivered 🎉",
+      message: "Your order has been delivered successfully. Enjoy your items!",
     },
     Cancelled: {
       title: "Order Cancelled",
-      message:
-        "Your order has been cancelled. If you have any questions, please contact support.",
+      message: "Your order has been cancelled. If any payment was made, refund is initiated.",
+    },
+    Rejected: {
+      title: "Order Rejected",
+      message: "Unfortunately, your order could not be accepted by the store.",
     },
   };
 
-  const statusInfo = statusMessages[status];
-  if (!statusInfo) return;
+  const statusInfo = statusMessages[status] || {
+    title: `Order ${status}`,
+    message: `Your order status has been updated to ${status}.`,
+  };
 
   return sendNotification(
     "Customer",
@@ -182,7 +227,7 @@ export const sendOrderStatusNotification = async (
     {
       type: "Order",
       link: `/orders/${orderId}`,
-      priority: status === "Cancelled" ? "High" : "Medium",
+      priority: status === "Cancelled" || status === "Rejected" ? "High" : "Medium",
     }
   );
 };

@@ -6,6 +6,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Seller from "../../../models/Seller";
 import { creditWallet } from "../../../services/walletManagementService";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
+import { sendOrderStatusNotification } from "../../../services/notificationService";
 import { Server as SocketIOServer } from "socket.io";
 
 /**
@@ -362,6 +363,19 @@ export const updateOrderStatus = asyncHandler(
             );
           }
         }
+      }
+    }
+
+    // Trigger customer notification for order status update
+    if (order.customer) {
+      try {
+        sendOrderStatusNotification(
+          order._id.toString(),
+          order.customer.toString(),
+          status
+        ).catch((err) => console.error(`Error notifying customer of seller status update (${status}):`, err));
+      } catch (custErr) {
+        console.error("Error dispatching customer notification from seller update:", custErr);
       }
     }
 

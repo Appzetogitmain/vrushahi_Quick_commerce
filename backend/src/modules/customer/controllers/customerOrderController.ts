@@ -9,6 +9,7 @@ import Return from "../../../models/Return";
 import mongoose from "mongoose";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
+import { sendOrderStatusNotification } from "../../../services/notificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
 import AppSettings from "../../../models/AppSettings";
@@ -527,6 +528,17 @@ export const createOrder = async (req: Request, res: Response) => {
             console.error("Error sending seller notification:", notificationError);
         }
 
+        // Send order placement push & in-app notification to customer
+        try {
+            sendOrderStatusNotification(
+                newOrder._id.toString(),
+                userId,
+                "Received"
+            ).catch((err) => console.error("Error sending customer order creation notification:", err));
+        } catch (custNotifErr) {
+            console.error("Error dispatching customer order notification:", custNotifErr);
+        }
+
         return res.status(201).json({
             success: true,
             message: "Order placed successfully in vrushahi!",
@@ -949,6 +961,17 @@ export const cancelOrder = async (req: Request, res: Response) => {
             }
         } catch (err) {
             console.error("Notification error:", err);
+        }
+
+        // Send order cancellation push & in-app notification to customer
+        try {
+            sendOrderStatusNotification(
+                order._id.toString(),
+                order.customer ? order.customer.toString() : userId,
+                "Cancelled"
+            ).catch((err) => console.error("Error sending customer cancellation notification:", err));
+        } catch (custCancelErr) {
+            console.error("Error dispatching customer cancellation notification:", custCancelErr);
         }
 
         return res.status(200).json({

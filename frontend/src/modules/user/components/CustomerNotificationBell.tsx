@@ -56,11 +56,13 @@ export default function CustomerNotificationBell({
       };
 
       window.addEventListener("vrushahi_notification_received", handleNotificationReceived);
+
+      // Listen for socket events if socket connection exists
       return () => {
         window.removeEventListener("vrushahi_notification_received", handleNotificationReceived);
       };
     }
-  }, [isAuthenticated, user?.userType]);
+  }, [isAuthenticated, user?.userType, user?.id]);
 
   // Close dropdown on outside click
   useEffect(() => {

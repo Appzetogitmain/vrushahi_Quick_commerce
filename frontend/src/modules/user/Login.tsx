@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sendOTP, verifyOTP } from '../../services/api/auth/customerAuthService';
 import { useAuth } from '../../context/AuthContext';
+import { registerFCMToken } from '../../services/pushNotificationService';
 import OTPInput from '../../components/OTPInput';
 import PolicyModal from '../../components/PolicyModal';
 import Lottie from 'lottie-react';
@@ -68,8 +69,10 @@ export default function Login() {
           userType: 'Customer',
         });
 
-        // FCM token registration is handled globally by App.tsx when auth state changes
-        // No need to call registerFCMToken here - it would cause duplicate notifications
+        // Ensure FCM token is immediately registered/synced for this customer
+        registerFCMToken(true).catch((fcmErr) => {
+          console.warn('FCM token registration error on login:', fcmErr);
+        });
 
         navigate('/');
       }

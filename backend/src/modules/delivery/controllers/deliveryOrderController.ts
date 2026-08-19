@@ -12,6 +12,7 @@ import {
     verifySellerPickupOtp 
 } from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
+import { sendOrderStatusNotification } from "../../../services/notificationService";
 import Return from "../../../models/Return";
 import { handleReturnPickupAcceptance, handleReturnPickupRejection } from "../../../services/returnNotificationService";
 import AppSettings from "../../../models/AppSettings";
@@ -279,6 +280,19 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
         // Trigger notification to sellers for payment status change or specific transitions
         if (order.paymentStatus === 'Paid' || status === 'Delivered') {
             notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
+        }
+    }
+
+    // Trigger customer notification for delivery status update
+    if (order.customer && status) {
+        try {
+            sendOrderStatusNotification(
+                order._id.toString(),
+                order.customer.toString(),
+                status
+            ).catch((err) => console.error(`Error notifying customer of delivery status update (${status}):`, err));
+        } catch (custErr) {
+            console.error("Error dispatching customer notification from delivery update:", custErr);
         }
     }
 

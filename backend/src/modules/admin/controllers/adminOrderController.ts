@@ -11,6 +11,7 @@ import { debitWallet, creditWallet } from "../../../services/walletManagementSer
 import { processCustomerWalletTransaction } from "../../../services/walletService";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { notifyDeliveryBoysOfReturnPickup } from "../../../services/returnNotificationService";
+import { sendOrderStatusNotification } from "../../../services/notificationService";
 import AppSettings from "../../../models/AppSettings";
 import { Server as SocketIOServer } from "socket.io";
 
@@ -238,6 +239,23 @@ export const updateOrderStatus = asyncHandler(
       const io: SocketIOServer = req.app.get("io");
       if (io) {
         notifySellersOfOrderUpdate(io, order, "STATUS_UPDATE");
+      }
+    }
+
+    // Trigger customer notification for order status update
+    if (order.customer) {
+      try {
+        const customerId = (order.customer as any)._id
+          ? (order.customer as any)._id.toString()
+          : order.customer.toString();
+
+        sendOrderStatusNotification(
+          order._id.toString(),
+          customerId,
+          status
+        ).catch((err) => console.error(`Error notifying customer of admin status update (${status}):`, err));
+      } catch (custErr) {
+        console.error("Error dispatching customer notification from admin update:", custErr);
       }
     }
 

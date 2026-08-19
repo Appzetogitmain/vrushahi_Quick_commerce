@@ -220,27 +220,38 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
         }
 
         // Show a system notification even in foreground
-        // This ensures the notification appears in the notification bar / desktop notification center
-        if (Notification.permission === 'granted') {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
             const title = payload.notification?.title || payload.data?.title || 'vrushahi Notification';
             const body = payload.notification?.body || payload.data?.body || payload.data?.message || '';
 
             const notificationOptions = {
                 body: body,
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
+                icon: '/favicon.png',
+                badge: '/favicon.png',
                 tag: payload.data?.notificationId || payload.data?.type || 'vrushahi-general',
-                data: payload.data
+                data: payload.data || {}
             };
 
-            // Use the Notification API to show it immediately
-            try {
-                new Notification(title, notificationOptions);
-            } catch (err) {
-                console.warn('Failed to show foreground notification via new Notification(), trying ServiceWorker:', err);
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(title, notificationOptions);
-                });
+            // Android Chrome blocks new Notification() constructor directly in window context,
+            // so we always use ServiceWorkerRegistration.showNotification() when available
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready
+                    .then((registration) => {
+                        registration.showNotification(title, notificationOptions);
+                    })
+                    .catch((swErr) => {
+                        try {
+                            new Notification(title, notificationOptions);
+                        } catch (notifErr) {
+                            console.warn('Could not display foreground notification:', notifErr);
+                        }
+                    });
+            } else {
+                try {
+                    new Notification(title, notificationOptions);
+                } catch (notifErr) {
+                    console.warn('Could not display foreground notification:', notifErr);
+                }
             }
         }
     });

@@ -58,9 +58,12 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
             return;
         }
 
+        let isNewToken = false;
+
         if (platform === 'web') {
             if (!user.fcmTokens) user.fcmTokens = [];
             if (!user.fcmTokens.includes(token)) {
+                isNewToken = true;
                 user.fcmTokens.push(token);
                 // Limit to 10 tokens per user per platform to prevent unlimited growth
                 if (user.fcmTokens.length > 10) {
@@ -70,17 +73,13 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
         } else if (platform === 'mobile') {
             if (!user.fcmTokenMobile) user.fcmTokenMobile = [];
             if (!user.fcmTokenMobile.includes(token)) {
+                isNewToken = true;
                 user.fcmTokenMobile.push(token);
                 if (user.fcmTokenMobile.length > 10) {
                     user.fcmTokenMobile = user.fcmTokenMobile.slice(-10);
                 }
             }
         }
-
-        // Check if this is a NEW token (not a re-registration)
-        const isNewToken = platform === 'web'
-            ? !user.fcmTokens?.includes(token)
-            : !user.fcmTokenMobile?.includes(token);
 
         await user.save();
 

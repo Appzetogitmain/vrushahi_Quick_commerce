@@ -140,8 +140,8 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
     try {
         const message: any = {
             data: {
-                title: payload.title,
-                body: payload.body,
+                title: payload.title || 'Notification',
+                body: payload.body || '',
                 ...(payload.data || {}),
             },
             tokens: tokens,
@@ -169,11 +169,6 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
                     },
                 },
             },
-            // No `notification`/`webpush.notification` block here: the frontend's
-            // onMessage (foreground) and onBackgroundMessage (SW) handlers both build
-            // and display the notification manually from `data`. Including a
-            // notification payload as well causes the browser to auto-display it
-            // *in addition to* that manual call, producing two notifications per message.
             webpush: {
                 headers: {
                     Urgency: 'high',
