@@ -139,10 +139,6 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
 
     try {
         const message: any = {
-            notification: {
-                title: payload.title,
-                body: payload.body,
-            },
             data: {
                 title: payload.title,
                 body: payload.body,
@@ -173,17 +169,15 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
                     },
                 },
             },
+            // No `notification`/`webpush.notification` block here: the frontend's
+            // onMessage (foreground) and onBackgroundMessage (SW) handlers both build
+            // and display the notification manually from `data`. Including a
+            // notification payload as well causes the browser to auto-display it
+            // *in addition to* that manual call, producing two notifications per message.
             webpush: {
                 headers: {
                     Urgency: 'high',
                     TTL: '86400',
-                },
-                notification: {
-                    title: payload.title,
-                    body: payload.body,
-                    icon: '/favicon.ico',
-                    badge: '/favicon.ico',
-                    requireInteraction: true,
                 },
                 fcmOptions: {
                     link: payload.data?.link || '/',
@@ -193,6 +187,14 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
 
         const response = await admin.messaging().sendEachForMulticast(message);
         console.log(`[${new Date().toISOString()}] FCM Send to ${tokens.length} tokens: ${response.successCount} success, ${response.failureCount} failure`);
+
+        if (response.failureCount > 0) {
+            response.responses.forEach((r, i) => {
+                if (!r.success) {
+                    console.warn(`[FCM] Token #${i} (${tokens[i].slice(0, 12)}...) failed: ${r.error?.code} - ${r.error?.message}`);
+                }
+            });
+        }
 
         return response;
     } catch (error) {

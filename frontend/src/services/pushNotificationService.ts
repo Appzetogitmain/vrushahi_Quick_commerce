@@ -110,6 +110,15 @@ export async function registerFCMToken(forceUpdate = false) {
     }
 
     try {
+        // Skip re-registration if we already have this exact token saved
+        // (avoids re-saving on every mount/refresh/auth-state change, which
+        // can accumulate multiple live tokens per browser if the token rotates)
+        const savedToken = localStorage.getItem('fcm_token_web');
+        if (savedToken && !forceUpdate) {
+            console.log('FCM token already registered locally');
+            return savedToken;
+        }
+
         // Request permission first
         const hasPermission = await requestNotificationPermission();
         if (!hasPermission) {
@@ -122,6 +131,10 @@ export async function registerFCMToken(forceUpdate = false) {
         if (!token) {
             console.warn('Failed to get FCM token, skipping backend registration');
             return null;
+        }
+
+        if (token === savedToken) {
+            return token;
         }
 
         // Detect platform

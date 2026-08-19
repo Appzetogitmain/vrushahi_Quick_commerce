@@ -68,13 +68,8 @@ export default function Login() {
           userType: 'Customer',
         });
 
-        // Register FCM token for push notifications
-        try {
-          const { registerFCMToken } = await import("../../services/pushNotificationService");
-          await registerFCMToken();
-        } catch (fcmError) {
-          console.warn("FCM token registration failed (non-critical):", fcmError);
-        }
+        // FCM token registration is handled globally by App.tsx when auth state changes
+        // No need to call registerFCMToken here - it would cause duplicate notifications
 
         navigate('/');
       }
