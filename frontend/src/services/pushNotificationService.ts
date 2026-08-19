@@ -100,21 +100,30 @@ export async function getFCMToken() {
     }
 }
 
+// Global interface for Flutter or native wrapper injection
+if (typeof window !== 'undefined') {
+    (window as any).registerNativeFCMToken = async (nativeToken: string) => {
+        console.log('📱 Native FCM token received from Flutter wrapper:', nativeToken);
+        if (!nativeToken) return;
+        try {
+            localStorage.setItem('fcm_token_native', nativeToken);
+            const rawUser = localStorage.getItem('userData');
+            const userId = rawUser ? JSON.parse(rawUser).id : null;
+            await api.post('/fcm-tokens/save', {
+                token: nativeToken,
+                platform: 'mobile',
+                userId: userId,
+            });
+            console.log('✅ Native FCM token registered successfully with backend');
+        } catch (err) {
+            console.error('❌ Failed to register native FCM token with backend:', err);
+        }
+    };
+}
+
 // Register FCM token with backend
 export async function registerFCMToken(forceUpdate = false) {
-    if (!messaging) {
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            alert('⚠️ Cannot register FCM token: Messaging is not supported or initialized.');
-        }
-        return null;
-    }
-
     try {
-        // An FCM token is tied to the browser/device, not the app login, so the
-        // same token value can recur across different app accounts sharing a
-        // browser. Only skip re-registration when it's already saved for THIS
-        // account — otherwise a different logged-in user would never get their
-        // token attached to their own backend record.
         const currentUserId = (() => {
             try {
                 const raw = localStorage.getItem('userData');
@@ -123,6 +132,34 @@ export async function registerFCMToken(forceUpdate = false) {
                 return null;
             }
         })();
+
+        // Check if a native token was provided by Flutter wrapper
+        const nativeToken =
+            (window as any).flutterFCMToken ||
+            localStorage.getItem('flutter_fcm_token') ||
+            localStorage.getItem('fcm_token_native');
+
+        if (nativeToken) {
+            console.log('📱 Registering native Flutter FCM token with backend...');
+            try {
+                const response = await api.post(`/fcm-tokens/save`, {
+                    token: nativeToken,
+                    platform: 'mobile',
+                    userId: currentUserId,
+                });
+                if (response.data.success) {
+                    console.log('✅ Native Flutter FCM token registered with backend');
+                    return nativeToken;
+                }
+            } catch (nativeErr) {
+                console.error('Error saving native FCM token:', nativeErr);
+            }
+        }
+
+        if (!messaging) {
+            console.log('Messaging not available or not supported on this client');
+            return null;
+        }
 
         const savedToken = localStorage.getItem('fcm_token_web');
         const savedForUser = localStorage.getItem('fcm_token_web_user');
@@ -158,7 +195,8 @@ export async function registerFCMToken(forceUpdate = false) {
             console.log(`Attempting to save FCM token to backend for ${platform}...`);
             const response = await api.post(`/fcm-tokens/save`, {
                 token: token,
-                platform: platform
+                platform: platform,
+                userId: currentUserId,
             });
 
             if (response.data.success) {

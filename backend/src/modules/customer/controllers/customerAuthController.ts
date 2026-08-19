@@ -89,6 +89,40 @@ export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => 
     isNewUser = true;
   }
 
+  // Save FCM token if provided in request
+  try {
+    const fcmToken = req.body.fcmToken ||
+      req.body.fcm_token ||
+      req.body.token ||
+      req.body.deviceToken ||
+      req.body.device_token;
+
+    if (fcmToken) {
+      const isMobile = req.body.platform === 'mobile' ||
+        req.headers['user-agent']?.includes('Dart') ||
+        req.headers['user-agent']?.includes('Flutter') ||
+        /iPhone|iPad|iPod|Android/i.test(req.headers['user-agent'] || '');
+
+      if (isMobile) {
+        if (!customer.fcmTokenMobile) customer.fcmTokenMobile = [];
+        if (!customer.fcmTokenMobile.includes(fcmToken)) {
+          customer.fcmTokenMobile.push(fcmToken);
+          if (customer.fcmTokenMobile.length > 10) customer.fcmTokenMobile = customer.fcmTokenMobile.slice(-10);
+        }
+      } else {
+        if (!customer.fcmTokens) customer.fcmTokens = [];
+        if (!customer.fcmTokens.includes(fcmToken)) {
+          customer.fcmTokens.push(fcmToken);
+          if (customer.fcmTokens.length > 10) customer.fcmTokens = customer.fcmTokens.slice(-10);
+        }
+      }
+      await customer.save();
+      console.log(`✅ FCM token registered on OTP login for customer: ${customer.phone}`);
+    }
+  } catch (fcmErr) {
+    console.warn("Could not save FCM token during OTP verification:", fcmErr);
+  }
+
   // Generate JWT token
   const token = generateToken(customer._id.toString(), "Customer");
 

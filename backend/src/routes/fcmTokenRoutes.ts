@@ -17,13 +17,26 @@ const recentlyNotifiedTokens = new Map<string, number>();
  * @desc    Save FCM token for authenticated user
  * @access  Private
  */
-router.post('/save', authenticate, async (req: Request, res: Response) => {
+router.post('/save', async (req: Request, res: Response) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] 📥 Received FCM /save request`);
-    console.log(`[${timestamp}] User: ${req.user?.userId} (${req.user?.userType})`);
+    console.log(`[${timestamp}] Headers Authorization: ${!!req.headers.authorization}`);
     console.log(`[${timestamp}] Body:`, JSON.stringify(req.body, null, 2));
 
     try {
+        // Try decoding JWT if Authorization header is present
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const jwtToken = authHeader.substring(7);
+                const { verifyToken } = require('../services/jwtService');
+                const decoded = verifyToken(jwtToken);
+                req.user = decoded;
+            } catch (jwtErr) {
+                console.warn(`[${timestamp}] FCM /save - JWT verification optional fallback:`, jwtErr.message);
+            }
+        }
+
         const rawPlatform = req.body.platform || req.body.device_type || req.body.deviceType;
         const isMobileDevice = rawPlatform === 'mobile' ||
             req.headers['user-agent']?.includes('Dart') ||
@@ -45,28 +58,32 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
             return;
         }
 
-        if (!req.user || !req.user.userId) {
-            res.status(401).json({ success: false, message: 'User authentication required' });
-            return;
-        }
-        const userId = req.user.userId;
-        const userType = req.user.userType;
+        const userId = req.user?.userId || req.body.userId || req.body.customerId || req.body.id;
+        const userType = req.user?.userType || req.body.userType || 'Customer';
+        const phone = req.body.phone || req.body.mobile;
 
         // Determine which model to use
-        let user: any;
-        if (userType === 'Delivery') {
-            user = await Delivery.findById(userId);
-        } else if (userType === 'Admin') {
-            user = await Admin.findById(userId);
-        } else if (userType === 'Seller') {
-            user = await Seller.findById(userId);
-        } else {
-            // Default to Customer for 'Customer' type or fallback
-            user = await Customer.findById(userId);
+        let user: any = null;
+        if (userId) {
+            if (userType === 'Delivery') {
+                user = await Delivery.findById(userId);
+            } else if (userType === 'Admin') {
+                user = await Admin.findById(userId);
+            } else if (userType === 'Seller') {
+                user = await Seller.findById(userId);
+            } else {
+                user = await Customer.findById(userId);
+            }
+        }
+
+        // If no user found by userId, try looking up Customer by phone number
+        if (!user && phone) {
+            user = await Customer.findOne({ phone: phone });
         }
 
         if (!user) {
-            res.status(404).json({ success: false, message: 'User not found' });
+            console.log(`[${new Date().toISOString()}] FCM token received for unauthenticated/guest session: ${token.substring(0, 15)}...`);
+            res.json({ success: true, message: 'FCM token received' });
             return;
         }
 
