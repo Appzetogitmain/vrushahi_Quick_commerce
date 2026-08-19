@@ -139,29 +139,35 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
 
     try {
         const message: any = {
+            notification: {
+                title: payload.title || 'Notification',
+                body: payload.body || '',
+            },
             data: {
                 title: payload.title || 'Notification',
                 body: payload.body || '',
                 ...(payload.data || {}),
             },
             tokens: tokens,
-            // Mobile Specifics
+            // Mobile Specifics (Flutter / Android / iOS)
             android: {
                 priority: 'high',
                 notification: {
-                    title: payload.title,
-                    body: payload.body,
+                    title: payload.title || 'Notification',
+                    body: payload.body || '',
                     sound: 'default',
-                    channelId: 'vrushahi_notifications', // Ensure this matches your Flutter side channel if defined
+                    channelId: 'vrushahi_notifications',
                     clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
                 },
             },
             apns: {
                 payload: {
                     aps: {
                         alert: {
-                            title: payload.title,
-                            body: payload.body,
+                            title: payload.title || 'Notification',
+                            body: payload.body || '',
                         },
                         sound: 'default',
                         badge: 1,
@@ -173,6 +179,12 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
                 headers: {
                     Urgency: 'high',
                     TTL: '86400',
+                },
+                notification: {
+                    title: payload.title || 'Notification',
+                    body: payload.body || '',
+                    icon: '/favicon.png',
+                    badge: '/favicon.png',
                 },
                 fcmOptions: {
                     link: payload.data?.link || '/',

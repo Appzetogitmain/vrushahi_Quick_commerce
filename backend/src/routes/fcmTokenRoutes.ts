@@ -24,8 +24,20 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
     console.log(`[${timestamp}] Body:`, JSON.stringify(req.body, null, 2));
 
     try {
-        const { platform = 'web' } = req.body;
-        const token = req.body.token || req.body.fcmToken || req.body.registrationToken;
+        const rawPlatform = req.body.platform || req.body.device_type || req.body.deviceType;
+        const isMobileDevice = rawPlatform === 'mobile' ||
+            req.headers['user-agent']?.includes('Dart') ||
+            req.headers['user-agent']?.includes('Flutter') ||
+            /iPhone|iPad|iPod|Android/i.test(req.headers['user-agent'] || '');
+        const platform = rawPlatform || (isMobileDevice ? 'mobile' : 'web');
+
+        const token = req.body.token ||
+            req.body.fcmToken ||
+            req.body.fcm_token ||
+            req.body.registrationToken ||
+            req.body.device_token ||
+            req.body.deviceToken ||
+            req.body.fcm_registration_token;
 
         if (!token) {
             console.warn(`[${new Date().toISOString()}] FCM POST /save - Missing token in body`);
@@ -60,23 +72,26 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
 
         let isNewToken = false;
 
-        if (platform === 'web') {
-            if (!user.fcmTokens) user.fcmTokens = [];
-            if (!user.fcmTokens.includes(token)) {
-                isNewToken = true;
-                user.fcmTokens.push(token);
-                // Limit to 10 tokens per user per platform to prevent unlimited growth
-                if (user.fcmTokens.length > 10) {
-                    user.fcmTokens = user.fcmTokens.slice(-10);
-                }
-            }
-        } else if (platform === 'mobile') {
+        // Always register in mobile tokens if it's mobile or Flutter wrapper
+        if (isMobileDevice || platform === 'mobile') {
             if (!user.fcmTokenMobile) user.fcmTokenMobile = [];
             if (!user.fcmTokenMobile.includes(token)) {
                 isNewToken = true;
                 user.fcmTokenMobile.push(token);
                 if (user.fcmTokenMobile.length > 10) {
                     user.fcmTokenMobile = user.fcmTokenMobile.slice(-10);
+                }
+            }
+        }
+
+        // Also register in web tokens for web platforms
+        if (!isMobileDevice || platform === 'web') {
+            if (!user.fcmTokens) user.fcmTokens = [];
+            if (!user.fcmTokens.includes(token)) {
+                isNewToken = true;
+                user.fcmTokens.push(token);
+                if (user.fcmTokens.length > 10) {
+                    user.fcmTokens = user.fcmTokens.slice(-10);
                 }
             }
         }
