@@ -110,12 +110,24 @@ export async function registerFCMToken(forceUpdate = false) {
     }
 
     try {
-        // Skip re-registration if we already have this exact token saved
-        // (avoids re-saving on every mount/refresh/auth-state change, which
-        // can accumulate multiple live tokens per browser if the token rotates)
+        // An FCM token is tied to the browser/device, not the app login, so the
+        // same token value can recur across different app accounts sharing a
+        // browser. Only skip re-registration when it's already saved for THIS
+        // account — otherwise a different logged-in user would never get their
+        // token attached to their own backend record.
+        const currentUserId = (() => {
+            try {
+                const raw = localStorage.getItem('userData');
+                return raw ? JSON.parse(raw).id : null;
+            } catch {
+                return null;
+            }
+        })();
+
         const savedToken = localStorage.getItem('fcm_token_web');
-        if (savedToken && !forceUpdate) {
-            console.log('FCM token already registered locally');
+        const savedForUser = localStorage.getItem('fcm_token_web_user');
+        if (savedToken && savedForUser === currentUserId && !forceUpdate) {
+            console.log('FCM token already registered locally for this user');
             return savedToken;
         }
 
@@ -133,7 +145,7 @@ export async function registerFCMToken(forceUpdate = false) {
             return null;
         }
 
-        if (token === savedToken) {
+        if (token === savedToken && savedForUser === currentUserId) {
             return token;
         }
 
@@ -151,6 +163,7 @@ export async function registerFCMToken(forceUpdate = false) {
 
             if (response.data.success) {
                 localStorage.setItem('fcm_token_web', token);
+                localStorage.setItem('fcm_token_web_user', currentUserId || '');
                 console.log(`✅ FCM token registered with backend as ${platform}`);
                 return token;
             }

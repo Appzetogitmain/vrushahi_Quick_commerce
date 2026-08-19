@@ -285,7 +285,7 @@ const AdminSubscriptionRevenue = lazy(
 import { initializePushNotifications, setupForegroundNotificationHandler, registerFCMToken } from "./services/pushNotificationService";
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // Initialize push notifications (service worker registration & foreground handler)
   useEffect(() => {
@@ -293,14 +293,17 @@ function AppContent() {
     setupForegroundNotificationHandler();
   }, []);
 
-  // Register / sync FCM token with backend when user is authenticated
+  // Register / sync FCM token with backend when user is authenticated.
+  // Keyed on user?.id (not just isAuthenticated) so switching to a different
+  // account in the same browser session — where isAuthenticated stays true
+  // throughout — still re-registers the token under the new account.
   useEffect(() => {
     if (isAuthenticated) {
       registerFCMToken().catch((err) => {
         console.warn("FCM token auto-registration failed:", err);
       });
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   return (
     <ErrorBoundary>
