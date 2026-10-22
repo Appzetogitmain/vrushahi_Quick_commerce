@@ -75,35 +75,21 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
                 const { razorpayOrderId, razorpayKey, amount: orderAmount } = orderResponse.data;
 
-                // Build sanitized prefill object - omitting empty/placeholder fields prevents Razorpay 400 Bad Request
-                const prefill: Record<string, string> = {};
                 const customer = callbacksRef.current.customerDetails;
-                if (customer.name && customer.name.trim() && customer.name !== 'User') {
-                    prefill.name = customer.name.trim();
-                }
-                if (
-                    customer.email &&
-                    customer.email.trim() &&
-                    !customer.email.endsWith('@vrushahi.temp') &&
-                    customer.email.includes('@')
-                ) {
-                    prefill.email = customer.email.trim();
-                }
-                if (customer.phone && customer.phone.trim()) {
-                    const cleanPhone = customer.phone.replace(/[^0-9+]/g, '');
-                    if (cleanPhone.length >= 10) {
-                        prefill.contact = cleanPhone;
-                    }
-                }
 
-                // Razorpay options
+                // Razorpay options - matching the working pattern from SellerSubscription/DeliveryWallet
                 const options: any = {
-                    key: razorpayKey, // Get key from backend response
-                    amount: orderAmount || Math.round(amount * 100), // Exact integer in paise
+                    key: razorpayKey,
+                    amount: orderAmount || Math.round(amount * 100),
                     currency: 'INR',
                     name: 'Vrumarket',
                     description: `Order #${orderId}`,
                     order_id: razorpayOrderId,
+                    prefill: {
+                        name: customer.name || '',
+                        email: customer.email || '',
+                        contact: customer.phone || '',
+                    },
                     theme: {
                         color: '#16a34a',
                     },
@@ -133,10 +119,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                         },
                     },
                 };
-
-                if (Object.keys(prefill).length > 0) {
-                    options.prefill = prefill;
-                }
 
                 const razorpay = new window.Razorpay(options);
                 razorpay.on('payment.failed', function (response: any) {
