@@ -490,7 +490,15 @@ export default function SellerAddProduct() {
         showToast(res.message, "error");
       }
     } catch (err: any) {
-      showToast(err.message || "An error occurred", "error");
+      let errorMessage = err.response?.data?.message || err.message || "An error occurred";
+      if (typeof errorMessage === 'string' && errorMessage.includes('"message":')) {
+        try {
+          errorMessage = JSON.parse(errorMessage).message;
+        } catch (e) {
+          // ignore
+        }
+      }
+      showToast(errorMessage, "error");
     } finally {
       setUploading(false);
     }

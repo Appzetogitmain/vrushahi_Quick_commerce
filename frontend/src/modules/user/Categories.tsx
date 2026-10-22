@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCustomerCategories, Category } from "../../services/api/categoryService";
+import { getImageUrl } from "../../services/api/uploadService";
 import Button from "../../components/ui/button";
 import categoryHeroImgV3 from "../../assets/category_hero_v3.png";
 import { motion } from "framer-motion";
@@ -142,7 +143,7 @@ export default function Categories() {
                 {/* Squared light pink background for image */}
                 <div className="w-full aspect-square bg-[#fff1f2] rounded-2xl md:rounded-3xl flex items-center justify-center p-2.5 md:p-5 shadow-sm group-hover:shadow-md transition-all duration-300">
                   <img
-                    src={category.image || category.icon}
+                    src={getImageUrl(category.image || category.icon) || "https://placehold.co/400x300/e2e8f0/64748b?text=Image"}
                     alt={category.name}
                     className="w-full h-full object-contain drop-shadow-xs transition-transform duration-500 group-hover:scale-110"
                     onError={(e) => {

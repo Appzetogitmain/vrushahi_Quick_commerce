@@ -127,9 +127,12 @@ export const getAuthToken = (): string | null => {
 
 export const removeAuthToken = () => {
   const token = localStorage.getItem('fcm_token_web');
-  if (token) {
+  const authToken = localStorage.getItem('authToken');
+  
+  if (token && authToken) {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     api.delete('/fcm-tokens/remove', {
+      headers: { Authorization: `Bearer ${authToken}` },
       data: { token, platform: isMobile ? 'mobile' : 'web' }
     }).catch(err => console.warn('Failed to unregister FCM token on logout:', err));
   }

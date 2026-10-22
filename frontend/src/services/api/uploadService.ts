@@ -1,9 +1,17 @@
 import api from "./config";
 
+// Backend server base URL — used to convert relative paths (/uploads/...) to full URLs
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string || "http://localhost:9000/api/v1")
+    .replace(/\/api\/v\d+\/?$/, "");
+
 export interface UploadResult {
+  /** Relative path stored in DB, e.g. /uploads/products/abc.webp */
   url: string;
-  publicId: string;
+  /** Same as url */
   secureUrl: string;
+  /** Relative path — used as delete key */
+  publicId: string;
   width?: number;
   height?: number;
   format?: string;
@@ -17,16 +25,25 @@ export interface UploadResponse {
 }
 
 /**
- * Upload a single image to Cloudinary via backend
+ * Convert a relative upload path (e.g. /uploads/products/file.webp)
+ * to a full URL using the backend base URL.
+ * Pass-through if already a full URL (http/https).
+ */
+export function getImageUrl(path: string | undefined | null): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
+  return `${API_BASE_URL}${path}`;
+}
+
+/**
+ * Upload a single image via backend — returns UploadResult with relative path
  */
 export async function uploadImage(
   file: File,
   folder?: string
 ): Promise<UploadResult> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
+  if (folder) formData.append("folder", folder);
   formData.append("image", file);
 
   const response = await api.post<UploadResponse>("/upload/image", formData);
@@ -48,9 +65,7 @@ export async function uploadFile(
   folder?: string
 ): Promise<UploadResponse> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
+  if (folder) formData.append("folder", folder);
   formData.append("image", file);
 
   const response = await api.post<UploadResponse>("/upload/image", formData);
@@ -58,19 +73,15 @@ export async function uploadFile(
 }
 
 /**
- * Upload multiple images to Cloudinary via backend
+ * Upload multiple images via backend
  */
 export async function uploadImages(
   files: File[],
   folder?: string
 ): Promise<UploadResult[]> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
-  files.forEach((file) => {
-    formData.append("images", file);
-  });
+  if (folder) formData.append("folder", folder);
+  files.forEach((file) => formData.append("images", file));
 
   const response = await api.post<UploadResponse>("/upload/images", formData);
 
@@ -84,22 +95,17 @@ export async function uploadImages(
 }
 
 /**
- * Upload a document (image or PDF) to Cloudinary via backend
+ * Upload a document (image or PDF) via backend
  */
 export async function uploadDocument(
   file: File,
   folder?: string
 ): Promise<UploadResult> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
+  if (folder) formData.append("folder", folder);
   formData.append("document", file);
 
-  const response = await api.post<UploadResponse>(
-    "/upload/document",
-    formData
-  );
+  const response = await api.post<UploadResponse>("/upload/document", formData);
 
   if (response.data.success && response.data.data) {
     return Array.isArray(response.data.data)
@@ -111,16 +117,14 @@ export async function uploadDocument(
 }
 
 /**
- * Public endpoint for uploading documents (e.g., during signup)
+ * Public endpoint for uploading documents (e.g., during signup — no auth required)
  */
 export async function uploadDocumentPublic(
   file: File,
   folder?: string
 ): Promise<UploadResult> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
+  if (folder) formData.append("folder", folder);
   formData.append("document", file);
 
   const response = await api.post<UploadResponse>(
@@ -138,24 +142,17 @@ export async function uploadDocumentPublic(
 }
 
 /**
- * Upload multiple documents to Cloudinary via backend
+ * Upload multiple documents via backend
  */
 export async function uploadDocuments(
   files: File[],
   folder?: string
 ): Promise<UploadResult[]> {
   const formData = new FormData();
-  if (folder) {
-    formData.append("folder", folder);
-  }
-  files.forEach((file) => {
-    formData.append("documents", file);
-  });
+  if (folder) formData.append("folder", folder);
+  files.forEach((file) => formData.append("documents", file));
 
-  const response = await api.post<UploadResponse>(
-    "/upload/documents",
-    formData
-  );
+  const response = await api.post<UploadResponse>("/upload/documents", formData);
 
   if (response.data.success && response.data.data) {
     return Array.isArray(response.data.data)
@@ -167,14 +164,16 @@ export async function uploadDocuments(
 }
 
 /**
- * Delete an image from Cloudinary by public_id
+ * Delete a file by its relative path (publicId), e.g. /uploads/products/file.webp
  */
 export async function deleteImage(publicId: string): Promise<void> {
+  // Strip leading slash for the URL param
+  const cleanId = publicId.startsWith("/") ? publicId.slice(1) : publicId;
   const response = await api.delete<{ success: boolean; message?: string }>(
-    `/upload/${publicId}`
+    `/upload/${cleanId}`
   );
 
   if (!response.data.success) {
-    throw new Error(response.data.message || "Failed to delete image");
+    throw new Error(response.data.message || "Failed to delete file");
   }
 }

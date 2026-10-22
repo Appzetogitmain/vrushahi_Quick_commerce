@@ -100,16 +100,17 @@ export const createProduct = asyncHandler(
     // Validate variation prices and stock
     if (newProductData.variations) {
       for (const variation of newProductData.variations) {
+        const varName = variation.title || variation.value;
         if (Number(variation.price) <= 0) {
           return res.status(400).json({
             success: false,
-            message: `Price must be greater than 0 for variation ${variation.title || variation.value}`,
+            message: varName ? `Price must be greater than 0 for variation ${varName}` : `Price must be greater than 0`,
           });
         }
         if (Number(variation.stock) <= 0) {
           return res.status(400).json({
             success: false,
-            message: `Stock must be greater than 0 for variation ${variation.title || variation.value}`,
+            message: varName ? `Stock must be greater than 0 for variation ${varName}` : `Stock must be greater than 0`,
           });
         }
         if (Number(variation.discPrice) > Number(variation.price)) {
@@ -361,16 +362,17 @@ export const updateProduct = asyncHandler(
       }));
 
       for (const variation of updateData.variations) {
+        const varName = variation.title || variation.value;
         if (Number(variation.price) <= 0) {
           return res.status(400).json({
             success: false,
-            message: `Price must be greater than 0 for variation ${variation.title || variation.value}`,
+            message: varName ? `Price must be greater than 0 for variation ${varName}` : `Price must be greater than 0`,
           });
         }
         if (Number(variation.stock) <= 0) {
           return res.status(400).json({
             success: false,
-            message: `Stock must be greater than 0 for variation ${variation.title || variation.value}`,
+            message: varName ? `Stock must be greater than 0 for variation ${varName}` : `Stock must be greater than 0`,
           });
         }
         if (Number(variation.discPrice) > Number(variation.price)) {

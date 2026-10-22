@@ -9,6 +9,8 @@ import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
 import DeliveryPartnerCard from "../../components/DeliveryPartnerCard";
 import RatingStars from "../../components/RatingStars";
 import FileUpload from "../../components/FileUpload";
+import { Address } from "../../services/api/customerAddressService";
+import { getImageUrl } from "../../services/api/uploadService";
 import {
   cancelOrder,
   updateOrderNotes,
@@ -318,7 +320,7 @@ const OrderSummaryCard = ({
                   <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
                     {displayImage ? (
                       <img
-                        src={displayImage}
+                        src={getImageUrl(displayImage)}
                         alt={item.productName || "Product"}
                         className="w-full h-full object-cover"
                       />
@@ -746,8 +748,8 @@ const RatingOverlay = ({
                  return (
                   <div key={idx} className="p-6 space-y-4">
                     <div className="flex gap-4">
-                       <div className="w-16 h-16 bg-gray-50 rounded-2xl border border-gray-100 flex-shrink-0 overflow-hidden">
-                          <img src={displayImage} className="w-full h-full object-cover" alt="item" />
+                       <div className="w-16 h-16 shrink-0 bg-neutral-100 rounded-xl overflow-hidden border border-neutral-200 p-1 flex items-center justify-center relative">
+                          <img src={getImageUrl(displayImage)} className="w-full h-full object-cover" alt="item" />
                        </div>
                        <div className="flex-1">
                           <p className="font-bold text-sm text-gray-900 line-clamp-2">{item.productName || item.product?.productName}</p>
@@ -1759,7 +1761,7 @@ export default function OrderDetail() {
                     <div className="flex gap-4 p-4 rounded-2xl bg-neutral-50/50 border border-neutral-100/55">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-neutral-200 flex-shrink-0">
                         <img 
-                          src={selectedItemForReturn.product?.mainImage || selectedItemForReturn.productImage} 
+                          src={getImageUrl(selectedItemForReturn.product?.mainImage || selectedItemForReturn.productImage)} 
                           alt="Return item"
                           className="w-full h-full object-cover"
                         />
@@ -1969,8 +1971,8 @@ export default function OrderDetail() {
                       {returnImages.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {returnImages.map((img, i) => (
-                            <div key={i} className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200">
-                              <img src={img} alt="Condition snapshot" className="w-full h-full object-cover" />
+                            <div key={i} className="aspect-square bg-neutral-100 rounded-xl overflow-hidden border border-neutral-200">
+                              <img src={getImageUrl(img)} alt="Condition snapshot" className="w-full h-full object-cover" />
                               <button
                                 type="button"
                                 onClick={() => setReturnImages((prev) => prev.filter((_, idx) => idx !== i))}

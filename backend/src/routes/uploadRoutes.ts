@@ -11,13 +11,14 @@ import {
   uploadImageFromBuffer,
   uploadDocumentFromBuffer,
   deleteImage,
-} from "../services/cloudinaryService";
-import { CLOUDINARY_FOLDERS } from "../config/cloudinary";
+} from "../services/localUploadService";
+import { UPLOAD_DIRS } from "../config/uploadPaths";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-// Public upload routes (for Registration/Onboarding)
+// ─── Public routes (no auth — Registration / Onboarding) ─────────────────────
+
 /**
  * POST /api/v1/upload/image-public
  * Public endpoint for uploading images (e.g., store logo during signup)
@@ -27,23 +28,21 @@ router.post(
   uploadSingleImage.single("image"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).file) {
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) {
       return res.status(400).json({
         success: false,
         message: "No image file provided",
       });
     }
 
-    const folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    const result = await uploadImageFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType: "image",
-    });
+    const result = await uploadImageFromBuffer(
+      file.buffer,
+      { folder: UPLOAD_DIRS.SELLER_DOCUMENTS, resourceType: "image" },
+      file.originalname
+    );
 
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
+    return res.status(200).json({ success: true, data: result });
   })
 );
 
@@ -56,57 +55,49 @@ router.post(
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    console.log('[Upload] POST /document-public - body:', req.body);
-    console.log('[Upload] POST /document-public - file:', (req as any).file ? {
-      fieldname: (req as any).file.fieldname,
-      originalname: (req as any).file.originalname,
-      mimetype: (req as any).file.mimetype,
-      size: (req as any).file.size
-    } : 'No file');
+    const file = (req as any).file as Express.Multer.File | undefined;
+    console.log("[Upload] POST /document-public - file:", file
+      ? { fieldname: file.fieldname, originalname: file.originalname, mimetype: file.mimetype, size: file.size }
+      : "No file"
+    );
 
-    if (!(req as any).file) {
+    if (!file) {
       return res.status(400).json({
         success: false,
         message: "No document file provided",
       });
     }
 
-    const folder = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    console.log('[Upload] Target folder:', folder);
-
-    // Check if it's an image or PDF to avoid Cloudinary 'auto' stream issues
-    const isImage = (req as any).file.mimetype.startsWith("image/");
-    const resourceType = isImage ? "image" : "raw";
-    console.log('[Upload] Resource Type:', resourceType);
+    const folder = req.body.folder || UPLOAD_DIRS.SELLER_DOCUMENTS;
+    const isImage = file.mimetype.startsWith("image/");
+    const resourceType: "image" | "raw" = isImage ? "image" : "raw";
+    console.log("[Upload] Resource Type:", resourceType, "→ folder:", folder);
 
     try {
-      const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
-        folder,
-        resourceType,
-      });
-      console.log('[Upload] Success:', result.publicId);
-
-      return res.status(200).json({
-        success: true,
-        data: result,
-      });
+      const result = await uploadDocumentFromBuffer(
+        file.buffer,
+        { folder, resourceType },
+        file.originalname
+      );
+      console.log("[Upload] Saved:", result.publicId);
+      return res.status(200).json({ success: true, data: result });
     } catch (uploadError: any) {
-      console.error('[Upload] Cloudinary Error:', uploadError);
+      console.error("[Upload] Error:", uploadError);
       return res.status(500).json({
         success: false,
-        message: "Cloudinary upload failed",
-        error: uploadError.message
+        message: "Upload failed",
+        error: uploadError.message,
       });
     }
   })
 );
 
-// Protected routes (require authentication)
+// ─── Protected routes (require auth) ─────────────────────────────────────────
 router.use(authenticate);
 
 /**
  * POST /api/v1/upload/image
- * Upload a single image
+ * Upload a single image (Admin / Seller / Customer / Delivery)
  */
 router.post(
   "/image",
@@ -114,69 +105,62 @@ router.post(
   uploadSingleImage.single("image"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    console.log('[Upload] POST /image - body:', req.body);
-    console.log('[Upload] POST /image - file:', (req as any).file);
-
-    if (!(req as any).file) {
-      console.error('[Upload] No file found in request');
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) {
       return res.status(400).json({
         success: false,
         message: "No image file provided",
       });
     }
 
-    const folder = (req.body.folder as string) || CLOUDINARY_FOLDERS.PRODUCTS;
-    const result = await uploadImageFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType: "image",
-    });
+    const folder = (req.body.folder as string) || UPLOAD_DIRS.PRODUCTS;
+    const result = await uploadImageFromBuffer(
+      file.buffer,
+      { folder, resourceType: "image" },
+      file.originalname
+    );
 
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
+    return res.status(200).json({ success: true, data: result });
   })
 );
 
 /**
  * POST /api/v1/upload/images
- * Upload multiple images
+ * Upload multiple images (max 10)
  */
 router.post(
   "/images",
   requireUserType("Admin", "Seller", "Customer", "Delivery"),
-  uploadMultipleImages.array("images", 10), // Max 10 images
+  uploadMultipleImages.array("images", 10),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).files || ((req as any).files as any[]).length === 0) {
+    const files = (req as any).files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No image files provided",
       });
     }
 
-    const folder = (req.body.folder as string) || CLOUDINARY_FOLDERS.PRODUCTS;
-    const files = (req as any).files as any[];
+    const folder = (req.body.folder as string) || UPLOAD_DIRS.PRODUCTS;
 
-    const uploadPromises = files.map((file) =>
-      uploadImageFromBuffer(file.buffer, {
-        folder,
-        resourceType: "image",
-      })
+    const results = await Promise.all(
+      files.map((file) =>
+        uploadImageFromBuffer(
+          file.buffer,
+          { folder, resourceType: "image" },
+          file.originalname
+        )
+      )
     );
 
-    const results = await Promise.all(uploadPromises);
-
-    return res.status(200).json({
-      success: true,
-      data: results,
-    });
+    return res.status(200).json({ success: true, data: results });
   })
 );
 
 /**
  * POST /api/v1/upload/document
- * Upload a document (image or PDF)
+ * Upload a single document (image or PDF) — determines folder from userType
  */
 router.post(
   "/document",
@@ -184,104 +168,91 @@ router.post(
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).file) {
+    const file = (req as any).file as Express.Multer.File | undefined;
+    if (!file) {
       return res.status(400).json({
         success: false,
         message: "No document file provided",
       });
     }
 
-    // Determine folder based on user type
-    let folder: string = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    // Determine folder from userType
+    let folder: string = UPLOAD_DIRS.SELLER_DOCUMENTS;
     const userType = (req as any).user?.userType;
+    if (userType === "Delivery") folder = UPLOAD_DIRS.DELIVERY_DOCUMENTS;
+    else if (userType === "Seller") folder = UPLOAD_DIRS.SELLER_DOCUMENTS;
+    else if (userType === "Customer") folder = UPLOAD_DIRS.PRODUCTS;
 
-    if (userType === "Delivery") {
-      folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
-    } else if (userType === "Seller") {
-      folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    } else if (userType === "Customer") {
-      folder = CLOUDINARY_FOLDERS.PRODUCTS;
-    }
+    const isImage = file.mimetype.startsWith("image/");
+    const resourceType: "image" | "raw" = isImage ? "image" : "raw";
 
-    // Check if it's an image or PDF
-    const isImage = (req as any).file.mimetype.startsWith("image/");
-    const resourceType = isImage ? "image" : "raw";
+    const result = await uploadDocumentFromBuffer(
+      file.buffer,
+      { folder, resourceType },
+      file.originalname
+    );
 
-    const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType,
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
+    return res.status(200).json({ success: true, data: result });
   })
 );
 
 /**
  * POST /api/v1/upload/documents
- * Upload multiple documents
+ * Upload multiple documents (max 5)
  */
 router.post(
   "/documents",
   requireUserType("Admin", "Seller", "Delivery", "Customer"),
-  uploadMultipleDocuments.array("documents", 5), // Max 5 documents
+  uploadMultipleDocuments.array("documents", 5),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).files || ((req as any).files as any[]).length === 0) {
+    const files = (req as any).files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No document files provided",
       });
     }
 
-    // Determine folder based on user type
-    let folder: string = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    // Determine folder from userType
+    let folder: string = UPLOAD_DIRS.SELLER_DOCUMENTS;
     const userType = (req as any).user?.userType;
+    if (userType === "Delivery") folder = UPLOAD_DIRS.DELIVERY_DOCUMENTS;
+    else if (userType === "Seller") folder = UPLOAD_DIRS.SELLER_DOCUMENTS;
+    else if (userType === "Customer") folder = UPLOAD_DIRS.PRODUCTS;
 
-    if (userType === "Delivery") {
-      folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
-    } else if (userType === "Seller") {
-      folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    } else if (userType === "Customer") {
-      folder = CLOUDINARY_FOLDERS.PRODUCTS;
-    }
+    const results = await Promise.all(
+      files.map((file) => {
+        const isImage = file.mimetype.startsWith("image/");
+        const resourceType: "image" | "raw" = isImage ? "image" : "raw";
+        return uploadDocumentFromBuffer(
+          file.buffer,
+          { folder, resourceType },
+          file.originalname
+        );
+      })
+    );
 
-    const files = (req as any).files as any[];
-
-    const uploadPromises = files.map((file) => {
-      const isImage = file.mimetype.startsWith("image/");
-      const resourceType = isImage ? "image" : "raw";
-      return uploadDocumentFromBuffer(file.buffer, {
-        folder,
-        resourceType,
-      });
-    });
-
-    const results = await Promise.all(uploadPromises);
-
-    return res.status(200).json({
-      success: true,
-      data: results,
-    });
+    return res.status(200).json({ success: true, data: results });
   })
 );
 
 /**
  * DELETE /api/v1/upload/:publicId
- * Delete an image from Cloudinary
+ * Delete a file by its relative path publicId
+ * publicId is URL-encoded, e.g. %2Fuploads%2Fproducts%2Ffile.webp
  */
 router.delete(
-  "/:publicId",
+  "/*",
   requireUserType("Admin", "Seller"),
   asyncHandler(async (req: Request, res: Response) => {
-    const { publicId } = req.params;
+    // Extract full path after /upload/ — handles nested paths like /uploads/products/file.webp
+    const publicId = "/" + req.params[0];
 
-    if (!publicId) {
+    if (!publicId || publicId === "/") {
       return res.status(400).json({
         success: false,
-        message: "Public ID is required",
+        message: "File path (publicId) is required",
       });
     }
 
@@ -289,7 +260,7 @@ router.delete(
 
     return res.status(200).json({
       success: true,
-      message: "Image deleted successfully",
+      message: "File deleted successfully",
     });
   })
 );

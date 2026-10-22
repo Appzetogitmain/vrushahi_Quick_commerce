@@ -11,6 +11,8 @@ import Button from '../../../components/ui/button';
 import Badge from '../../../components/ui/badge';
 import StarRating from '../../../components/ui/StarRating';
 import { calculateProductPrice } from '../../../utils/priceUtils';
+import { getImageUrl } from '../../../services/api/uploadService';
+
 
 interface ProductCardProps {
   product: Product;
@@ -314,7 +316,7 @@ export default function ProductCard({
           {product.imageUrl || product.mainImage || (product.variations && product.variations.find((v: any) => !!v.image)?.image) ? (
             <img
               ref={imageRef}
-              src={product.imageUrl || product.mainImage || product.variations?.find((v: any) => !!v.image)?.image}
+              src={getImageUrl(product.imageUrl || product.mainImage || product.variations?.find((v: any) => !!v.image)?.image)}
               alt={product.name || product.productName || 'Product'}
               className="w-full h-full object-contain pt-10 pb-2 px-3 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
               referrerPolicy="no-referrer"

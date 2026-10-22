@@ -1,11 +1,12 @@
 import multer from "multer";
 import { Request } from "express";
 
-// File size limits (in bytes)
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
 
-// Allowed file types
+// ─── File Size Limits ────────────────────────────────────────────────────────
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;    // 10 MB
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+
+// ─── Allowed MIME types ───────────────────────────────────────────────────────
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -21,13 +22,15 @@ const ALLOWED_DOCUMENT_TYPES = [
   "application/pdf",
 ];
 
-// Memory storage for multer (files will be stored in memory as buffers)
+// ─── Memory storage (buffers passed to localUploadService for Sharp processing)
+// We keep memory storage so the buffer can be passed through Sharp before
+// writing to disk inside localUploadService.
 const storage = multer.memoryStorage();
 
-// File filter for images
+// ─── File filters ─────────────────────────────────────────────────────────────
 const imageFileFilter = (
   _req: Request,
-  file: any,
+  file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
   if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
@@ -41,10 +44,9 @@ const imageFileFilter = (
   }
 };
 
-// File filter for documents (images + PDF)
 const documentFileFilter = (
   _req: Request,
-  file: any,
+  file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
   if (ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
@@ -58,43 +60,38 @@ const documentFileFilter = (
   }
 };
 
-// Multer instance for single image upload
+// ─── Multer instances ─────────────────────────────────────────────────────────
+
+/** Single image upload (max 10 MB) */
 export const uploadSingleImage = multer({
   storage,
-  limits: {
-    fileSize: MAX_IMAGE_SIZE,
-  },
+  limits: { fileSize: MAX_IMAGE_SIZE },
   fileFilter: imageFileFilter,
 });
 
-// Multer instance for multiple image uploads
+/** Multiple image uploads (max 10 MB each) */
 export const uploadMultipleImages = multer({
   storage,
-  limits: {
-    fileSize: MAX_IMAGE_SIZE,
-  },
+  limits: { fileSize: MAX_IMAGE_SIZE },
   fileFilter: imageFileFilter,
 });
 
-// Multer instance for document upload (image or PDF)
+/** Single document upload — image or PDF (max 10 MB) */
 export const uploadDocument = multer({
   storage,
-  limits: {
-    fileSize: MAX_DOCUMENT_SIZE,
-  },
+  limits: { fileSize: MAX_DOCUMENT_SIZE },
   fileFilter: documentFileFilter,
 });
 
-// Multer instance for multiple documents
+/** Multiple document uploads (max 10 MB each) */
 export const uploadMultipleDocuments = multer({
   storage,
-  limits: {
-    fileSize: MAX_DOCUMENT_SIZE,
-  },
+  limits: { fileSize: MAX_DOCUMENT_SIZE },
   fileFilter: documentFileFilter,
 });
 
-// Error handler middleware for multer errors
+// ─── Error handler ────────────────────────────────────────────────────────────
+
 export const handleUploadError = (
   err: any,
   _req: Request,
@@ -105,7 +102,7 @@ export const handleUploadError = (
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        message: "File size exceeds the maximum allowed limit",
+        message: "File size exceeds the 10 MB maximum allowed limit",
       });
     }
     if (err.code === "LIMIT_FILE_COUNT") {
@@ -122,7 +119,7 @@ export const handleUploadError = (
     }
   }
 
-  if (err.message && err.message.includes("Invalid file type")) {
+  if (err?.message?.includes("Invalid file type")) {
     return res.status(400).json({
       success: false,
       message: err.message,

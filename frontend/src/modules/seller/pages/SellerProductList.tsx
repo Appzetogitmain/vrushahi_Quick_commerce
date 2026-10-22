@@ -15,6 +15,7 @@ import {
   Category as apiCategory,
 } from "../../../services/api/categoryService";
 import { useAuth } from "../../../context/AuthContext";
+import { getImageUrl } from "../../../services/api/uploadService";
 
 // ... (interfaces remain same)
 
@@ -836,7 +837,7 @@ export default function SellerProductList() {
                     <td className="p-4 border border-neutral-200">
                       <div className="w-16 h-12 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center mx-auto">
                         <img
-                          src={variation.productImage}
+                          src={getImageUrl(variation.productImage)}
                           alt={variation.productName}
                           className="max-w-full max-h-full object-contain"
                           onError={(e) => {

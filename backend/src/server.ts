@@ -7,6 +7,7 @@ console.log('RAZORPAY_KEY_ID exists:', !!process.env.RAZORPAY_KEY_ID);
 
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
+import path from "path";
 import cors from "cors";
 import connectDB from "./config/db";
 import routes from "./routes";
@@ -16,6 +17,7 @@ import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { startEarningsReleaseWorker } from "./services/earningsReleaseService";
+import { ensureUploadDirs } from "./config/uploadPaths";
 import cron from "node-cron";
 import { checkAndExpireSubscriptions } from "./services/subscriptionService";
 
@@ -100,6 +102,21 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ─── Serve uploaded files as static assets ────────────────────────────────────
+// Files stored in uploads/ are accessible at /uploads/<folder>/<filename>
+// Cache-Control is set so browsers and CDN cache images aggressively
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"), {
+    maxAge: "1y",          // 1 year browser cache
+    etag: true,
+    lastModified: true,
+    setHeaders(res) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    },
+  })
+);
+
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
 app.set("io", io);
@@ -129,6 +146,9 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  // Ensure all upload directories exist before accepting requests
+  ensureUploadDirs();
+
   // Connect DB then ensure default admin exists
   await connectDB();
   await ensureDefaultAdmin();

@@ -8,6 +8,7 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../../components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateProductPrice } from '../../utils/priceUtils';
+import { getImageUrl } from "../../services/api/uploadService";
 import CartIconButton from '../../components/CartIconButton';
 
 
@@ -111,7 +112,7 @@ export default function Wishlist() {
 
                 <Link to={`/product/${product.id}`} className="aspect-square bg-neutral-50 flex items-center justify-center p-4">
                   {product.imageUrl || product.mainImage ? (
-                    <img src={product.imageUrl || product.mainImage} alt={product.name} className="w-full h-full object-contain" />
+                    <img src={getImageUrl(product.imageUrl || product.mainImage)} alt={product.name} className="w-full h-full object-contain" />
                   ) : (
                     <span className="text-4xl">📦</span>
                   )}

@@ -22,6 +22,7 @@ import {
   compressImage,
   createImagePreview,
 } from "../../../utils/imageUpload";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useToast } from "../../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
 
@@ -464,7 +465,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   <div className="relative group aspect-square rounded-2xl border-2 border-dashed border-neutral-200 hover:border-teal-500 hover:bg-neutral-50 transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden p-2">
                     {mainImagePreview ? (
                       <>
-                        <img src={mainImagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                        <img src={getImageUrl(mainImagePreview)} alt="Preview" className="w-full h-full object-cover rounded-xl" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                            <Upload className="text-white" />
                         </div>
@@ -501,7 +502,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                     {galleryImagePreviews.map((preview, idx) => (
                       <div key={idx} className="relative aspect-square rounded-xl border border-neutral-200 overflow-hidden group">
-                        <img src={preview} alt="" className="w-full h-full object-cover" />
+                        <img src={getImageUrl(preview)} alt="" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => removeGalleryImage(idx)}

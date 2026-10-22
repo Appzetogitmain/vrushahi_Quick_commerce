@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { getImageUrl } from '../../services/api/uploadService';
 import Button from '../../components/ui/button';
 import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
@@ -129,10 +130,10 @@ export default function Cart() {
                   <div className="flex gap-4 md:gap-8">
                     {/* Product Image */}
                     <div className="w-24 h-24 md:w-32 md:h-32 bg-neutral-50 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-neutral-100 group-hover:scale-[1.02] transition-transform">
-                      {item.product.imageUrl ? (
+                      {item.product.imageUrl || item.product.mainImage || (item as any).productImage ? (
                         <img
-                          src={item.product.imageUrl}
-                          alt={item.product.name}
+                          src={getImageUrl(item.product?.imageUrl || item.product?.mainImage || (item as any).productImage)}
+                          alt={item.product?.name || (item as any).productName}
                           className="w-full h-full object-contain p-2"
                         />
                       ) : (
