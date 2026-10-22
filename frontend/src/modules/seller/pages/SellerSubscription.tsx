@@ -77,7 +77,7 @@ export default function SellerSubscription() {
         key: razorpayKey || 'rzp_test_YourTestKey',
         amount: amount,
         currency: currency,
-        name: "vrushahi Seller Subscription",
+        name: "Vrumarket Seller Subscription",
         description: `Subscription: ${planDetails.name}`,
         order_id: razorpayOrderId,
         handler: async (response: any) => {
