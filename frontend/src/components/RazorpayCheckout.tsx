@@ -73,23 +73,39 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     return;
                 }
 
-                const { razorpayOrderId, razorpayKey } = orderResponse.data;
+                const { razorpayOrderId, razorpayKey, amount: orderAmount } = orderResponse.data;
+
+                // Build sanitized prefill object - omitting empty/placeholder fields prevents Razorpay 400 Bad Request
+                const prefill: Record<string, string> = {};
+                const customer = callbacksRef.current.customerDetails;
+                if (customer.name && customer.name.trim() && customer.name !== 'User') {
+                    prefill.name = customer.name.trim();
+                }
+                if (
+                    customer.email &&
+                    customer.email.trim() &&
+                    !customer.email.endsWith('@vrushahi.temp') &&
+                    customer.email.includes('@')
+                ) {
+                    prefill.email = customer.email.trim();
+                }
+                if (customer.phone && customer.phone.trim()) {
+                    const cleanPhone = customer.phone.replace(/[^0-9+]/g, '');
+                    if (cleanPhone.length >= 10) {
+                        prefill.contact = cleanPhone;
+                    }
+                }
 
                 // Razorpay options
-                const options = {
+                const options: any = {
                     key: razorpayKey, // Get key from backend response
-                    amount: amount * 100, // Amount in paise
+                    amount: orderAmount || Math.round(amount * 100), // Exact integer in paise
                     currency: 'INR',
                     name: 'Vrumarket',
                     description: `Order #${orderId}`,
                     order_id: razorpayOrderId,
-                    prefill: {
-                        name: callbacksRef.current.customerDetails.name,
-                        email: callbacksRef.current.customerDetails.email,
-                        contact: callbacksRef.current.customerDetails.phone,
-                    },
                     theme: {
-                        color: '#16a34a', // vrushahi green
+                        color: '#16a34a',
                     },
                     handler: async function (response: any) {
                         try {
@@ -118,7 +134,17 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     },
                 };
 
+                if (Object.keys(prefill).length > 0) {
+                    options.prefill = prefill;
+                }
+
                 const razorpay = new window.Razorpay(options);
+                razorpay.on('payment.failed', function (response: any) {
+                    console.error('Razorpay payment failed:', response.error);
+                    callbacksRef.current.onFailure(
+                        response.error?.description || response.error?.reason || 'Payment failed. Please try again.'
+                    );
+                });
                 razorpay.open();
             } catch (error: any) {
                 console.error('Payment initiation error:', error);
