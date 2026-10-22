@@ -529,8 +529,9 @@ export const createOrder = async (req: Request, res: Response) => {
         }
 
         // Send order placement push & in-app notification to customer
+        // (online orders stay 'Pending' until payment; they are notified after payment is captured)
         try {
-            sendOrderStatusNotification(
+            if (newOrder.status === 'Received') sendOrderStatusNotification(
                 newOrder._id.toString(),
                 userId,
                 "Received"

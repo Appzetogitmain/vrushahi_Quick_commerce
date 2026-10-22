@@ -79,6 +79,16 @@ const propagatePaymentSuccess = async (
 };
 
 /**
+ * Notify customer that their order is placed (sent once payment moves it Pending -> Received)
+ */
+const notifyCustomerOrderPlaced = (order: any) => {
+    import('./notificationService')
+        .then(({ sendOrderStatusNotification }) =>
+            sendOrderStatusNotification(order._id.toString(), order.customer.toString(), 'Received'))
+        .catch((err) => console.error("Error sending customer order placed notification:", err));
+};
+
+/**
  * Create a Razorpay order
  */
 export const createRazorpayOrder = async (
@@ -345,6 +355,7 @@ export const capturePayment = async (
         order.paymentId = razorpayPaymentId;
         // Keep status as Placed/Received or whatever was set.
         // Usually, online payment orders start as 'Pending' and move to 'Received'
+        const becameReceived = order.status === 'Pending';
         if (order.status === 'Pending') {
             order.status = 'Received';
             
@@ -364,6 +375,8 @@ export const capturePayment = async (
         await propagatePaymentSuccess(order, razorpayPaymentId, undefined, io, session);
 
         await session.commitTransaction();
+
+        if (becameReceived) notifyCustomerOrderPlaced(order);
 
         // Trigger creation of Pending commissions in the background after transaction commits successfully
         (async () => {
@@ -569,6 +582,8 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
             await propagatePaymentSuccess(order, razorpayPaymentId, orderIdFromNotes ? 'ONLINE_QR' : undefined, io);
 
             // Notify sellers if status changed to Received
+            if (previousStatus === 'Pending' && order.status === 'Received') notifyCustomerOrderPlaced(order);
+
             if (previousStatus === 'Pending' && order.status === 'Received' && io) {
                 try {
                     const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
@@ -722,6 +737,8 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
         await propagatePaymentSuccess(order, razorpayPaymentId, 'ONLINE_QR', io);
 
         // Notify sellers if status changed to Received
+        if (previousStatus === 'Pending' && order.status === 'Received') notifyCustomerOrderPlaced(order);
+
         if (previousStatus === 'Pending' && order.status === 'Received' && io) {
             try {
                 const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
