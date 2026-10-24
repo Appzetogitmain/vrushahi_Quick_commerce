@@ -777,7 +777,7 @@ const SellerAccountSettings = () => {
                     {activeTab === 'branding' && (
                       <div className="space-y-8">
                         <div className="space-y-3">
-                          <label className="text-sm font-semibold text-gray-700 ml-1">Store Banner</label>
+                          <label className="text-sm font-semibold text-gray-700 ml-1">Store Banner <span className="text-xs font-normal text-teal-700">(Recommended: 3:1 wide, e.g. 1200x400px)</span></label>
                           <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-[21/9] transition-all hover:border-teal-300">
                             <img
                               src={sellerData.storeBanner || 'https://placehold.co/1200x400?text=Store+Banner'}
@@ -805,7 +805,7 @@ const SellerAccountSettings = () => {
                         </div>
 
                         <div className="space-y-3">
-                          <label className="text-sm font-semibold text-gray-700 ml-1">Real Store Image</label>
+                          <label className="text-sm font-semibold text-gray-700 ml-1">Real Store Image <span className="text-xs font-normal text-teal-700">(Recommended: 4:3, e.g. 800x600px)</span></label>
                           <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-video transition-all hover:border-teal-300">
                             <img
                               src={sellerData.storeImage || 'https://placehold.co/800x450?text=Store+Image'}

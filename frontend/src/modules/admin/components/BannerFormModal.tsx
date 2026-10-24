@@ -244,6 +244,9 @@ export default function BannerFormModal({
                     <p className="text-xs text-gray-400 mt-1">
                       SVG, PNG, JPG or WEBP
                     </p>
+                    <p className="text-xs text-teal-700 mt-1 font-medium">
+                      Recommended: 4:1 wide (e.g. 1600x400px). Keep text and key content in the centre, as edges are cropped on mobile (21:9) and tablets (3:1).
+                    </p>
                     <input
                       type="file"
                       className="absolute inset-0 opacity-0 cursor-pointer"

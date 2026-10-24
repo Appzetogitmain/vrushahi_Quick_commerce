@@ -318,7 +318,7 @@ export default function ProductCard({
               ref={imageRef}
               src={getImageUrl(product.imageUrl || product.mainImage || product.variations?.find((v: any) => !!v.image)?.image)}
               alt={product.name || product.productName || 'Product'}
-              className="w-full h-full object-contain pt-10 pb-2 px-3 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
+              className="block w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               referrerPolicy="no-referrer"
             />
           ) : (

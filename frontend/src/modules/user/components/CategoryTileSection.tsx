@@ -246,7 +246,7 @@ export default function CategoryTileSection({
                         <img
                           src={getImageUrl(images[0])}
                           alt={tile.name}
-                          className="w-full h-full object-contain rounded-lg"
+                          className="block w-full h-full object-cover rounded-lg"
                           onError={(e) => {
                             // Hide broken image and show fallback
                             const target = e.target as HTMLImageElement;

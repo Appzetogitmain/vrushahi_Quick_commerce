@@ -61,6 +61,23 @@ const menuSections: MenuSection[] = [
             ),
           },
           {
+            label: "Subcategory",
+            path: "/admin/subcategory",
+            icon: (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round">
+                <path d="M3 5h18M7 12h14M11 19h10"></path>
+              </svg>
+            ),
+          },
+          {
             label: "Header Category",
             path: "/admin/category/header",
             icon: (

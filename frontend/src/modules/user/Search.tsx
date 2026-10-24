@@ -261,7 +261,7 @@ export default function Search() {
                                 <img
                                   src={getImageUrl(item.image || item.imageUrl)}
                                   alt={item.name}
-                                  className="w-full h-full object-contain p-2 transform group-hover:scale-110 transition-transform duration-500"
+                                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                                 />
                               ) : (
                                 <div className="text-4xl">🔥</div>

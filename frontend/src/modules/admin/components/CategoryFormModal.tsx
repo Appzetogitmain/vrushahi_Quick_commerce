@@ -654,6 +654,7 @@ export default function CategoryFormModal({
                     {isDragging ? "Drop image here" : "Choose File or Drag & Drop"}
                   </p>
                   <p className="text-xs text-neutral-500 mt-1">Max 5MB</p>
+                  <p className="text-xs text-teal-700 mt-1 font-medium">Recommended: square 1:1 (e.g. 500x500px). Keep the subject centred.</p>
                 </div>
               )}
               <input

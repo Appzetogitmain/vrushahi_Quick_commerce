@@ -28,13 +28,11 @@ export default function StoreCard({ store }: StoreCardProps) {
             {/* Image Section - STRICT FIXED HEIGHT */}
             <div className="relative w-full h-[155px] overflow-hidden bg-neutral-50/50 flex-shrink-0">
                 {store.logo ? (
-                    <div className="w-full h-full p-4 flex items-center justify-center">
-                        <img
-                            src={getImageUrl(store.logo)}
-                            alt={store.name}
-                            className="max-w-full max-h-full w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700"
-                        />
-                    </div>
+                    <img
+                        src={getImageUrl(store.logo)}
+                        alt={store.name}
+                        className="block w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
                         <span className="text-5xl font-black text-white/95 drop-shadow-lg select-none">

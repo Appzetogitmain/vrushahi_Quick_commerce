@@ -94,7 +94,7 @@ export default function OrderAgain() {
               <img
                 src={getImageUrl(product.imageUrl || product.mainImage)}
                 alt={product.name}
-                className="w-full h-full object-contain p-2"
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-neutral-50 text-neutral-300 text-3xl font-bold">

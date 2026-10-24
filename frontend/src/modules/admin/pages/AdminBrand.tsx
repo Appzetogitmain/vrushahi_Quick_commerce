@@ -325,6 +325,7 @@ export default function AdminBrand() {
                     </svg>
                     <p className="text-xs text-neutral-600">Choose File</p>
                     <p className="text-xs text-neutral-500 mt-1">Max 5MB</p>
+                    <p className="text-xs text-teal-700 mt-1 font-medium">Recommended: square 1:1 (e.g. 500x500px).</p>
                   </div>
                 )}
                 <input

@@ -134,7 +134,7 @@ export default function Cart() {
                         <img
                           src={getImageUrl(item.product?.imageUrl || item.product?.mainImage || (item as any).productImage)}
                           alt={item.product?.name || (item as any).productName}
-                          className="w-full h-full object-contain p-2"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <span className="text-3xl font-black text-neutral-200">
