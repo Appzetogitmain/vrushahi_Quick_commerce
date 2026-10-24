@@ -9,6 +9,7 @@ import { getAddresses, addAddress, updateAddress, Address } from '../../services
 import { appConfig as staticConfig, useAppConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 import GoogleMapsLocationPicker from '../../components/GoogleMapsLocationPicker';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../utils/googleMapsLoader';
 
 export default function CheckoutAddress() {
   const { config: appConfig } = useAppConfig();
@@ -43,10 +44,7 @@ export default function CheckoutAddress() {
   const [selectedLatitude, setSelectedLatitude] = useState<number>(0);
   const [selectedLongitude, setSelectedLongitude] = useState<number>(0);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   // Get user's current location on mount
 

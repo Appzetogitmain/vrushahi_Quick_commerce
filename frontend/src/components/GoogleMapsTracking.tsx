@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect, useState } from 'react'
 // @ts-ignore - @react-google-maps/api types may not be available
 import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api'
 import { motion } from 'framer-motion'
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../utils/googleMapsLoader';
 // Use direct public path which is more reliable in this setup
 const getDeliveryIconUrl = () => '/assets/deliveryboy/deliveryIcon.png';
 
@@ -90,10 +91,7 @@ export default function GoogleMapsTracking({
         }
     }, [routeInfo, onRouteInfoUpdate]);
 
-    const { isLoaded, loadError } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: apiKey || ''
-    })
+    const { isLoaded, loadError } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS)
 
     // Combine storeLocation with sellerLocations
     const allSellers = storeLocation ? [storeLocation, ...sellerLocations] : sellerLocations;
