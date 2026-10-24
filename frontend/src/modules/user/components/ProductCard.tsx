@@ -310,7 +310,7 @@ export default function ProductCard({
     >
       <div
         onClick={handleCardClick}
-        className="relative cursor-pointer aspect-[1/0.95] bg-gray-50 flex items-center justify-center"
+        className="relative cursor-pointer aspect-[1/0.75] bg-gray-50 flex items-center justify-center"
       >
         <div className="w-full h-full overflow-hidden">
           {product.imageUrl || product.mainImage || (product.variations && product.variations.find((v: any) => !!v.image)?.image) ? (
@@ -418,14 +418,14 @@ export default function ProductCard({
         </div>
       </div>
 
-      <div className="px-2 py-1.5 pt-2.5 flex-1 flex flex-col relative" onClick={handleCardClick}>
+      <div className="px-2 pb-1.5 pt-2.5 flex-1 flex flex-col relative" onClick={handleCardClick}>
         {/* Product Name */}
         <h3 className="text-[11px] md:text-[12px] font-bold text-gray-800 leading-[1.3] line-clamp-2 mb-1 group-hover:text-[#ff3269] transition-colors pr-4 h-[28px] md:h-[32px]">
           {product.name || product.productName || ''}
         </h3>
 
         {/* Selected / Default Variant Display */}
-        <p className="text-[12px] text-gray-500 font-medium mb-1 h-[18px]">
+        <p className="text-[11px] text-gray-500 font-medium mb-0.5 h-[15px] truncate">
           {inCartQty > 0
             ? (cartItem?.product as any)?.variantTitle || (cartItem?.product as any)?.netQuantity || (cartItem?.product as any)?.pack || ""
             : product.variations && product.variations.length > 0
@@ -434,7 +434,7 @@ export default function ProductCard({
         </p>
 
         {/* Pricing */}
-        <div className="flex items-center gap-1 mb-1 flex-wrap">
+        <div className="flex items-center gap-1 mb-0.5 flex-wrap">
           <span className="text-[11px] md:text-[12px] font-black text-gray-900">
             ₹{displayPrice.toLocaleString('en-IN')}
           </span>
@@ -455,7 +455,7 @@ export default function ProductCard({
         )}
 
         {/* Meta Info: Rating & Time Stacked */}
-        <div className="mt-auto flex flex-col gap-1 pt-1">
+        <div className="mt-auto flex flex-col gap-0.5 pt-0.5">
           {/* Rating Row */}
           <div className="flex items-center gap-[1px]">
              {[1, 2, 3, 4, 5].map((star) => (
