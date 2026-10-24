@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import {
     getHomeSections,
     createHomeSection,
@@ -685,7 +686,7 @@ export default function AdminHomeSection() {
                                                 />
                                             ) : (
                                                 <img 
-                                                    src={backgroundImage} 
+                                                    src={getImageUrl(backgroundImage)} 
                                                     alt="Background" 
                                                     className="h-20 object-contain border rounded border-neutral-200"
                                                 />

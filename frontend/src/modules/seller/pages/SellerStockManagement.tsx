@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { getProducts, updateStock, Product } from '../../../services/api/productService';
 import { getCategories } from '../../../services/api/categoryService';
 import { useAuth } from '../../../context/AuthContext';
@@ -424,7 +425,7 @@ export default function SellerStockManagement() {
                                     <td className="p-4 border border-neutral-200">
                                         <div className="w-16 h-12 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center mx-auto">
                                             <img
-                                                src={item.image}
+                                                src={getImageUrl(item.image)}
                                                 alt={item.name}
                                                 className="max-w-full max-h-full object-contain"
                                                 onError={(e) => {

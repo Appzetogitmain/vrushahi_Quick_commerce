@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   getProducts,
@@ -595,7 +596,7 @@ export default function AdminStockManagement() {
                       <td className="p-4 align-middle">
                         {product.image ? (
                           <img
-                            src={product.image}
+                            src={getImageUrl(product.image)}
                             alt={product.name}
                             className="w-12 h-16 object-cover rounded"
                             onError={(e) => {

@@ -1,4 +1,5 @@
 import { Category } from "../../../services/api/admin/adminProductService";
+import { getImageUrl } from "../../../services/api/uploadService";
 
 interface CategoryTreeViewProps {
   categories: Category[];
@@ -112,7 +113,7 @@ export default function CategoryTreeView({
                 <div className="flex-shrink-0">
                   {category.image ? (
                     <img
-                      src={category.image}
+                      src={getImageUrl(category.image)}
                       alt={category.name}
                       className={`${
                         isSubcategory ? "w-12 h-12" : "w-16 h-16"

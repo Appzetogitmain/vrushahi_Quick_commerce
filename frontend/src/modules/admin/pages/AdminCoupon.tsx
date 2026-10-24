@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { uploadImage } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -335,7 +336,7 @@ export default function AdminCoupon() {
                   {couponImagePreview ? (
                     <div className="space-y-2">
                       <img
-                        src={couponImagePreview}
+                        src={getImageUrl(couponImagePreview)}
                         alt="Coupon preview"
                         className="max-h-24 mx-auto rounded-lg object-cover"
                       />

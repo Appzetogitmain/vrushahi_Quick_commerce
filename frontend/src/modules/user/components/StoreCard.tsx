@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useNavigate } from 'react-router-dom';
 
 interface StoreCardProps {
@@ -29,7 +30,7 @@ export default function StoreCard({ store }: StoreCardProps) {
                 {store.logo ? (
                     <div className="w-full h-full p-4 flex items-center justify-center">
                         <img
-                            src={store.logo}
+                            src={getImageUrl(store.logo)}
                             alt={store.name}
                             className="max-w-full max-h-full w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-700"
                         />

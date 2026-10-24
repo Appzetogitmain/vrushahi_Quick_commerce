@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { getImageUrl } from "../../services/api/uploadService";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Button from "../../components/ui/button";
@@ -291,7 +292,7 @@ export default function Invoice() {
                         <div className="flex items-center gap-3">
                           {item.product?.image || item.product?.mainImage ? (
                             <img
-                              src={item.product.image || item.product.mainImage}
+                              src={getImageUrl(item.product.image || item.product.mainImage)}
                               alt={productName}
                               className="w-12 h-12 object-cover rounded"
                             />

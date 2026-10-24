@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { getImageUrl } from "../../../services/api/uploadService";
 
 interface CategoryTile {
   id: string;
@@ -112,7 +113,7 @@ export default function CategoryTileSection({
                 <div className={`w-full ${isSmall ? 'h-36 rounded-[2rem]' : 'h-44 rounded-[2.5rem]'} bg-white flex items-center justify-center overflow-hidden mb-3 shadow-md border border-white group-hover:shadow-lg transition-all`}>
                   {image ? (
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={tile.name}
                       className={`w-full h-full ${isSmall ? 'object-cover' : 'object-cover'} transition-transform duration-500 group-hover:scale-105`}
                       loading="lazy"
@@ -222,7 +223,7 @@ export default function CategoryTileSection({
                             img ? (
                               <img
                                 key={idx}
-                                src={img}
+                                src={getImageUrl(img)}
                                 alt=""
                                 className="w-full h-full object-contain bg-white rounded-sm"
                                 onError={(e) => {
@@ -243,7 +244,7 @@ export default function CategoryTileSection({
                       ) : (
                         // Other sections: Single image - use contain to show full image without cropping
                         <img
-                          src={images[0]}
+                          src={getImageUrl(images[0])}
                           alt={tile.name}
                           className="w-full h-full object-contain rounded-lg"
                           onError={(e) => {

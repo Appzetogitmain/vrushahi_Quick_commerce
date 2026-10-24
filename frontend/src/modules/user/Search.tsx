@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { getImageUrl } from "../../services/api/uploadService";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from './components/ProductCard';
@@ -258,7 +259,7 @@ export default function Search() {
                             <div className="w-full aspect-square rounded-2xl mb-3 overflow-hidden bg-neutral-50 flex items-center justify-center group-hover:bg-purple-50 transition-colors">
                               {item.image || item.imageUrl ? (
                                 <img
-                                  src={item.image || item.imageUrl}
+                                  src={getImageUrl(item.image || item.imageUrl)}
                                   alt={item.name}
                                   className="w-full h-full object-contain p-2 transform group-hover:scale-110 transition-transform duration-500"
                                 />

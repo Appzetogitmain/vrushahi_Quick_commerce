@@ -1,4 +1,5 @@
 import { Category } from "../../../services/api/admin/adminProductService";
+import { getImageUrl } from "../../../services/api/uploadService";
 
 interface CategoryListViewProps {
   categories: Category[];
@@ -102,7 +103,7 @@ export default function CategoryListView({
                 <td className="px-4 py-3 whitespace-nowrap">
                   {category.image ? (
                     <img
-                      src={category.image}
+                      src={getImageUrl(category.image)}
                       alt={category.name}
                       className="w-12 h-12 rounded-lg object-cover"
                       onError={(e) => {

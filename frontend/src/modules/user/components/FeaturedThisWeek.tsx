@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useNavigate, Link } from 'react-router-dom';
 import { getProducts } from '../../../services/api/customerProductService';
 
@@ -74,7 +75,7 @@ export default function FeaturedThisWeek() {
             >
               {/* Background Image */}
               <img
-                src={item.imageUrl}
+                src={getImageUrl(item.imageUrl)}
                 alt={item.title}
                 className="absolute inset-0 w-full h-full object-cover z-0 group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"

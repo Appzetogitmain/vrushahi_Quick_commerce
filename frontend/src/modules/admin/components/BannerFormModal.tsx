@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import {
   Banner,
   BannerFormData,
@@ -204,7 +205,7 @@ export default function BannerFormModal({
                 {imagePreview ? (
                   <>
                     <img
-                      src={imagePreview}
+                      src={getImageUrl(imagePreview)}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />

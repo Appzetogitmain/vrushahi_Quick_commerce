@@ -554,7 +554,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                       <div className="relative w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 hover:border-teal-500 flex flex-col items-center justify-center cursor-pointer bg-white overflow-hidden transition-colors">
                         {variationForm.imagePreview ? (
                           <>
-                            <img src={variationForm.imagePreview} alt="Var Preview" className="w-full h-full object-cover" />
+                            <img src={getImageUrl(variationForm.imagePreview)} alt="Var Preview" className="w-full h-full object-cover" />
                             <button
                               type="button"
                               onClick={(e) => {
@@ -676,7 +676,7 @@ const ProductWizard: React.FC<ProductWizardProps> = ({
                           <tr key={i} className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors">
                              <td className="px-4 py-3 font-semibold text-neutral-800 flex items-center gap-3">
                                 {v.imagePreview || v.image ? (
-                                  <img src={v.imagePreview || v.image} alt={v.title} className="w-10 h-10 object-cover rounded-lg border border-neutral-200" />
+                                  <img src={getImageUrl(v.imagePreview || v.image)} alt={v.title} className="w-10 h-10 object-cover rounded-lg border border-neutral-200" />
                                 ) : (
                                   <div className="w-10 h-10 bg-neutral-100 rounded-lg flex items-center justify-center border border-neutral-200 text-neutral-400">
                                     <ImageIcon size={16} />

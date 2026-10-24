@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { getImageUrl } from "../services/api/uploadService";
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useEffect, useRef, useState } from 'react';
@@ -275,7 +276,7 @@ export default function AddToCartAnimation({
         >
           {removedProduct.imageUrl || removedProduct.mainImage ? (
             <img
-              src={removedProduct.imageUrl || removedProduct.mainImage}
+              src={getImageUrl(removedProduct.imageUrl || removedProduct.mainImage)}
               alt={removedProduct.name || removedProduct.productName || 'Product'}
               className="w-full h-full object-cover"
             />
@@ -299,7 +300,7 @@ export default function AddToCartAnimation({
         >
           {flyingProduct.product.imageUrl || flyingProduct.product.mainImage ? (
             <img
-              src={flyingProduct.product.imageUrl || flyingProduct.product.mainImage}
+              src={getImageUrl(flyingProduct.product.imageUrl || flyingProduct.product.mainImage)}
               alt={flyingProduct.product.name || flyingProduct.product.productName || 'Product'}
               className="w-full h-full object-cover rounded-full"
             />

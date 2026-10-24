@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { getImageUrl } from "../../services/api/uploadService";
 import { useState, useMemo, useEffect } from "react";
 import ProductCard from "./components/ProductCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -397,7 +398,7 @@ export default function CategoryPage() {
                   style={isSelected && category?.isCollection ? { border: `2px solid ${category.backgroundColor || '#eee'}` } : {}}>
                   {subcat.image ? (
                     <img
-                      src={subcat.image}
+                      src={getImageUrl(subcat.image)}
                       alt={subcat.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {

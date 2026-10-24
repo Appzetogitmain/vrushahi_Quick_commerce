@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { getImageUrl } from "../../services/api/uploadService";
 import { useOrders } from '../../hooks/useOrders';
 import CartIconButton from '../../components/CartIconButton';
 
@@ -164,7 +165,7 @@ export default function Orders() {
                       <div key={idx} className={`${idx > 0 ? 'pt-3 mt-3' : ''} flex items-center gap-3`}>
                         <div className="w-12 h-12 bg-neutral-100 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-200/60 shadow-inner">
                           <img
-                            src={displayImage}
+                            src={getImageUrl(displayImage)}
                             alt={productName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {

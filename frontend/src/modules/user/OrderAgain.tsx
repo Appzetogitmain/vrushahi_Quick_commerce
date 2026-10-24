@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { getImageUrl } from "../../services/api/uploadService";
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOrders } from '../../hooks/useOrders';
@@ -91,7 +92,7 @@ export default function OrderAgain() {
           <div className="w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden relative border border-neutral-100 shadow-sm">
             {(product.imageUrl || product.mainImage) ? (
               <img
-                src={product.imageUrl || product.mainImage}
+                src={getImageUrl(product.imageUrl || product.mainImage)}
                 alt={product.name}
                 className="w-full h-full object-contain p-2"
               />

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { gsap } from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { getTheme } from "../../../utils/themes";
@@ -644,7 +645,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                   style={{ background: "transparent" }}>
                   {displayProduct.imageUrl ? (
                     <img
-                      src={displayProduct.imageUrl}
+                      src={getImageUrl(displayProduct.imageUrl)}
                       alt={displayProduct.name}
                       className="w-full h-full object-contain"
                       loading="lazy"
@@ -738,7 +739,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                                   className="flex-shrink-0 bg-white rounded flex items-center justify-center overflow-hidden border border-neutral-200"
                                   style={{ width: "24px", height: "24px" }}>
                                   <img
-                                    src={imageUrl}
+                                    src={getImageUrl(imageUrl)}
                                     alt={`Subcategory ${idx + 1}`}
                                     className="w-full h-full object-cover"
                                     loading="lazy"

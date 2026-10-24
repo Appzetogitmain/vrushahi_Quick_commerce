@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import {
   getBanners,
   createBanner,
@@ -128,7 +129,7 @@ export default function AdminBanners() {
             <div key={banner._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-all">
               <div className="aspect-[21/9] relative overflow-hidden bg-gray-100">
                 <img
-                  src={banner.image}
+                  src={getImageUrl(banner.image)}
                   alt={banner.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />

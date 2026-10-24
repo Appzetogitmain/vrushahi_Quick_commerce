@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { getImageUrl } from "../../services/api/uploadService";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -1296,7 +1297,7 @@ export default function Checkout() {
             <div className={`w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden ${item.isDeliverable === false ? 'grayscale' : ''}`}>
               {item.product?.imageUrl ? (
                 <img
-                  src={item.product?.imageUrl}
+                  src={getImageUrl(item.product?.imageUrl)}
                   alt={item.product?.name}
                   className="w-full h-full object-contain"
                 />

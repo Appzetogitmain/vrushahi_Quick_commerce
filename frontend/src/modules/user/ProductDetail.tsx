@@ -1,4 +1,5 @@
 import {
+import { getImageUrl } from "../../services/api/uploadService";
   useParams,
   useNavigate,
   useLocation as useRouterLocation,
@@ -501,7 +502,7 @@ export default function ProductDetail() {
                   style={{ minWidth: "100%" }}>
                   {image ? (
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`${product.name} - Image ${index + 1}`}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
@@ -522,7 +523,7 @@ export default function ProductDetail() {
             <div className="hidden md:flex w-full h-full items-center justify-center">
               {currentImage ? (
                 <img
-                  src={currentImage}
+                  src={getImageUrl(currentImage)}
                   alt={product.name}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -653,7 +654,7 @@ export default function ProductDetail() {
                         : "border-neutral-200 hover:border-neutral-300"
                       }`}>
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`${product.name} - Image ${index + 1}`}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"

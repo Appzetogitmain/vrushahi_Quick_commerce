@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
+import { getImageUrl } from "../../services/api/uploadService";
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation as useAppLocation } from '../../hooks/useLocation';
@@ -176,7 +177,7 @@ export default function SellerStore() {
                     <div className="w-24 h-24 md:w-40 md:h-40 rounded-full border-4 md:border-8 border-white bg-white shadow-2xl overflow-hidden flex items-center justify-center p-1 md:p-2">
                         {seller.logo ? (
                             <img
-                                src={seller.logo}
+                                src={getImageUrl(seller.logo)}
                                 alt={seller.storeName}
                                 className="w-full h-full object-contain rounded-full"
                             />

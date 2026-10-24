@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 
@@ -56,7 +57,7 @@ const HomeBannerCarousel = ({ banners }: HomeBannerCarouselProps) => {
               to={banners[currentSlide].link}
               className="block w-full h-full">
               <img
-                src={banners[currentSlide].image}
+                src={getImageUrl(banners[currentSlide].image)}
                 alt={banners[currentSlide].title}
                 className="w-full h-full object-cover"
               />

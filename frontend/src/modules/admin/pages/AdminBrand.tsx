@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { uploadImage } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -281,7 +282,7 @@ export default function AdminBrand() {
                 {brandImagePreview ? (
                   <div className="space-y-2">
                     <img
-                      src={brandImagePreview}
+                      src={getImageUrl(brandImagePreview)}
                       alt="Brand preview"
                       className="max-h-32 mx-auto rounded-lg object-cover"
                     />
@@ -302,7 +303,7 @@ export default function AdminBrand() {
                 ) : brandImageUrl ? (
                   <div className="space-y-2">
                     <img
-                      src={brandImageUrl}
+                      src={getImageUrl(brandImageUrl)}
                       alt="Brand preview"
                       className="max-h-32 mx-auto rounded-lg object-cover"
                     />
@@ -553,7 +554,7 @@ export default function AdminBrand() {
                         <div className="w-20 h-16 bg-neutral-100 rounded overflow-hidden flex items-center justify-center">
                           {brand.image ? (
                             <img
-                              src={brand.image}
+                              src={getImageUrl(brand.image)}
                               alt={brand.name}
                               className="w-full h-full object-contain p-1"
                               onError={(e) => {

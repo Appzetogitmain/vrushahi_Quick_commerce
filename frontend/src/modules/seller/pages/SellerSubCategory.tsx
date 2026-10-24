@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { Link, useNavigate } from 'react-router-dom';
 import { getAllSubcategories, SubCategory } from '../../../services/api/categoryService';
 
@@ -326,7 +327,7 @@ export default function SellerSubCategory() {
                                     <td className="p-4 border border-neutral-200">
                                         <div className="w-16 h-12 bg-white border border-neutral-200 rounded p-1 flex items-center justify-center mx-auto">
                                             <img
-                                                src={subcategory.subcategoryImage || '/assets/category-placeholder.png'}
+                                                src={getImageUrl(subcategory.subcategoryImage || '/assets/category-placeholder.png')}
                                                 alt={subcategory.subcategoryName}
                                                 className="max-w-full max-h-full object-contain"
                                                 onError={(e) => {

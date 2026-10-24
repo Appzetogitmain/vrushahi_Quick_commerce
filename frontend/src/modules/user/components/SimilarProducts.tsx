@@ -1,4 +1,5 @@
 import { Product } from '../../../types/domain';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useNavigate } from 'react-router-dom';
 import { calculateProductPrice } from '../../../utils/priceUtils';
 
@@ -36,7 +37,7 @@ export default function SimilarProducts({ products, currentProductId }: SimilarP
                 <div className="w-full h-24 bg-neutral-100 flex items-center justify-center overflow-hidden">
                   {product.imageUrl ? (
                     <img
-                      src={product.imageUrl}
+                      src={getImageUrl(product.imageUrl)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { getImageUrl } from "../../../services/api/uploadService";
 import { useNavigate } from 'react-router-dom';
 
 interface DetailedStoreCardProps {
@@ -30,7 +31,7 @@ export default function DetailedStoreCard({ store }: DetailedStoreCardProps) {
             <div className="relative h-28 md:h-36 bg-neutral-100 overflow-hidden">
                 {store.banner ? (
                     <img
-                        src={store.banner}
+                        src={getImageUrl(store.banner)}
                         alt={`${store.name} banner`}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -56,7 +57,7 @@ export default function DetailedStoreCard({ store }: DetailedStoreCardProps) {
                 <div className="absolute -top-8 left-4 w-16 h-16 rounded-full border-[3px] border-white shadow-md bg-white overflow-hidden z-20 transition-transform duration-500 group-hover:scale-105">
                     {store.logo ? (
                         <img
-                            src={store.logo}
+                            src={getImageUrl(store.logo)}
                             alt={store.name}
                             className="w-full h-full object-cover"
                         />

@@ -4,7 +4,7 @@ import {
   CreateCategoryData,
   UpdateCategoryData,
 } from "../../../services/api/admin/adminProductService";
-import { uploadImage } from "../../../services/api/uploadService";
+import { uploadImage, getImageUrl } from "../../../services/api/uploadService";
 import {
   validateImageFile,
   createImagePreview,
@@ -617,7 +617,7 @@ export default function CategoryFormModal({
               {imagePreview ? (
                 <div className="space-y-2">
                   <img
-                    src={imagePreview}
+                    src={getImageUrl(imagePreview)}
                     alt="Category preview"
                     className="max-h-32 mx-auto rounded-lg object-cover"
                   />

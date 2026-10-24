@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getImageUrl } from "../../../services/api/uploadService";
 import { uploadImage } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -383,7 +384,7 @@ export default function AdminSubCategory() {
                 {subcategoryImagePreview ? (
                   <div className="space-y-2">
                     <img
-                      src={subcategoryImagePreview}
+                      src={getImageUrl(subcategoryImagePreview)}
                       alt="Subcategory preview"
                       className="max-h-32 mx-auto rounded-lg object-cover"
                     />
@@ -706,7 +707,7 @@ export default function AdminSubCategory() {
                           <div className="w-16 h-16 bg-neutral-100 rounded overflow-hidden flex items-center justify-center">
                             {subCategory.image ? (
                               <img
-                                src={subCategory.image}
+                                src={getImageUrl(subCategory.image)}
                                 alt={subCategory.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
