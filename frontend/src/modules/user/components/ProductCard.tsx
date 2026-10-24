@@ -29,7 +29,7 @@ interface ProductCardProps {
   categoryStyle?: boolean;
 }
 
-export default function ProductCard({
+function ProductCardInner({
   product,
   showBadge = false,
   badgeText,
@@ -43,7 +43,6 @@ export default function ProductCard({
   compact = false,
   categoryStyle = false,
 }: ProductCardProps) {
-  if (!product) return null;
   const navigate = useNavigate();
   const { cart, addToCart, updateQuantity } = useCart();
   const { isAuthenticated } = useAuth();
@@ -484,4 +483,10 @@ export default function ProductCard({
       </div>
     </motion.div>
   );
+}
+
+// Guard lives outside so ProductCardInner always calls its hooks in the same order
+export default function ProductCard(props: ProductCardProps) {
+  if (!props.product) return null;
+  return <ProductCardInner {...props} />;
 }
