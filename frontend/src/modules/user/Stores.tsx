@@ -167,25 +167,78 @@ export default function Stores() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-[48px] px-10 shadow-xl border border-neutral-100 max-w-2xl mx-auto transition-all duration-300">
-             <div className="w-28 h-28 bg-neutral-100 rounded-full flex items-center justify-center mb-8 text-6xl shadow-inner">
-               🛸
-             </div>
-            <h3 className="text-3xl font-black text-neutral-900 mb-4">Discovery Empty</h3>
-            <p className="text-neutral-500 md:text-lg max-w-sm mx-auto mb-12 leading-relaxed font-medium">
-              {searchQuery 
-                ? `We couldn't find any stores matching "${searchQuery}" near your current location.`
-                : "It looks like there are no active stores delivering to your area right now."}
-            </p>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="text-[#ff4d6d] font-black md:text-sm uppercase text-xs tracking-[0.2em] hover:text-[#ff758c] py-4 px-10 bg-[#ff4d6d]/5 rounded-2xl transition-all border border-transparent hover:border-[#ff4d6d]/20"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative overflow-hidden flex flex-col items-center text-center bg-white rounded-[2rem] md:rounded-[3rem] px-6 py-12 md:py-16 shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-neutral-100 max-w-xl mx-auto"
+          >
+            {/* Soft decorative blobs */}
+            <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full bg-[#ff4d6d]/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-violet-300/20 blur-3xl" />
+
+            {/* Illustration */}
+            <div className="relative mb-8">
+              <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-pink-50 to-violet-50 flex items-center justify-center shadow-inner">
+                {searchQuery ? (
+                  <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m21 21-4.35-4.35" />
+                    <path d="M8.5 11h5" />
+                  </svg>
+                ) : (
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l1.5-5h15L21 9" />
+                    <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" />
+                    <path d="M5 12v8h14v-8" />
+                    <path d="M10 20v-5h4v5" />
+                  </svg>
+                )}
+              </div>
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-white shadow-lg border border-neutral-100 flex items-center justify-center text-lg"
               >
-                Browse All Stores
-              </button>
-            )}
-          </div>
+                {searchQuery ? "🤔" : "📍"}
+              </motion.div>
+            </div>
+
+            <h3 className="relative text-2xl md:text-3xl font-black text-neutral-900 mb-3 tracking-tight">
+              {searchQuery ? "No matching stores" : "No stores near you yet"}
+            </h3>
+            <p className="relative text-neutral-500 text-sm md:text-base max-w-sm mx-auto mb-8 leading-relaxed font-medium">
+              {searchQuery
+                ? `We couldn't find any store matching "${searchQuery}" in your area. Try a different name or clear the search.`
+                : "No active stores are delivering to your current location right now. Try a different address, or check back soon as we add more stores."}
+            </p>
+
+            <div className="relative flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
+              {searchQuery ? (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-[#ff4d6d] text-white rounded-full font-black text-sm shadow-lg shadow-pink-200 hover:shadow-xl active:scale-95 transition-all"
+                >
+                  Clear search
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent("openLocationPicker"))}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-[#ff4d6d] text-white rounded-full font-black text-sm shadow-lg shadow-pink-200 hover:shadow-xl active:scale-95 transition-all"
+                  >
+                    Change location
+                  </button>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="w-full sm:w-auto px-8 py-3.5 bg-neutral-100 text-neutral-700 rounded-full font-black text-sm hover:bg-neutral-200 active:scale-95 transition-all"
+                  >
+                    Back to home
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
         )}
       </div>
     </div>

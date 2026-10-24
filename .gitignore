@@ -3,11 +3,7 @@ temp_auto_push.bat
 temp_interactive_push.bat
 
 # ── Environment Variables (all levels) ──────────────────────
-.env
-.env.*
 !.env.example
-**/.env
-**/.env.*
 !**/.env.example
 
 # ── Common Secret / Key Files ────────────────────────────────
@@ -17,3 +13,5 @@ temp_interactive_push.bat
 *.pfx
 *-service-account.json
 firebase-service-account.json
+config.bat
+node_modules

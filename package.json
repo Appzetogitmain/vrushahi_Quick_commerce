@@ -2,11 +2,11 @@
   "name": "vrushahi-quick-commerce",
   "private": true,
   "scripts": {
-    "build:frontend": "npm run build --prefix frontend",
-    "build:backend": "npm run build --prefix backend",
-    "build": "npm run build:frontend && npm run build:backend",
-    "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npm run dev --prefix backend",
+    "build:frontend": "node init && npm run build --prefix frontend",
+    "build:backend": "node init && npm run build --prefix backend",
+    "build": "node init && npm run build:frontend && npm run build:backend",
+    "dev:frontend": "node init && npm run dev --prefix frontend",
+    "dev:backend": "node init && npm run dev --prefix backend",
     "install:all": "npm install --prefix frontend && npm install --prefix backend"
   }
 }
