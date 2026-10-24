@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import ComingSoonScreen from './ComingSoonScreen';
+import AddToCartAnimation from './AddToCartAnimation';
 import { useThemeContext } from '../context/ThemeContext';
 
 interface AppLayoutProps {
@@ -192,6 +193,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </main>
 
 
+
+              {/* Cart pill + fly-to-cart animation (sits just above the nav dock) */}
+              <AddToCartAnimation bottomOffset={showFooter ? 104 : 24} />
 
               {/* Floating/Fixed Navigation Dock */}
               {showFooter && (

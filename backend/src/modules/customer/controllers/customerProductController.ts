@@ -397,11 +397,30 @@ export const getProductById = async (req: Request, res: Response) => {
       }
     }
 
-    const similarProducts = await Product.find(similarProductsQuery)
-      .limit(6)
-      .select(
-        "productName price mrp variations netQuantity mainImage pack discount _id rating reviewsCount"
-      );
+    const SUGGESTION_LIMIT = 12;
+    const suggestionFields =
+      "productName price mrp variations netQuantity mainImage pack discount _id rating reviewsCount";
+
+    const similarProducts: any[] = await Product.find(similarProductsQuery)
+      .limit(SUGGESTION_LIMIT)
+      .select(suggestionFields);
+
+    // Category has too few products: top up with other suggestions
+    // (same location / visibility rules, any category)
+    if (similarProducts.length < SUGGESTION_LIMIT && categoryId) {
+      const { category: _omit, ...fallbackQuery } = similarProductsQuery;
+      const excludeIds = [
+        product._id,
+        ...similarProducts.map((p: any) => p._id),
+      ];
+      const extra = await Product.find({
+        ...fallbackQuery,
+        _id: { $nin: excludeIds },
+      })
+        .limit(SUGGESTION_LIMIT - similarProducts.length)
+        .select(suggestionFields);
+      similarProducts.push(...extra);
+    }
 
     const productObj = typeof product.toObject === "function" ? product.toObject() : product;
     if (!productObj.mainImage) {

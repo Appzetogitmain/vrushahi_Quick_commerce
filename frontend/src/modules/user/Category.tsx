@@ -362,7 +362,7 @@ export default function CategoryPage() {
   return (
     <div className="flex bg-white h-screen overflow-hidden">
       {/* Left Sidebar */}
-      <div className="w-24 bg-white border-r border-neutral-100 overflow-y-auto scrollbar-hide flex-shrink-0 py-2">
+      <div className="w-[72px] md:w-20 bg-white border-r border-neutral-100 overflow-y-auto scrollbar-hide flex-shrink-0 py-2">
         <div className="space-y-1">
           {subcategories.map((subcat) => {
             const isSelected = selectedSubcategory === (subcat.id || subcat._id);
@@ -371,13 +371,13 @@ export default function CategoryPage() {
                 key={subcat.id || subcat._id}
                 type="button"
                 onClick={() => setSelectedSubcategory(subcat.id || subcat._id)}
-                className={`w-full flex flex-col items-center justify-center py-4 relative transition-all duration-300 group ${
+                className={`w-full flex flex-col items-center justify-center py-2.5 relative transition-all duration-300 group ${
                   isSelected 
                     ? (category?.isCollection ? "bg-white" : "bg-[#f0e6f7] rounded-r-2xl") 
                     : "hover:bg-neutral-50/50"
                 }`}
                 style={{
-                  minHeight: "100px",
+                  minHeight: "68px",
                 }}>
                 
                 {isSelected && (
@@ -390,7 +390,7 @@ export default function CategoryPage() {
 
                 {/* Image/Icon Container */}
                 <div
-                  className={`w-16 h-16 rounded-[1.75rem] flex items-center justify-center text-xl mb-2 flex-shrink-0 overflow-hidden transition-all duration-300 ${
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center text-lg mb-1 flex-shrink-0 overflow-hidden transition-all duration-300 ${
                     isSelected
                       ? "shadow-md scale-105"
                       : "bg-neutral-50 group-hover:scale-105"
@@ -406,18 +406,18 @@ export default function CategoryPage() {
                         target.style.display = "none";
                         const parent = target.parentElement;
                         if (parent) {
-                          parent.innerHTML = `<span class="text-2xl">${subcat.icon || "📦"}</span>`;
+                          parent.innerHTML = `<span class="text-lg">${subcat.icon || "📦"}</span>`;
                         }
                       }}
                     />
                   ) : (
-                    <span className="text-2xl">{subcat.icon || "📦"}</span>
+                    <span className="text-lg">{subcat.icon || "📦"}</span>
                   )}
                 </div>
 
                 {/* Text Label */}
                 <span
-                  className={`text-[10px] text-center leading-tight px-2 transition-all uppercase tracking-wider ${
+                  className={`text-[9px] text-center leading-tight px-1 transition-all uppercase tracking-normal ${
                     isSelected
                       ? "font-black text-neutral-900 scale-105"
                       : "font-bold text-neutral-400 group-hover:text-neutral-600"

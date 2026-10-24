@@ -23,10 +23,10 @@ export default function StoreCard({ store }: StoreCardProps) {
             whileHover={{ y: -6, transition: { duration: 0.2 } }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(`/store/${store.id}`)}
-            className="group relative flex flex-col w-full h-[260px] bg-white rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_rgba(139,92,246,0.1)] border border-neutral-100 overflow-hidden cursor-pointer transition-all duration-300"
+            className="group relative flex flex-col w-full h-[200px] bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_rgba(139,92,246,0.1)] border border-neutral-100 overflow-hidden cursor-pointer transition-all duration-300"
         >
             {/* Image Section - STRICT FIXED HEIGHT */}
-            <div className="relative w-full h-[155px] overflow-hidden bg-neutral-50/50 flex-shrink-0">
+            <div className="relative w-full h-[112px] overflow-hidden bg-neutral-50/50 flex-shrink-0">
                 {store.logo ? (
                     <img
                         src={getImageUrl(store.logo)}
@@ -60,7 +60,7 @@ export default function StoreCard({ store }: StoreCardProps) {
             </div>
 
             {/* Info Section - FIXED HEIGHT to ensure alignment */}
-            <div className="p-4 flex flex-col flex-1 justify-between h-[105px]">
+            <div className="px-3 py-2.5 flex flex-col flex-1 justify-between h-[88px]">
                 <div className="space-y-1">
                     <h3 className="font-extrabold text-neutral-900 text-[13px] line-clamp-1 uppercase tracking-tight group-hover:text-purple-600 transition-colors">
                         {store.name}

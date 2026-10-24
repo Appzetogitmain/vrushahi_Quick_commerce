@@ -221,8 +221,8 @@ export default function Home() {
             {homeData.nearbyStores && homeData.nearbyStores.length > 0 ? (
               <div className={`
                 ${showAllStores 
-                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-8' 
-                  : 'grid grid-flow-col auto-cols-[165px] md:auto-cols-[280px] lg:auto-cols-[320px] gap-4 md:gap-8 pb-8 items-stretch overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth'}
+                  ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-5' 
+                  : 'grid grid-flow-col auto-cols-[140px] md:auto-cols-[210px] lg:auto-cols-[230px] gap-3 md:gap-5 pb-6 items-stretch overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth'}
               `}>
                 {homeData.nearbyStores.map((store: any) => (
                   <div key={store.id} className="h-full w-full">
