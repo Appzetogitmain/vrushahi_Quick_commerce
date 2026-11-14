@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { getImageUrl } from '../../services/api/uploadService';
 import Button from '../../components/ui/button';
-import { appConfig } from '../../services/configService';
+import { appConfig, getFallbackDeliveryFee } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 
 export default function Cart() {
@@ -10,7 +10,7 @@ export default function Cart() {
   const navigate = useNavigate();
 
   const threshold = cart.freeDeliveryThreshold ?? appConfig.freeDeliveryThreshold;
-  const deliveryFee = cart.estimatedDeliveryFee ?? (cart.total >= threshold ? 0 : appConfig.deliveryFee);
+  const deliveryFee = cart.estimatedDeliveryFee ?? (threshold > 0 && cart.total >= threshold ? 0 : getFallbackDeliveryFee(appConfig));
   const platformFee = cart.platformFee ?? appConfig.platformFee;
   const totalAmount = cart.total + deliveryFee + platformFee;
 

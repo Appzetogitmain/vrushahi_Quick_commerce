@@ -28,7 +28,7 @@ import {
   validateCoupon,
   Coupon as ApiCoupon,
 } from "../../services/api/customerCouponService";
-import { appConfig as staticConfig, useAppConfig } from "../../services/configService";
+import { appConfig as staticConfig, useAppConfig, getFallbackDeliveryFee } from "../../services/configService";
 import {
   getAddresses,
   updateAddress,
@@ -323,15 +323,17 @@ export default function Checkout() {
     ? appConfig.platformFee 
     : (cart.platformFee ?? appConfig.platformFee);
 
+  const fallbackDeliveryFee =
+    threshold > 0 && displayCart.total >= threshold ? 0 : getFallbackDeliveryFee(appConfig);
   const deliveryCharge = buyNowItem
-    ? (displayCart.total >= threshold ? 0 : appConfig.deliveryFee)
-    : (cart.estimatedDeliveryFee ?? (displayCart.total >= threshold ? 0 : appConfig.deliveryFee));
+    ? fallbackDeliveryFee
+    : (cart.estimatedDeliveryFee ?? fallbackDeliveryFee);
 
   // Recalculate or use validated discount
   // If we have a selected coupon, we should re-validate if cart total changes,
   // but for simplicity, we'll re-calculate locally if possible or trust the previous validation if acceptable (better to re-validate)
-  const subtotalBeforeCoupon =
-    discountedTotal + handlingCharge + deliveryCharge;
+  // Coupons apply to product value only (delivery/handling fees are not discounted) - same as backend
+  const subtotalBeforeCoupon = discountedTotal;
 
   // Local calculation for immediate feedback, relying on backend validation on Apply
   let currentCouponDiscount = 0;
@@ -345,8 +347,8 @@ export default function Checkout() {
     } else {
       if (selectedCoupon.discountType === "Percentage") {
         currentCouponDiscount = Math.round(
-          (subtotalBeforeCoupon * selectedCoupon.discountValue) / 100
-        );
+          ((subtotalBeforeCoupon * selectedCoupon.discountValue) / 100) * 100
+        ) / 100;
         if (
           selectedCoupon.maxDiscountAmount &&
           currentCouponDiscount > selectedCoupon.maxDiscountAmount
@@ -356,6 +358,7 @@ export default function Checkout() {
       } else {
         currentCouponDiscount = selectedCoupon.discountValue;
       }
+      currentCouponDiscount = Math.min(currentCouponDiscount, subtotalBeforeCoupon);
     }
   }
 
@@ -1916,8 +1919,7 @@ export default function Checkout() {
           </div>
         ) : (
           availableCoupons.map((coupon) => {
-            const subtotalBeforeCoupon =
-              discountedTotal + handlingCharge + deliveryCharge;
+            const subtotalBeforeCoupon = discountedTotal;
             const meetsMinOrder =
               !coupon.minOrderValue ||
               subtotalBeforeCoupon >= coupon.minOrderValue;

@@ -8,7 +8,19 @@ export interface AppConfig {
     estimatedDeliveryTime: string;
     contactEmail?: string;
     contactPhone?: string;
+    deliveryConfig?: {
+        isDistanceBased?: boolean;
+        baseCharge?: number;
+        baseDistance?: number;
+        kmRate?: number;
+    };
 }
+
+/** Delivery fee to show when the server estimate isn't available (server computes the final fee) */
+export const getFallbackDeliveryFee = (config: AppConfig): number =>
+    config.deliveryConfig?.isDistanceBased
+        ? Number(config.deliveryConfig.baseCharge) || 0
+        : Number(config.deliveryFee) || 0;
 
 import api from './api/config';
 

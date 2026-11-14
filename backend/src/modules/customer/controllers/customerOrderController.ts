@@ -14,6 +14,7 @@ import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
 import AppSettings from "../../../models/AppSettings";
 import { getRoadDistances } from "../../../services/mapService";
+import { checkCouponEligibility, getEligibleSubtotal, calculateCouponDiscount, claimCouponUse } from "../../../services/couponService";
 
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
@@ -29,8 +30,20 @@ export const createOrder = async (req: Request, res: Response) => {
             session = null;
         }
 
-        const { items, address, paymentMethod, fees } = req.body;
+        const { items, address, paymentMethod, fees, couponCode } = req.body;
         const userId = req.user!.userId;
+
+        // Validate coupon up-front (before stock is reserved) so invalid coupons fail cleanly
+        let appliedCoupon: any = null;
+        if (couponCode) {
+            const check = await checkCouponEligibility(couponCode, userId);
+            if (!check.success) {
+                if (session) await session.abortTransaction();
+                return res.status(400).json({ success: false, message: check.message });
+            }
+            appliedCoupon = check.coupon;
+        }
+        const couponLines: { productId?: string; categoryId?: string; sellerId?: string; total: number }[] = [];
 
         // Log incoming request for debugging
         console.log("DEBUG: Order creation request:", {
@@ -297,6 +310,12 @@ export const createOrder = async (req: Request, res: Response) => {
                     : (selectedVariation?.price || product.price || 0);
             const itemTotal = itemPrice * qty;
             calculatedSubtotal += itemTotal;
+            couponLines.push({
+                productId: product._id?.toString(),
+                categoryId: (product.category?._id || product.category)?.toString(),
+                sellerId: product.seller?.toString(),
+                total: itemTotal,
+            });
 
             // Calculate Inclusive Tax for this item
             let itemTax = 0;
@@ -381,8 +400,9 @@ export const createOrder = async (req: Request, res: Response) => {
         }
 
         // Get road distance for exact rider payout if Google Maps is configured
+        const feeSettings: any = await AppSettings.getSettings();
         try {
-            const settings = await AppSettings.findOne();
+            const settings = feeSettings;
             if (settings?.deliveryConfig?.isDistanceBased && settings.deliveryConfig.googleMapsKey && sellerLocationsForDistance.length > 0) {
                 const distances = await getRoadDistances(
                     sellerLocationsForDistance,
@@ -404,10 +424,44 @@ export const createOrder = async (req: Request, res: Response) => {
             newOrder.deliveryDistanceKm = Number(maxOrderDistance.toFixed(2));
         }
 
-        // Apply fees
-        const platformFee = Number(fees?.platformFee) || 0;
-        const deliveryFee = Number(fees?.deliveryFee) || 0;
-        const finalTotal = calculatedSubtotal + platformFee + deliveryFee;
+        // Apply fees - always computed on the server from admin Billing settings (never trust client values)
+        const platformFee = Number(feeSettings?.platformFee) || 0;
+        const freeThreshold = Number(feeSettings?.freeDeliveryThreshold) || 0;
+        let deliveryFee = 0;
+        if (freeThreshold > 0 && calculatedSubtotal >= freeThreshold) {
+            deliveryFee = 0;
+        } else if (feeSettings?.deliveryConfig?.isDistanceBased) {
+            const cfg = feeSettings.deliveryConfig;
+            const distKm = Number(newOrder.deliveryDistanceKm) || 0;
+            const extraKm = Math.max(0, distKm - (Number(cfg.baseDistance) || 0));
+            deliveryFee = Math.ceil((Number(cfg.baseCharge) || 0) + extraKm * (Number(cfg.kmRate) || 0));
+        } else {
+            deliveryFee = Number(feeSettings?.deliveryCharges) || 0;
+        }
+        if (fees && Number(fees.deliveryFee) !== deliveryFee) {
+            console.log(`[Order] Delivery fee from app (${fees.deliveryFee}) differs from server (${deliveryFee}); using server value`);
+        }
+        newOrder.shipping = deliveryFee;
+        newOrder.platformFee = platformFee;
+
+        // Apply coupon (server-side; on product value only, not on fees)
+        let couponDiscount = 0;
+        if (appliedCoupon) {
+            const eligible = getEligibleSubtotal(appliedCoupon, couponLines);
+            const calc = calculateCouponDiscount(appliedCoupon, calculatedSubtotal, eligible);
+            if (!calc.success) {
+                throw Object.assign(new Error(calc.message), { isCouponError: true });
+            }
+            const claimed = await claimCouponUse(appliedCoupon._id, session);
+            if (!claimed) {
+                throw Object.assign(new Error("Coupon usage limit reached"), { isCouponError: true });
+            }
+            couponDiscount = calc.discount;
+            newOrder.couponCode = appliedCoupon.code;
+            newOrder.discount = couponDiscount;
+        }
+
+        const finalTotal = Math.max(0, calculatedSubtotal + platformFee + deliveryFee - couponDiscount);
 
         // Update Order with calculated values and items
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
@@ -425,6 +479,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
             const childShipping = Number((deliveryFee / N).toFixed(2));
             const childPlatformFee = Number((platformFee / N).toFixed(2));
+            let discountAllocated = 0;
 
             for (let i = 0; i < N; i++) {
                 const sellerId = uniqueSellers[i];
@@ -435,7 +490,15 @@ export const createOrder = async (req: Request, res: Response) => {
 
                 const childSubtotal = itemsForSeller.reduce((sum, item) => sum + (item.total || 0), 0);
                 const childTax = itemsForSeller.reduce((sum, item) => sum + (item.taxAmount || 0), 0);
-                const childTotal = childSubtotal + childShipping + childPlatformFee;
+                // Share the coupon discount by subtotal; last store absorbs rounding
+                let childDiscount = 0;
+                if (couponDiscount > 0 && calculatedSubtotal > 0) {
+                    childDiscount = i === N - 1
+                        ? Number((couponDiscount - discountAllocated).toFixed(2))
+                        : Number(((couponDiscount * childSubtotal) / calculatedSubtotal).toFixed(2));
+                    discountAllocated += childDiscount;
+                }
+                const childTotal = Math.max(0, childSubtotal + childShipping + childPlatformFee - childDiscount);
 
                 const childOrderNumber = `${newOrder.orderNumber}-${i + 1}`;
 
@@ -454,6 +517,8 @@ export const createOrder = async (req: Request, res: Response) => {
                     tax: Number(childTax.toFixed(2)),
                     shipping: childShipping,
                     platformFee: childPlatformFee,
+                    discount: childDiscount,
+                    couponCode: newOrder.couponCode,
                     total: Number(childTotal.toFixed(2)),
                     isParent: false,
                     parentOrder: newOrder._id,
@@ -566,6 +631,10 @@ export const createOrder = async (req: Request, res: Response) => {
             stack: error.stack,
             body: req.body
         });
+
+        if (error.isCouponError) {
+            return res.status(400).json({ success: false, message: error.message });
+        }
 
         // Return a more informative error message if it's a validation error
         let errorMessage = "Error creating order. " + error.message;

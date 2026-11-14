@@ -570,6 +570,117 @@ export const processRefund = async (
 };
 
 /**
+ * Notify admin that an order needs a manual refund (auto refund not possible)
+ */
+const notifyAdminManualRefund = async (order: any, reason: string) => {
+    try {
+        const { sendBroadcastNotification } = await import('./notificationService');
+        await sendBroadcastNotification(
+            "Admin",
+            "Pending Manual Refund",
+            `Order #${order.orderNumber} needs a manual refund of ₹${Number(order.total).toFixed(2)}. Auto refund failed: ${reason}`,
+            { type: "Payment", link: "/admin/orders/pending-refund", priority: "High" }
+        );
+    } catch (err) {
+        console.error("[AutoRefund] Failed to notify admin:", err);
+    }
+};
+
+/**
+ * Automatically refund a cancelled/rejected online-paid order through Razorpay.
+ * Safe to call multiple times: claims the order atomically before refunding.
+ */
+export const autoRefundOrder = async (orderId: string) => {
+    const LOCK = 'AUTO_REFUND_IN_PROGRESS';
+
+    // Atomically claim: only one process may refund this order
+    const order: any = await Order.findOneAndUpdate(
+        {
+            _id: orderId,
+            adminRefundStatus: 'Pending',
+            paymentStatus: 'Paid',
+            $or: [{ adminRefundReference: { $exists: false } }, { adminRefundReference: null }, { adminRefundReference: '' }],
+        },
+        { $set: { adminRefundReference: LOCK } },
+        { new: true }
+    );
+    if (!order) return { success: false, message: 'Order not eligible or already being refunded' };
+
+    const release = async (reason: string) => {
+        await Order.updateOne(
+            { _id: orderId, adminRefundReference: LOCK },
+            { $set: { adminRefundReference: '', adminRefundNotes: `Auto refund failed: ${reason}` } }
+        );
+        console.error(`[AutoRefund] Order ${order.orderNumber}: ${reason}`);
+        await notifyAdminManualRefund(order, reason);
+        return { success: false, message: reason };
+    };
+
+    try {
+        // Multi-store parent: each child order refunds its own share
+        if (order.isParent && order.childOrders?.length) {
+            const activeChildren = await Order.countDocuments({
+                _id: { $in: order.childOrders },
+                status: { $nin: ['Cancelled', 'Rejected', 'Failed'] },
+            });
+            if (activeChildren === 0) {
+                await Order.updateOne(
+                    { _id: orderId },
+                    { $set: { adminRefundStatus: 'Not Applicable', adminRefundReference: '', adminRefundNotes: 'Refunded per store via child orders' } }
+                );
+                return { success: true, message: 'Handled via child orders' };
+            }
+            return await release('Parent order cancelled while some store orders are still active - review manually');
+        }
+
+        const razorpayPaymentId = order.paymentId;
+        if (!razorpayPaymentId || !String(razorpayPaymentId).startsWith('pay_')) {
+            return await release('No Razorpay payment ID on order');
+        }
+
+        const payment = await fetchRazorpayPayment(razorpayPaymentId);
+        if (payment.status !== 'captured') {
+            return await release(`Razorpay payment status is '${payment.status}', cannot refund`);
+        }
+        const refundablePaise = payment.amount - (payment.amount_refunded || 0);
+        const wantedPaise = Math.round(Number(order.total) * 100);
+        const amountPaise = Math.min(wantedPaise, refundablePaise);
+        if (amountPaise <= 0) {
+            return await release('Payment already fully refunded on Razorpay');
+        }
+
+        const razorpay = getRazorpayInstance();
+        const refund: any = await razorpay.payments.refund(razorpayPaymentId, {
+            amount: amountPaise,
+            speed: 'normal',
+            notes: { orderId: order._id.toString(), orderNumber: order.orderNumber, reason: `Order ${order.status}` },
+        });
+
+        await Order.updateOne(
+            { _id: orderId },
+            {
+                $set: {
+                    adminRefundStatus: 'Refunded',
+                    paymentStatus: 'Refunded',
+                    adminRefundReference: refund.id,
+                    adminRefundedAt: new Date(),
+                    adminRefundNotes: `Auto refunded ₹${(amountPaise / 100).toFixed(2)} via Razorpay`,
+                },
+            }
+        );
+        await Payment.updateOne(
+            { razorpayPaymentId },
+            { $set: { status: 'Refunded', refundAmount: amountPaise / 100, refundedAt: new Date(), refundReason: `Order ${order.status}` } }
+        );
+
+        console.log(`[AutoRefund] Order ${order.orderNumber} refunded ₹${amountPaise / 100} (${refund.id})`);
+        return { success: true, message: 'Refund initiated', data: { refundId: refund.id, amount: amountPaise / 100 } };
+    } catch (error: any) {
+        return await release(error?.error?.description || error?.message || 'Razorpay refund error');
+    }
+};
+
+/**
  * Handle Razorpay webhook
  */
 export const handleWebhook = async (
@@ -902,11 +1013,28 @@ const handleRefundCreated = async (payload: any) => {
             payment.refundAmount = payload.amount / 100; // Convert from paise
             payment.refundedAt = new Date();
             await payment.save();
+        }
 
-            // Update order
-            await Order.findByIdAndUpdate(payment.order, {
-                paymentStatus: 'Refunded',
-            });
+        // Auto refunds carry the orderId in notes; otherwise only map when exactly one order uses this payment
+        let targetOrderId = payload.notes?.orderId;
+        if (!targetOrderId) {
+            const orders = await Order.find({ paymentId: razorpayPaymentId, isParent: { $ne: true } }).select('_id').limit(2);
+            if (orders.length === 1) targetOrderId = orders[0]._id;
+            else if (!orders.length && payment) targetOrderId = payment.order;
+        }
+
+        if (targetOrderId) {
+            await Order.updateOne(
+                { _id: targetOrderId, adminRefundStatus: { $ne: 'Refunded' } },
+                {
+                    $set: {
+                        paymentStatus: 'Refunded',
+                        adminRefundStatus: 'Refunded',
+                        adminRefundReference: payload.id,
+                        adminRefundedAt: new Date(),
+                    },
+                }
+            );
         }
     } catch (error) {
         console.error('Error handling refund created:', error);

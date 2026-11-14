@@ -35,9 +35,22 @@ export interface GetCouponsResponse {
 /**
  * Get all available coupons
  */
+// Backend uses minimumPurchase / maximumDiscount / startDate / endDate / usageCount
+const normalizeCoupon = (c: any): Coupon => ({
+    ...c,
+    title: c.title || c.description || c.code,
+    description: c.description || '',
+    minOrderValue: c.minOrderValue ?? c.minimumPurchase,
+    maxDiscountAmount: c.maxDiscountAmount ?? c.maximumDiscount,
+    validFrom: c.validFrom ?? c.startDate,
+    validUntil: c.validUntil ?? c.endDate,
+    usedCount: c.usedCount ?? c.usageCount ?? 0,
+});
+
 export const getCoupons = async (): Promise<GetCouponsResponse> => {
     const response = await api.get<GetCouponsResponse>('/customer/coupons');
-    return response.data;
+    const data = response.data;
+    return { ...data, data: Array.isArray(data?.data) ? data.data.map(normalizeCoupon) : [] };
 };
 
 /**

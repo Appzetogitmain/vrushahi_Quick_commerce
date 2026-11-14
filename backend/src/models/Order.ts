@@ -462,28 +462,25 @@ OrderSchema.pre("save", function (next) {
   if (order.isModified("status") && ["Cancelled", "Rejected", "Failed"].includes(order.status)) {
     if (order.paymentMethod === "Online" && order.paymentStatus === "Paid" && order.adminRefundStatus === "Not Applicable") {
       order.adminRefundStatus = "Pending";
-
-      // Trigger admin broadcast notification
-      (async () => {
-        try {
-          const { sendBroadcastNotification } = require("../services/notificationService");
-          await sendBroadcastNotification(
-            "Admin",
-            "Pending Manual Refund",
-            `Order #${order.orderNumber} requires a manual refund of ₹${order.total.toFixed(2)} due to status '${order.status}'.`,
-            {
-              type: "Payment",
-              link: "/admin/orders/pending-refund",
-              priority: "High"
-            }
-          );
-        } catch (err) {
-          console.error("Failed to trigger admin notification for manual refund:", err);
-        }
-      })();
+      // Auto-refund via Razorpay runs after the save commits (see post-save hook)
+      order.$locals.triggerAutoRefund = true;
     }
   }
   next();
+});
+
+// After a paid online order is cancelled, refund it automatically through Razorpay.
+// On failure the order stays "Pending" in the admin's Pending Refund list.
+OrderSchema.post("save", function (doc: any) {
+  if (!doc.$locals?.triggerAutoRefund) return;
+  doc.$locals.triggerAutoRefund = false;
+  const orderId = doc._id.toString();
+  // Small delay so any surrounding transaction has committed
+  setTimeout(() => {
+    import("../services/paymentService")
+      .then(({ autoRefundOrder }) => autoRefundOrder(orderId))
+      .catch((err) => console.error("[AutoRefund] Failed to start auto refund:", err));
+  }, 1500);
 });
 
 // Indexes for faster queries

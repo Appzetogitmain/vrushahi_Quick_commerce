@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Coupon from "../../../models/Coupon";
+import { checkCouponEligibility, calculateCouponDiscount } from "../../../services/couponService";
 
 // Get available coupons
 export const getCoupons = async (_req: Request, res: Response) => {
@@ -25,74 +26,30 @@ export const getCoupons = async (_req: Request, res: Response) => {
     }
 };
 
-// Validate a coupon code
+// Validate a coupon code (orderTotal = product subtotal; fees are not discounted)
 export const validateCoupon = async (req: Request, res: Response) => {
     try {
-        const { code, orderTotal } = req.body;
-        // const userId = req.user!.userId; // Not currently used, but authentication is checked by middleware
+        const { code } = req.body;
+        const orderTotal = Number(req.body.orderTotal) || 0;
+        const userId = (req as any).user?.userId;
 
-        if (!code) {
-            return res.status(400).json({
-                success: false,
-                message: "Coupon code is required",
-            });
+        const check = await checkCouponEligibility(code, userId);
+        if (!check.success) {
+            return res.status(200).json({ success: false, message: check.message });
         }
 
-        const coupon = await Coupon.findOne({
-            code: code.toUpperCase(),
-            isActive: true,
-        });
-
-        if (!coupon) {
-            return res.status(200).json({
-                success: false,
-                message: "Invalid coupon code",
-            });
-        }
-
-        // Check dates
-        const currentDate = new Date();
-        if (currentDate < coupon.startDate || currentDate > coupon.endDate) {
-            return res.status(200).json({
-                success: false,
-                message: "Coupon has expired",
-            });
-        }
-
-        // Check usage limits
-        if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
-            return res.status(200).json({
-                success: false,
-                message: "Coupon usage limit reached",
-            });
-        }
-
-        // Check min order value
-        if (coupon.minimumPurchase && orderTotal < coupon.minimumPurchase) {
-            return res.status(200).json({
-                success: false,
-                message: `Add ₹${(coupon.minimumPurchase - orderTotal).toFixed(0)} more items to apply this coupon`,
-            });
-        }
-
-        // Determine discount amount
-        let discountAmount = 0;
-        if (coupon.discountType === "Percentage") {
-            discountAmount = (orderTotal * coupon.discountValue) / 100;
-            if (coupon.maximumDiscount && discountAmount > coupon.maximumDiscount) {
-                discountAmount = coupon.maximumDiscount;
-            }
-        } else {
-            discountAmount = coupon.discountValue;
+        const calc = calculateCouponDiscount(check.coupon, orderTotal);
+        if (!calc.success) {
+            return res.status(200).json({ success: false, message: calc.message });
         }
 
         return res.status(200).json({
             success: true,
             data: {
                 isValid: true,
-                coupon,
-                discountAmount,
-                finalTotal: Math.max(0, orderTotal - discountAmount),
+                coupon: check.coupon,
+                discountAmount: calc.discount,
+                finalTotal: Math.max(0, orderTotal - calc.discount),
             },
         });
     } catch (error: any) {
