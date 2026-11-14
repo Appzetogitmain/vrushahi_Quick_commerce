@@ -857,23 +857,40 @@ export const createQrPayment = asyncHandler(async (req: Request, res: Response) 
         return res.status(400).json({ success: false, message: "Payment already completed for this order" });
     }
 
-    const { createRazorpayOrder, createRazorpayPaymentLink } = await import('../../../services/paymentService');
-
-    // 1. Create/Get Razorpay Order
-    let razorpayOrderId = order.qrRazorpayOrderId || order.paymentId;
-    if (!razorpayOrderId || (order.paymentMethod !== 'Online' && !order.qrRazorpayOrderId)) {
-        const result = await createRazorpayOrder(id, order.total);
-        if (!result.success) {
-            return res.status(400).json(result);
-        }
-        const orderData = result.data as any;
-        razorpayOrderId = orderData.razorpayOrderId;
+    if (order.status !== 'Out for Delivery') {
+        return res.status(400).json({ success: false, message: "QR payment can be generated only when the order is Out for Delivery" });
     }
 
-    // 2. Create Payment Link with 10-Min Expiry
+    const { createRazorpayPaymentLink, fetchRazorpayPaymentLink, cancelRazorpayPaymentLink } = await import('../../../services/paymentService');
+    const amountPaise = Math.round(order.total * 100);
+
+    // 1. Reuse the active link if it's still payable for the same amount (avoids multiple live QRs / double payment)
+    if (order.qrPaymentLinkId && order.qrPaymentStatus === 'Pending') {
+        try {
+            const existing = await fetchRazorpayPaymentLink(order.qrPaymentLinkId);
+            const stillValid = existing.status === 'created'
+                && existing.amount === amountPaise
+                && (!existing.expire_by || existing.expire_by * 1000 > Date.now() + 60 * 1000);
+            if (stillValid) {
+                return res.status(200).json({
+                    success: true,
+                    data: { qrString: existing.short_url, amount: order.total, expiresAt: new Date(existing.expire_by * 1000) }
+                });
+            }
+            if (existing.status === 'paid') {
+                return res.status(400).json({ success: false, message: "Payment already received for this order. Please refresh." });
+            }
+        } catch (e) {
+            console.warn('[QR] Could not fetch existing payment link, creating a new one');
+        }
+        // Old link unusable -> make sure it can't be paid anymore
+        await cancelRazorpayPaymentLink(order.qrPaymentLinkId);
+    }
+
+    // 2. Create Payment Link (Razorpay minimum expiry is 15 min; we use 20)
     const linkResult = await createRazorpayPaymentLink(
         id,
-        razorpayOrderId!,
+        '',
         order.total,
         `Payment for Order ${order.orderNumber}`,
         {
@@ -889,7 +906,6 @@ export const createQrPayment = asyncHandler(async (req: Request, res: Response) 
 
     // 3. Update Order with Payment Link details and Lock status
     const paymentLinkData = linkResult.data as any;
-    order.qrRazorpayOrderId = razorpayOrderId;
     order.qrPaymentLinkId = paymentLinkData.id;
     order.qrPaymentStatus = 'Pending';
     order.qrExpiryAt = new Date(paymentLinkData.expire_by * 1000);
@@ -928,7 +944,9 @@ export const markCashPaid = asyncHandler(async (req: Request, res: Response) => 
 
     if (order.qrPaymentStatus === "Pending") {
         // We allow discarding an active QR payment in favor of cash.
-        // We'll mark the QR payment as Cancelled.
+        // Cancel it on Razorpay too so the customer can't also pay the old QR.
+        const { cancelRazorpayPaymentLink } = await import('../../../services/paymentService');
+        await cancelRazorpayPaymentLink(order.qrPaymentLinkId);
         order.qrPaymentStatus = "Cancelled";
     }
 

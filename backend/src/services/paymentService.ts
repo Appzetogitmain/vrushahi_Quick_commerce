@@ -302,6 +302,28 @@ export const createRazorpayPaymentLink = async (
 };
 
 /**
+ * Fetch a payment link (to reuse an active one)
+ */
+export const fetchRazorpayPaymentLink = async (linkId: string) => {
+    const razorpay = getRazorpayInstance();
+    return (await razorpay.paymentLink.fetch(linkId)) as any;
+};
+
+/**
+ * Cancel a payment link so it can no longer be paid. Never throws.
+ */
+export const cancelRazorpayPaymentLink = async (linkId?: string) => {
+    if (!linkId) return;
+    try {
+        const razorpay = getRazorpayInstance();
+        await razorpay.paymentLink.cancel(linkId);
+    } catch (error: any) {
+        // Already paid/expired/cancelled links can't be cancelled - that's fine
+        console.warn(`[PaymentLink] Could not cancel ${linkId}:`, error?.error?.description || error?.message);
+    }
+};
+
+/**
  * Create a Razorpay QR Code
  */
 export const createRazorpayQRCode = async (
@@ -398,6 +420,10 @@ export const capturePayment = async (
 
         if (order.paymentStatus === 'Paid' && order.paymentId && order.paymentId !== razorpayPaymentId) {
             throw new Error('Order is already paid');
+        }
+        if (['Cancelled', 'Rejected', 'Failed'].includes(order.status)) {
+            // The payment.captured webhook refunds this payment automatically
+            throw new Error('This order was cancelled because payment took too long. Your money will be refunded automatically.');
         }
 
         // Make sure the paid Razorpay payment really belongs to THIS order and full amount
@@ -797,6 +823,20 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
                 return;
             }
 
+            // Paid after the order was already cancelled (e.g. unpaid-order timeout) -> refund it
+            if (['Cancelled', 'Rejected', 'Failed'].includes(order.status)) {
+                try {
+                    const razorpay = getRazorpayInstance();
+                    await razorpay.payments.refund(razorpayPaymentId, {
+                        notes: { orderId: order._id.toString(), reason: 'Payment received after order was cancelled' },
+                    });
+                    console.warn(`[Webhook] Refunded late payment ${razorpayPaymentId} for cancelled order ${order.orderNumber}`);
+                } catch (refundErr: any) {
+                    console.error(`[Webhook] Failed to refund late payment ${razorpayPaymentId}:`, refundErr?.error?.description || refundErr?.message);
+                }
+                return;
+            }
+
             order.paymentStatus = 'Paid';
             order.paymentId = razorpayPaymentId;
 
@@ -967,7 +1007,22 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
         }
 
         const prev = await claimOrderForQrPayment(orderId, razorpayPaymentId);
-        if (!prev) return; // already processed (or paid in cash)
+        if (!prev) {
+            // Already processed - or the rider collected cash while the customer also paid the QR.
+            const latest: any = await Order.findById(orderId).select('paidVia paymentId orderNumber');
+            if (latest?.paidVia === 'CASH' && latest.paymentId !== razorpayPaymentId) {
+                try {
+                    const razorpay = getRazorpayInstance();
+                    await razorpay.payments.refund(razorpayPaymentId, {
+                        notes: { orderId: String(orderId), reason: 'Order already paid in cash' },
+                    });
+                    console.warn(`[QR] Order ${latest.orderNumber} was paid in cash; refunded duplicate QR payment ${razorpayPaymentId}`);
+                } catch (refundErr: any) {
+                    console.error(`[QR] Failed to refund duplicate QR payment ${razorpayPaymentId}:`, refundErr?.error?.description || refundErr?.message);
+                }
+            }
+            return;
+        }
 
         await finalizeQrOrderPayment(prev, razorpayPaymentId, io);
     } catch (error) {

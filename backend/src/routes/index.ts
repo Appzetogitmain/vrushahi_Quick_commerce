@@ -48,6 +48,8 @@ import {
   cancelOrder,
   updateOrderNotes,
   createReturnRequest,
+  cancelReturnRequest,
+  refreshDeliveryOtp,
 } from "../modules/customer/controllers/customerOrderController";
 
 import policyRoutes from "./policyRoutes";
@@ -124,6 +126,8 @@ router.get("/customer/orders/:id", authenticate, requireUserType("Customer"), ge
 router.post("/customer/orders/:id/cancel", authenticate, requireUserType("Customer"), cancelOrder);
 router.patch("/customer/orders/:id/notes", authenticate, requireUserType("Customer"), updateOrderNotes);
 router.post("/customer/orders/:id/items/:itemId/return", authenticate, requireUserType("Customer"), createReturnRequest);
+router.delete("/customer/orders/:id/items/:itemId/return", authenticate, requireUserType("Customer"), cancelReturnRequest);
+router.post("/customer/orders/:id/refresh-otp", authenticate, requireUserType("Customer"), refreshDeliveryOtp);
 
 // Tracking routes
 router.use("/customer", customerTrackingRoutes);
