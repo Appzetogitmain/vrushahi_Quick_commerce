@@ -804,6 +804,13 @@ export default function DeliveryWallet() {
                                                 className="w-full h-auto object-contain rounded-lg"
                                             />
                                         </div>
+                                    ) : razorpayQR?.short_url ? (
+                                        <div className="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col items-center">
+                                            <QRCodeSVG value={razorpayQR.short_url} size={220} level="M" includeMargin />
+                                            <a href={razorpayQR.short_url} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 underline">
+                                                Or open payment link
+                                            </a>
+                                        </div>
                                     ) : (
                                         <div className="w-48 h-48 bg-white border border-dashed border-neutral-200 rounded-2xl flex items-center justify-center mb-4">
                                             <p className="text-[10px] text-neutral-400 text-center px-4 italic">Failed to load QR. Please try again.</p>

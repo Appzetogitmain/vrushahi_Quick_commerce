@@ -27,6 +27,89 @@ const getRazorpayInstance = () => {
 };
 
 /**
+ * Fetch a payment from Razorpay (source of truth for amount/status/order)
+ */
+export const fetchRazorpayPayment = async (razorpayPaymentId: string) => {
+    const razorpay = getRazorpayInstance();
+    return (await razorpay.payments.fetch(razorpayPaymentId)) as any;
+};
+
+const safeEqual = (a: string, b: string) => {
+    const ab = Buffer.from(a || '');
+    const bb = Buffer.from(b || '');
+    return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+};
+
+/**
+ * Atomically claim an order for QR/online payment so concurrent webhooks
+ * (payment.captured + payment_link.paid, or retries) only process it once.
+ * Returns the pre-update order document, or null if it was already claimed.
+ */
+const claimOrderForQrPayment = async (orderId: string, razorpayPaymentId: string) => {
+    return Order.findOneAndUpdate(
+        { _id: orderId, qrPaymentStatus: { $ne: 'Paid' }, paidVia: { $ne: 'CASH' } },
+        {
+            $set: {
+                paymentStatus: 'Paid',
+                qrPaymentStatus: 'Paid',
+                paidVia: 'ONLINE_QR',
+                paymentId: razorpayPaymentId,
+            },
+        },
+        { new: false }
+    );
+};
+
+/**
+ * Post-claim processing for an order paid through a rider QR / payment link
+ */
+const finalizeQrOrderPayment = async (prev: any, razorpayPaymentId: string, io?: any) => {
+    const order = await Order.findById(prev._id);
+    if (!order) return;
+    const previousStatus = prev.status;
+
+    if (order.status === 'Pending') {
+        order.status = 'Received';
+        await order.save();
+    }
+
+    await propagatePaymentSuccess(order, razorpayPaymentId, 'ONLINE_QR', io);
+
+    if (previousStatus === 'Pending' && order.status === 'Received') {
+        notifyCustomerOrderPlaced(order);
+        if (io) {
+            try {
+                const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                await notifySellersOfOrderUpdate(io, order.toObject(), 'NEW_ORDER');
+            } catch (notifyError) {
+                console.error('Error notifying sellers after QR payment:', notifyError);
+            }
+        }
+    }
+
+    // Auto-mark as Delivered for COD QR payment during delivery
+    if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
+        order.status = 'Delivered';
+        order.deliveryBoyStatus = 'Delivered';
+        order.deliveredAt = new Date();
+        await order.save();
+        try {
+            const { processOrderStatusTransition } = await import('./orderService');
+            await processOrderStatusTransition(order._id.toString(), 'Delivered', previousStatus);
+        } catch (transitionError) {
+            console.error('Error processing auto-delivery transition after QR payment:', transitionError);
+        }
+    }
+
+    if (io && order.deliveryBoy) {
+        io.to(`delivery-${order.deliveryBoy}`).emit('qr-payment-success', {
+            orderId: order._id,
+            message: 'Payment received successfully via QR'
+        });
+    }
+};
+
+/**
  * Propagate payment status to child orders if parent order is paid
  */
 const propagatePaymentSuccess = async (
@@ -313,6 +396,25 @@ export const capturePayment = async (
             throw new Error('Order not found');
         }
 
+        if (order.paymentStatus === 'Paid' && order.paymentId && order.paymentId !== razorpayPaymentId) {
+            throw new Error('Order is already paid');
+        }
+
+        // Make sure the paid Razorpay payment really belongs to THIS order and full amount
+        const rzpPayment = await fetchRazorpayPayment(razorpayPaymentId);
+        if (rzpPayment.order_id !== razorpayOrderId) {
+            throw new Error('Payment does not belong to this Razorpay order');
+        }
+        if (!['captured', 'authorized'].includes(rzpPayment.status)) {
+            throw new Error(`Payment not successful (status: ${rzpPayment.status})`);
+        }
+        if (rzpPayment.notes?.orderId && rzpPayment.notes.orderId !== orderId.toString()) {
+            throw new Error('Payment was made for a different order');
+        }
+        if (rzpPayment.amount < Math.round(order.total * 100)) {
+            throw new Error('Paid amount is less than order total');
+        }
+
         // Create payment record
         const payment = new Payment({
             order: orderId,
@@ -473,21 +575,22 @@ export const processRefund = async (
 export const handleWebhook = async (
     body: any,
     signature: string,
-    io?: any
+    io?: any,
+    rawBody?: string
 ): Promise<{ success: boolean; message: string }> => {
     try {
-        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+        const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim();
 
         if (!webhookSecret) {
             throw new Error('Razorpay webhook secret not configured');
         }
 
-        // Verify webhook signature explicitly
+        // Verify webhook signature against the exact raw body Razorpay sent
         const shasum = crypto.createHmac('sha256', webhookSecret);
-        shasum.update(JSON.stringify(body));
+        shasum.update(rawBody ?? JSON.stringify(body));
         const digest = shasum.digest('hex');
 
-        if (digest !== signature) {
+        if (!safeEqual(digest, signature)) {
             console.error('Webhook signature mismatch');
             throw new Error('Invalid webhook signature');
         }
@@ -504,6 +607,16 @@ export const handleWebhook = async (
             case 'payment_link.paid':
                 await handlePaymentLinkPaid(body, io);
                 break;
+
+            case 'qr_code.credited': {
+                // Rider settlement QR (Razorpay QR Codes API)
+                const qr = body.payload?.qr_code?.entity;
+                const pay = body.payload?.payment?.entity;
+                if (pay && qr?.notes?.type === 'RIDER_PAYOUT') {
+                    await handleRiderPayout({ ...pay, notes: { ...qr.notes, ...pay.notes } }, io);
+                }
+                break;
+            }
 
             case 'payment.failed':
                 await handlePaymentFailed(body.payload.payment.entity);
@@ -558,17 +671,22 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
             if (payment) order = await Order.findById(payment.order);
         }
 
+        // Rider QR / payment link payment: claim atomically, process once
+        // (checkout orders also carry notes.orderId, so require a QR marker)
+        const isRiderQr = !!orderIdFromNotes && (!!payload.notes?.razorpayOrderId || order?.qrPaymentStatus === 'Pending');
+        if (order && isRiderQr) {
+            const prev = await claimOrderForQrPayment(order._id, razorpayPaymentId);
+            if (prev) await finalizeQrOrderPayment(prev, razorpayPaymentId, io);
+            return;
+        }
+
         if (order) {
-            // Double Check Lock
-            if (order.paymentStatus === "Paid" && order.qrPaymentStatus === "Paid") {
-                return; 
+            // Customer checkout payment; /verify handles the full capture flow
+            if (order.paymentStatus === "Paid") {
+                return;
             }
 
             order.paymentStatus = 'Paid';
-            if (orderIdFromNotes) {
-                order.qrPaymentStatus = 'Paid';
-                order.paidVia = 'ONLINE_QR';
-            }
             order.paymentId = razorpayPaymentId;
 
             const previousStatus = order.status;
@@ -579,7 +697,7 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
             await order.save();
 
             // Propagate payment success to child orders (multi-store support)
-            await propagatePaymentSuccess(order, razorpayPaymentId, orderIdFromNotes ? 'ONLINE_QR' : undefined, io);
+            await propagatePaymentSuccess(order, razorpayPaymentId, undefined, io);
 
             // Notify sellers if status changed to Received
             if (previousStatus === 'Pending' && order.status === 'Received') notifyCustomerOrderPlaced(order);
@@ -627,20 +745,31 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
 /**
  * Handle automated Rider Payout from dynamic QR Code
  */
+const riderPayoutsInFlight = new Set<string>();
+
 const handleRiderPayout = async (payload: any, io?: any) => {
+    const razorpayPaymentId = payload.id;
+    // Same payment can arrive via payment.captured + qr_code.credited/payment_link.paid + retries
+    if (!razorpayPaymentId || riderPayoutsInFlight.has(razorpayPaymentId)) return;
+    riderPayoutsInFlight.add(razorpayPaymentId);
+
+    const CashCollection = (await import('../models/CashCollection')).default;
+    if (await CashCollection.exists({ referenceId: razorpayPaymentId })) {
+        riderPayoutsInFlight.delete(razorpayPaymentId);
+        return;
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
         const deliveryBoyId = payload.notes?.deliveryBoyId;
         const amount = payload.amount / 100;
-        const razorpayPaymentId = payload.id;
 
         if (!deliveryBoyId) throw new Error("DeliveryBoy ID missing in notes");
 
         // Dynamic imports to avoid circular dependencies
         const Delivery = (await import('../models/Delivery')).default;
         const PlatformWallet = (await import('../models/PlatformWallet')).default;
-        const CashCollection = (await import('../models/CashCollection')).default;
         const AppSettings = (await import('../models/AppSettings')).default;
         const { processPendingCODPayouts } = await import('./commissionService');
 
@@ -677,7 +806,7 @@ const handleRiderPayout = async (payload: any, io?: any) => {
             paymentMode: "Razorpay_QR",
             type: "Online",
             status: "Completed",
-            razorpayPaymentId,
+            referenceId: razorpayPaymentId,
             remark: "Automated Razorpay QR Payout",
             collectedAt: new Date()
         }], { session });
@@ -699,6 +828,7 @@ const handleRiderPayout = async (payload: any, io?: any) => {
         console.error('Error in handleRiderPayout:', error);
     } finally {
         session.endSession();
+        riderPayoutsInFlight.delete(razorpayPaymentId);
     }
 };
 
@@ -709,69 +839,26 @@ const handlePaymentLinkPaid = async (body: any, io?: any) => {
         const razorpayPaymentId = payload.payment.entity.id;
         
         // Exact mapping as requested: payload?.payload?.payment_link?.entity?.notes?.orderId
+        // Rider settlement via payment link (fallback when QR Codes API is unavailable)
+        if (paymentLink.notes?.type === 'RIDER_PAYOUT') {
+            await handleRiderPayout({ ...payload.payment.entity, notes: { ...paymentLink.notes, ...payload.payment.entity.notes } }, io);
+            return;
+        }
+
         const orderId = paymentLink.notes?.orderId;
-        
         if (!orderId) return;
 
-        const order = await Order.findById(orderId);
-        if (!order) return;
-
-        // Double Check Lock
-        if (order.paymentStatus === "Paid" && order.qrPaymentStatus === "Paid") {
-            return; 
+        // Ignore stale links (rider regenerated QR or switched to cash)
+        const current = await Order.findById(orderId).select('qrPaymentLinkId');
+        if (!current) return;
+        if (current.qrPaymentLinkId && current.qrPaymentLinkId !== paymentLink.id) {
+            console.warn(`[Webhook] Payment link ${paymentLink.id} is not the active link for order ${orderId}; needs manual review/refund`);
         }
 
-        const previousStatus = order.status;
-        order.paymentStatus = 'Paid';
-        order.qrPaymentStatus = 'Paid';
-        order.paidVia = 'ONLINE_QR';
-        order.paymentId = razorpayPaymentId;
+        const prev = await claimOrderForQrPayment(orderId, razorpayPaymentId);
+        if (!prev) return; // already processed (or paid in cash)
 
-        if (order.status === 'Pending') {
-            order.status = 'Received';
-        }
-
-        await order.save();
-
-        // Propagate payment success to child orders (multi-store support)
-        await propagatePaymentSuccess(order, razorpayPaymentId, 'ONLINE_QR', io);
-
-        // Notify sellers if status changed to Received
-        if (previousStatus === 'Pending' && order.status === 'Received') notifyCustomerOrderPlaced(order);
-
-        if (previousStatus === 'Pending' && order.status === 'Received' && io) {
-            try {
-                const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
-                await notifySellersOfOrderUpdate(io, order.toObject(), 'NEW_ORDER');
-            } catch (notifyError) {
-                console.error("Error notifying sellers in handlePaymentLinkPaid:", notifyError);
-            }
-        }
-
-        // Auto-mark as Delivered for COD QR payment during delivery
-        if (order.status === 'Picked up' || order.status === 'Out for Delivery') {
-            order.status = 'Delivered';
-            order.deliveryBoyStatus = 'Delivered';
-            order.deliveredAt = new Date();
-
-            // CRITICAL: Re-save for status update before transition
-            await order.save();
-
-            // Financial transition logic
-            try {
-                const { processOrderStatusTransition } = await import('./orderService');
-                await processOrderStatusTransition(orderId, 'Delivered', previousStatus);
-            } catch (transitionError) {
-                console.error('Error processing auto-delivery transition in handlePaymentLinkPaid:', transitionError);
-            }
-        }
-
-        if (io && order.deliveryBoy) {
-            io.to(`delivery-${order.deliveryBoy}`).emit('qr-payment-success', { 
-                orderId: order._id,
-                message: 'Payment received successfully via QR'
-            });
-        }
+        await finalizeQrOrderPayment(prev, razorpayPaymentId, io);
     } catch (error) {
         console.error('Error handling payment link paid:', error);
     }

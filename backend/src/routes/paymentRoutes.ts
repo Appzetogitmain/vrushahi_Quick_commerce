@@ -37,6 +37,10 @@ router.post('/create-order', authenticate, requireUserType('Customer'), async (r
             });
         }
 
+        if (order.paymentStatus === 'Paid') {
+            return res.status(400).json({ success: false, message: 'Order is already paid' });
+        }
+
         const result = await createRazorpayOrder(orderId, order.total);
 
         if (!result.success) {
@@ -121,7 +125,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         }
 
         const io = req.app.get("io");
-        const result = await handleWebhook(req.body, signature, io);
+        const result = await handleWebhook(req.body, signature, io, (req as any).rawBody);
 
         if (!result.success) {
             return res.status(400).json(result);

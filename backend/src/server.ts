@@ -99,7 +99,12 @@ const corsOptions = {
 // Apply CORS middleware - This handles everything including preflight
 app.use(cors(corsOptions));
 
-app.use(express.json());
+// Keep the raw body so Razorpay webhook signatures can be verified exactly
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString("utf8");
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Serve uploaded files as static assets ────────────────────────────────────

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getCommissionSummary, processPendingCODPayouts } from '../../../services/commissionService';
 import Delivery from '../../../models/Delivery';
-import { createRazorpayOrder, verifyPaymentSignature, createRazorpayQRCode } from '../../../services/paymentService';
+import { createRazorpayOrder, verifyPaymentSignature, createRazorpayQRCode, createRazorpayPaymentLink, fetchRazorpayPayment } from '../../../services/paymentService';
 import WalletTransaction from '../../../models/WalletTransaction';
 import PlatformWallet from '../../../models/PlatformWallet';
 import mongoose from 'mongoose';
@@ -216,9 +216,34 @@ export const generatePayoutQR = async (req: Request, res: Response) => {
             amount: amount
         };
 
-        const result = await createRazorpayQRCode(amount, description, notes);
+        if (amount > (deliveryBoy.pendingAdminPayout || 0) + 0.01) {
+            return res.status(400).json({ success: false, message: `Amount exceeds pending admin payout of ₹${deliveryBoy.pendingAdminPayout || 0}` });
+        }
 
-        return res.status(result.success ? 200 : 400).json(result);
+        const result = await createRazorpayQRCode(amount, description, notes);
+        if (result.success) {
+            return res.status(200).json(result);
+        }
+
+        // Fallback: QR Codes API not enabled on this Razorpay account -> use a Payment Link
+        // (rendered as a UPI-scannable QR on the frontend; settled via payment_link.paid webhook)
+        console.warn('[PayoutQR] QR Codes API failed, falling back to Payment Link:', result.message);
+        const linkResult = await createRazorpayPaymentLink(
+            `PAYOUT-${deliveryBoy._id}`,
+            '',
+            amount,
+            description,
+            { name: deliveryBoy.name, contact: deliveryBoy.mobile ? `+91${String(deliveryBoy.mobile).replace(/^\+?91/, '')}` : '' },
+            notes
+        );
+        if (!linkResult.success) {
+            return res.status(400).json(linkResult);
+        }
+        const link: any = linkResult.data;
+        return res.status(200).json({
+            success: true,
+            data: { id: link.id, short_url: link.short_url, payment_amount: link.amount, type: 'payment_link' }
+        });
     } catch (error: any) {
         console.error("Error generating payout QR:", error);
         return res.status(500).json({ success: false, message: error.message });
@@ -274,13 +299,25 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
             razorpayOrderId,
             razorpayPaymentId,
             razorpaySignature,
-            amount
         } = req.body;
 
         // 1. Verify Signature
         const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
         if (!isValid) {
             throw new Error("Invalid payment signature");
+        }
+
+        // Use the amount Razorpay actually received, never the client-sent value
+        const rzpPayment = await fetchRazorpayPayment(razorpayPaymentId);
+        if (rzpPayment.order_id !== razorpayOrderId || !['captured', 'authorized'].includes(rzpPayment.status)) {
+            throw new Error("Payment not successful");
+        }
+        const amount = rzpPayment.amount / 100;
+
+        // Prevent replaying the same payment
+        const alreadyUsed = await WalletTransaction.exists({ reference: `PAYOUT-${razorpayPaymentId}` });
+        if (alreadyUsed) {
+            throw new Error("This payment has already been processed");
         }
 
         // 2. Update delivery boy pendingAdminPayout
