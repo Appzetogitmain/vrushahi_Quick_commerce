@@ -85,6 +85,8 @@ export default function SellerAddProduct() {
   });
 
   const [variations, setVariations] = useState<ProductVariation[]>([]);
+  // Pricing-step values as loaded, to detect if the seller changed MRP/selling price there
+  const [loadedPricing, setLoadedPricing] = useState<{ price: string; compareAtPrice: string } | null>(null);
   const [variationForm, setVariationForm] = useState({
     title: "",
     price: "",
@@ -189,6 +191,10 @@ export default function SellerAddProduct() {
               attributes: (product as any).attributes || {},
             });
             setVariations(product.variations || []);
+            setLoadedPricing({
+              price: product.discPrice?.toString() || product.variations?.[0]?.discPrice?.toString() || "",
+              compareAtPrice: product.price?.toString() || product.variations?.[0]?.price?.toString() || "",
+            });
             setMainImagePreview(product.mainImageUrl || product.mainImage || "");
             setGalleryImagePreviews(product.galleryImages || product.galleryImageUrls || []);
           }
@@ -434,6 +440,27 @@ export default function SellerAddProduct() {
           };
         })
       );
+
+      // If MRP / Selling Price were edited in the Pricing step, apply them to the
+      // first variation (the product's displayed/charged price comes from variations)
+      const pricingChanged =
+        !!loadedPricing &&
+        (formData.price !== loadedPricing.price ||
+        formData.compareAtPrice !== loadedPricing.compareAtPrice);
+      const mrp = parseFloat(formData.compareAtPrice);
+      const selling = parseFloat(formData.price);
+      if (pricingChanged && mrp > 0 && updatedVariations.length > 0) {
+        if (selling > mrp) {
+          showToast("Selling price cannot be greater than MRP", "error");
+          setUploading(false);
+          return;
+        }
+        updatedVariations[0] = {
+          ...updatedVariations[0],
+          price: mrp,
+          discPrice: selling > 0 ? selling : 0,
+        };
+      }
 
       const isPublish = forcePublishValue ? forcePublishValue === "Yes" : formData.publish === "Yes";
 
