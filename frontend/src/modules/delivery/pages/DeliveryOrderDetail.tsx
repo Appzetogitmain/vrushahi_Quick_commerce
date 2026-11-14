@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, sendSellerPickupOtp, createQrPayment, markCashPaid } from '../../../services/api/delivery/deliveryService';
 import QrPaymentModal from '../components/QrPaymentModal';
+import { useAuth } from '../../../context/AuthContext';
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
 
@@ -90,6 +91,10 @@ type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out f
 
 export default function DeliveryOrderDetail() {
     const { id } = useParams();
+    const { user } = useAuth();
+    // Ref so the socket 'connect' handler (registered once) always sees the latest user
+    const authUserRef = useRef<any>(user);
+    authUserRef.current = user;
     const navigate = useNavigate();
     const [order, setOrder] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
@@ -189,6 +194,24 @@ export default function DeliveryOrderDetail() {
             setPaymentProcessing(false);
         }
     };
+
+    // Fallback if the socket event is missed: poll the order while a QR is active
+    useEffect(() => {
+        if (qrPaymentStatus !== 'pending' || !id) return;
+        const interval = setInterval(async () => {
+            try {
+                const latest: any = await getOrderDetails(id);
+                if (latest?.paymentStatus === 'Paid' || latest?.qrPaymentStatus === 'Paid') {
+                    setQrPaymentStatus('paid');
+                    setOrder(latest);
+                    setTimeout(() => setShowQrModal(false), 2000);
+                }
+            } catch {
+                /* ignore transient errors */
+            }
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [qrPaymentStatus, id]);
 
     const handleMarkCashPaid = async () => {
         if (!id) return;
@@ -456,6 +479,9 @@ export default function DeliveryOrderDetail() {
                     if (isMounted) {
                         console.log('✅ Delivery Socket Connected:', socket.id);
                         setSocketConnected(true);
+                        // Join this rider's room so 'qr-payment-success' / 'order-cancelled' reach this screen
+                        const riderId = authUserRef.current?.id || authUserRef.current?._id;
+                        if (riderId) socket.emit('join-delivery-notifications', riderId);
                     }
                 });
 

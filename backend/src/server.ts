@@ -20,6 +20,7 @@ import { startEarningsReleaseWorker } from "./services/earningsReleaseService";
 import { ensureUploadDirs } from "./config/uploadPaths";
 import cron from "node-cron";
 import { checkAndExpireSubscriptions } from "./services/subscriptionService";
+import { cancelUnpaidOnlineOrders } from "./services/unpaidOrderCleanupService";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -165,6 +166,11 @@ async function startServer() {
   // Start background subscription expiry scheduler (runs every day at midnight)
   cron.schedule("0 0 * * *", () => {
     checkAndExpireSubscriptions(io);
+  });
+
+  // Every 10 minutes: cancel online orders left unpaid for 30+ min and release their stock
+  cron.schedule("*/10 * * * *", () => {
+    cancelUnpaidOnlineOrders().catch((err) => console.error("[UnpaidCleanup] Job error:", err));
   });
 
   httpServer.listen(PORT, () => {
