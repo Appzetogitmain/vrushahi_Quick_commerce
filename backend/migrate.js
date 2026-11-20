@@ -1,7 +1,8 @@
 const { MongoClient } = require('mongodb');
 
-const sourceUri = 'mongodb+srv://vinijinodiya:Vini%40123@cluster0.qsz1vc3.mongodb.net/SpeeUp?appName=Cluster0';
-const targetUri = 'mongodb+srv://Raunak:RfC6ZiPBfKEdk7AF@careerlink.dzzaz6k.mongodb.net/vrumarketr?appName=CareerLink';
+require('dotenv').config();
+const sourceUri = process.env.MIGRATE_SOURCE_URI;
+const targetUri = process.env.MIGRATE_TARGET_URI || process.env.MONGODB_URI;
 
 async function migrate() {
     const sourceClient = new MongoClient(sourceUri);
